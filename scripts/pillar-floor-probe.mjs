@@ -61,7 +61,7 @@ function deckRectPieces(fullMinX, fullMaxX, fullMinZ, fullMaxZ, hole) {
   return pieces;
 }
 
-function buildLevel(raw) {
+export function buildLevel(raw) {
   const ARENA_SIZE = raw.size;
   const WALL_HEIGHT = raw.wallHeight;
   const WALL_THICKNESS = raw.wallThickness;
@@ -210,6 +210,15 @@ function buildLevel(raw) {
   };
 }
 
+import { pathToFileURL } from "node:url";
+
+const isMain =
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (!isMain) {
+  // buildLevel exported for idle-bounce-probe.mjs
+} else {
 const raw = JSON.parse(
   readFileSync(new URL("../public/levels/level1.json", import.meta.url), "utf8")
 );
@@ -299,3 +308,4 @@ console.log("walk south into NE corner", {
   x: player.getX().toFixed(3),
   z: player.getZ().toFixed(3),
 });
+}

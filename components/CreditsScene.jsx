@@ -15,28 +15,17 @@ import "@/app/credits/credits.css";
 import CreditsRiflePreview from "@/components/CreditsRiflePreview";
 import CreditsAmmoCratePreview from "@/components/CreditsAmmoCratePreview";
 import CreditsBigBangFinale from "@/components/CreditsBigBangFinale";
+import CreditsScanlineCanvas from "@/components/CreditsScanlineCanvas";
 import LoadingAudioViz from "@/components/LoadingAudioViz";
+import { preloadCreditsAssets } from "@/lib/preloadCreditsAssets";
+import { setCreditsPreviewPaused } from "@/lib/creditsPreviewScheduler";
+import {
+  GOLD_STAFF,
+  PRODUCTION_STAFF,
+  staffAt,
+} from "@/lib/CreditsStaffNames";
 
 const CARL = "Carl Fearby";
-
-/** The entire studio staff — every name an anagram of Carl Fearby. */
-const STAFF = Object.freeze([
-  "Barry Calfe",
-  "Carly Faber",
-  "Clay Farber",
-  "Alec Frybar",
-  "Clare Barfy",
-  "Ray Barclef",
-  "Faryl Brace",
-  "Ralf Bracey",
-  "Farley Crab",
-  "Arby Calfer",
-]);
-
-/** Pick three crew for a section (offset rotates who leads each department). */
-function trio(offset = 0) {
-  return [0, 1, 2].map((i) => STAFF[(offset + i) % STAFF.length]);
-}
 
 const SCROLL_SPEED = 95;
 const INTRO_DELAY_S = 2;
@@ -56,11 +45,11 @@ const TRACK_SONG_CREDITS = Object.freeze({
     ["Time Signature", "4/4 Until The Bar Stops"],
     ["Inspired by", "The spinning VX-27 logo"],
     ["Lyrics", "None (Carl was busy loading)"],
-    ["Composed by", "Faryl Brace"],
-    ["Arranged by", "Barry Calfe"],
-    ["Programmed by", "Carly Faber"],
-    ["Mixed by", "Clay Farber"],
-    ["Mastered by", "Alec Frybar"],
+    ["Composed by", "Fay Brace"],
+    ["Arranged by", "Clay Faber"],
+    ["Programmed by", "Ray Cable"],
+    ["Mixed by", "Alf Bracey"],
+    ["Mastered by", "Earl Farby"],
     ["Mixer Notes", "More reverb than progress"],
     ["Plays When", "Carl tests 'one more thing'"],
     ["Grammy Category", "Best Loading Screen Anthem"],
@@ -74,8 +63,8 @@ const TRACK_SONG_CREDITS = Object.freeze({
     ["Subtitle", "The Driftening Continues"],
     ["Sequel Because", "Carl had one more MIDI file"],
     ["Features", "47% More Galactic, 12% More Drift"],
-    ["Written by", "Ray Barclef"],
-    ["Produced by", "Farley Crab"],
+    ["Written by", "Cyra Fable"],
+    ["Produced by", "Cary Baler"],
     ["Composed while", "Carl walked into pillars repeatedly"],
     ["Combat Mix", "Duck under gunfire (unimplemented)"],
     ["Loop Length", "Long enough to forget which room"],
@@ -83,7 +72,7 @@ const TRACK_SONG_CREDITS = Object.freeze({
     ["Player Feedback", "'Can we skip this?' — Carl, playtesting"],
     ["Licensed for", "Indoor arena violence only"],
     ["Not Licensed for", "Actual galactic drifting"],
-    ["Co-Produced by", "Arby Calfer"],
+    ["Co-Produced by", "Ralf Bayer"],
     ["Performed by", "The Carl Fearby Anagram Players"],
     ["All Instruments", "A laptop and hope"],
     ["Soundcheck", "Passed (Carl was the only listener)"],
@@ -114,180 +103,199 @@ const SECTIONS = [
   {
     title: "Production",
     credits: [
-      ["Executive Producer", trio(0)[0]],
-      ["Producer", trio(0)[1]],
-      ["Line Producer", trio(0)[2]],
-      ["Unit Production Manager", "Barry Calfe"],
-      ["Production Coordinator", "Carly Faber"],
-      ["Production Accountant", "Clay Farber"],
+      ["Executive Producer", GOLD_STAFF[0]],
+      ["Producer", GOLD_STAFF[1]],
+      ["Line Producer", GOLD_STAFF[2]],
+      ["Unit Production Manager", GOLD_STAFF[3]],
+      ["Production Coordinator", GOLD_STAFF[4]],
+      ["Production Accountant", GOLD_STAFF[5]],
       ["Studio Head", CARL],
     ],
   },
   {
     title: "Direction & Creative",
     credits: [
-      ["Game Director", "Alec Frybar"],
-      ["Creative Director", "Clare Barfy"],
-      ["Art Director", "Ray Barclef"],
-      ["Technical Director", "Faryl Brace"],
-      ["Cinematic Director", "Ralf Bracey"],
-      ["Vision Holder", "Farley Crab"],
+      ["Game Director", GOLD_STAFF[7]],
+      ["Creative Director", GOLD_STAFF[11]],
+      ["Art Director", GOLD_STAFF[8]],
+      ["Technical Director", staffAt(12)],
+      ["Cinematic Director", staffAt(13)],
+      ["Vision Holder", staffAt(14)],
       ["Final Say Enforcer", CARL],
     ],
   },
   {
     title: "Engine & Rendering",
     credits: [
-      ["Lead Engine Programmer", "Arby Calfer"],
-      ["Render Pipeline Architect", "Barry Calfe"],
-      ["WebGL Wrangler", "Carly Faber"],
-      ["Shader Artist", "Clay Farber"],
-      ["Post-Processing Supervisor", "Alec Frybar"],
-      ["GPU Warmup Coordinator", "Clare Barfy"],
-      ["Frame Budget Negotiator", "Ray Barclef"],
+      ["Lead Engine Programmer", GOLD_STAFF[3]],
+      ["Render Pipeline Architect", staffAt(15)],
+      ["WebGL Wrangler", GOLD_STAFF[0]],
+      ["Shader Artist", staffAt(16)],
+      ["Post-Processing Supervisor", staffAt(17)],
+      ["GPU Warmup Coordinator", staffAt(18)],
+      ["Frame Budget Negotiator", staffAt(19)],
+      ["WebP Texture Migration Lead", staffAt(20)],
+      ["Sky Dome Seamless Stitcher", staffAt(21)],
     ],
   },
   {
     title: "Gameplay Systems",
     credits: [
-      ["Lead Gameplay Programmer", "Faryl Brace"],
-      ["Player Controller Engineer", "Ralf Bracey"],
-      ["Collision Detection Specialist", "Farley Crab"],
-      ["Weapon Systems Programmer", "Arby Calfer"],
-      ["Grenade Trajectory Mathematician", "Barry Calfe"],
-      ["Target Systems Engineer", "Carly Faber"],
-      ["Doorway Wall Technician", "Clay Farber"],
+      ["Lead Gameplay Programmer", staffAt(22)],
+      ["Player Controller Engineer", staffAt(23)],
+      ["Collision Detection Specialist", staffAt(24)],
+      ["Weapon Systems Programmer", staffAt(25)],
+      ["Grenade Trajectory Mathematician", staffAt(26)],
+      ["Target Systems Engineer", staffAt(27)],
+      ["Doorway Wall Technician", staffAt(28)],
     ],
   },
   {
     title: "Level Design & World",
     credits: [
-      ["Lead Level Designer", "Alec Frybar"],
-      ["Arena Architect", "Clare Barfy"],
-      ["Stair Ramp Designer", "Ray Barclef"],
-      ["Pillar Geometry Curator", "Faryl Brace"],
-      ["Room Culling Optimization Expert", "Ralf Bracey"],
-      ["Level Texture Painter", "Farley Crab"],
-      ['"Is this room too big?" Analyst', "Arby Calfer"],
+      ["Lead Level Designer", staffAt(29)],
+      ["Arena Architect", staffAt(30)],
+      ["Stair Ramp Designer", staffAt(31)],
+      ["Pillar Geometry Curator", staffAt(32)],
+      ["Room Culling Optimization Expert", staffAt(33)],
+      ["Level Texture Painter", staffAt(34)],
+      ['"Is this room too big?" Analyst', staffAt(35)],
     ],
   },
   {
     title: "Lighting & Atmosphere",
     credits: [
-      ["Lighting Director", "Barry Calfe"],
-      ["Sun Light Tuning Engineer", "Carly Faber"],
-      ["Moon Light Calibration Specialist", "Clay Farber"],
-      ["Hemisphere Lighting Artist", "Alec Frybar"],
-      ["Candle Flicker Animator", "Clare Barfy"],
-      ["Shadow Quality Perfectionist", "Ray Barclef"],
+      ["Lighting Director", staffAt(36)],
+      ["Sun Light Tuning Engineer", staffAt(37)],
+      ["Moon Light Calibration Specialist", staffAt(38)],
+      ["Hemisphere Lighting Artist", staffAt(39)],
+      ["Candle Flicker Animator", GOLD_STAFF[6]],
+      ["Shadow Quality Perfectionist", staffAt(40)],
     ],
   },
   {
     title: "Visual Effects & Combat Feedback",
     credits: [
-      ["VFX Supervisor", "Faryl Brace"],
-      ["Blood Particle Effects Artist", "Ralf Bracey"],
-      ["Bullet Hole Decal Specialist", "Farley Crab"],
-      ["Screen Shake Authority", "Arby Calfer"],
-      ["Juice Engineer", "Barry Calfe"],
-      ["Satisfying Hit Marker Consultant", "Carly Faber"],
+      ["VFX Supervisor", GOLD_STAFF[9]],
+      ["Blood Particle Effects Artist", staffAt(41)],
+      ["Bullet Hole Decal Specialist", staffAt(42)],
+      ["Screen Shake Authority", staffAt(43)],
+      ["Juice Engineer", staffAt(44)],
+      ["Satisfying Hit Marker Consultant", staffAt(45)],
+    ],
+  },
+  {
+    title: "Environmental Hazards",
+    credits: [
+      ["Oil Barrel Systems Lead", GOLD_STAFF[4]],
+      ["Interior Flame Video Artist", staffAt(46)],
+      ["Barrel Fire Light Designer", staffAt(47)],
+      ["Organic Pile Layout Engineer", staffAt(48)],
+      ["Barrel Interior Texture Painter", staffAt(49)],
+      ["Open-Top Explosion Coordinator", staffAt(50)],
+      ["Flammable Prop Safety Officer (Unpaid)", staffAt(51)],
+      ["Room Render Layer Fixer", staffAt(52)],
     ],
   },
   {
     title: "Character & Animation",
     credits: [
-      ["Lead Animator", "Clay Farber"],
-      ["Walk Bob Tuning Specialist", "Alec Frybar"],
-      ["Stair Walk Physics Consultant", "Clare Barfy"],
-      ["Head Bob Frequency Analyst", "Ray Barclef"],
-      ["Motion Sickness Prevention Officer", "Faryl Brace"],
-      ["First-Person Presence Director", "Ralf Bracey"],
+      ["Lead Animator", GOLD_STAFF[5]],
+      ["Walk Bob Tuning Specialist", staffAt(53)],
+      ["Stair Walk Physics Consultant", staffAt(54)],
+      ["Head Bob Frequency Analyst", staffAt(55)],
+      ["Motion Sickness Prevention Officer", staffAt(56)],
+      ["First-Person Presence Director", staffAt(57)],
     ],
   },
   {
     title: "Audio",
     credits: [
-      ["Audio Director", "Farley Crab"],
-      ["Sound Designer", "Arby Calfer"],
-      ["Lead Composer", "Barry Calfe"],
-      ["Foley Artist", "Carly Faber"],
-      ["Gunshot Recording Engineer", "Clay Farber"],
-      ["Volume Slider Guardian", "Alec Frybar"],
+      ["Audio Director", staffAt(58)],
+      ["Sound Designer", staffAt(59)],
+      ["Lead Composer", staffAt(60)],
+      ["Foley Artist", GOLD_STAFF[10]],
+      ["Gunshot Recording Engineer", staffAt(61)],
+      ["Volume Slider Guardian", staffAt(62)],
+      ["Oil Barrel Fire Loop Composer", staffAt(63)],
     ],
   },
   {
     title: "User Interface & HUD",
     credits: [
-      ["UI/UX Director", "Clare Barfy"],
-      ["HUD Bar Designer", "Ray Barclef"],
-      ["Compass Overlay Artist", "Faryl Brace"],
-      ["Controls Panel Architect", "Ralf Bracey"],
-      ["Loading Screen Art Director", "Farley Crab"],
-      ["Orbitron Font Enthusiast", "Arby Calfer"],
+      ["UI/UX Director", staffAt(64)],
+      ["HUD Bar Designer", staffAt(65)],
+      ["Compass Overlay Artist", staffAt(66)],
+      ["Controls Panel Architect", staffAt(67)],
+      ["Loading Screen Art Director", staffAt(68)],
+      ["Orbitron Font Enthusiast", staffAt(69)],
     ],
   },
   {
     title: "Dev Tools & Tuning Panels",
     credits: [
-      ["Dev Tools Czar", "Barry Calfe"],
-      ["Weapon Tune Panel Engineer", "Carly Faber"],
-      ["Stair Tune Panel Engineer", "Clay Farber"],
-      ["Sun Tune Panel Engineer", "Alec Frybar"],
-      ["Sliders For Everything Advocate", "Clare Barfy"],
-      ["Live Tweak Enjoyer", "Ray Barclef"],
+      ["Dev Tools Czar", staffAt(70)],
+      ["Weapon Tune Panel Engineer", staffAt(71)],
+      ["Stair Tune Panel Engineer", staffAt(72)],
+      ["Sun Tune Panel Engineer", staffAt(73)],
+      ["Oil Barrel Tune Panel Engineer", staffAt(74)],
+      ["Sliders For Everything Advocate", staffAt(75)],
+      ["Live Tweak Enjoyer", staffAt(76)],
     ],
   },
   {
     title: "Quality Assurance",
     credits: [
-      ["QA Lead", "Faryl Brace"],
-      ["Senior QA Tester", "Ralf Bracey"],
-      ["Playtest Coordinator", "Farley Crab"],
-      ["Bug Finder", "Arby Calfer"],
-      ["Stuck In Geometry Investigator", "Barry Calfe"],
-      ['"Works On My Machine" Certifier', "Carly Faber"],
+      ["QA Lead", GOLD_STAFF[2]],
+      ["Senior QA Tester", staffAt(77)],
+      ["Playtest Coordinator", staffAt(78)],
+      ["Bug Finder", staffAt(79)],
+      ["Stuck In Geometry Investigator", staffAt(80)],
+      ['"Works On My Machine" Certifier', staffAt(81)],
     ],
   },
   {
     title: "Technical Operations",
     credits: [
-      ["Build Engineer", "Clay Farber"],
-      ["Next.js Configuration Specialist", "Alec Frybar"],
-      ["Hot Reload Survivor", "Clare Barfy"],
-      ["Git Commit Message Poet", "Ray Barclef"],
-      ["Merge Conflict Resolver", "Faryl Brace"],
-      ["Force Push Avoider (Mostly)", "Ralf Bracey"],
+      ["Build Engineer", staffAt(82)],
+      ["Next.js Configuration Specialist", staffAt(83)],
+      ["Hot Reload Survivor", staffAt(84)],
+      ["Git Commit Message Poet", staffAt(85)],
+      ["Merge Conflict Resolver", staffAt(86)],
+      ["Force Push Avoider (Mostly)", staffAt(87)],
     ],
   },
   {
     title: "Cast",
     credits: [
-      ["The Player", "Farley Crab"],
-      ["Every Enemy Target", "Arby Calfer"],
-      ["The Gun", "Barry Calfe"],
-      ["The Grenade", "Carly Faber"],
-      ["The Stairs", "Clay Farber"],
-      ["The Pillar (Scene Stealer)", "Alec Frybar"],
+      ["The Player", staffAt(88)],
+      ["Every Enemy Target", staffAt(89)],
+      ["The Gun", staffAt(90)],
+      ["The Grenade", staffAt(91)],
+      ["The Stairs", staffAt(92)],
+      ["The Pillar (Scene Stealer)", staffAt(93)],
+      ["The Oil Barrel (Scene Stealer #2)", staffAt(94)],
+      ["The Barrel Pile", staffAt(95)],
       ["Carl Fearby", "As Himself"],
     ],
   },
   {
     title: "Stunts & Practical Effects",
     credits: [
-      ["Stunt Coordinator", "Clare Barfy"],
-      ["Grenade Throw Double", "Ray Barclef"],
-      ["Wall Clip Stunt Performer", "Faryl Brace"],
-      ["Blood Splatter Coordinator", "Ralf Bracey"],
+      ["Stunt Coordinator", GOLD_STAFF[1]],
+      ["Grenade Throw Double", staffAt(96)],
+      ["Wall Clip Stunt Performer", staffAt(97)],
+      ["Blood Splatter Coordinator", staffAt(98)],
     ],
   },
   {
     title: "Catering & Wellness",
     credits: [
-      ["Craft Services", "Farley Crab"],
-      ["Coffee Machine Operator", "Arby Calfer"],
-      ["Energy Drink Procurement", "Barry Calfe"],
-      ["Midnight Snack Coordinator", "Carly Faber"],
-      ["Sleep Deprivation Manager", "Clay Farber"],
+      ["Craft Services", staffAt(99)],
+      ["Coffee Machine Operator", staffAt(100)],
+      ["Energy Drink Procurement", staffAt(101)],
+      ["Midnight Snack Coordinator", staffAt(102)],
+      ["Sleep Deprivation Manager", staffAt(103)],
     ],
   },
   {
@@ -297,6 +305,8 @@ const SECTIONS = [
       ["React", "For re-rendering"],
       ["Next.js", "For the router (finally)"],
       ["WebGL", "For not crashing (usually)"],
+      ["WebP", "For the bandwidth Carl finally noticed"],
+      ["FFmpeg", "For the barrel flames"],
       ["The Anagram Department", "For plausible deniability"],
       ["60 FPS", "When Carl allows it"],
       ["Stack Overflow", "Carl's co-pilot"],
@@ -307,10 +317,10 @@ const SECTIONS = [
   {
     title: "Legal & Compliance",
     credits: [
-      ["General Counsel", "Alec Frybar"],
-      ["Intellectual Property Owner", "Clare Barfy"],
-      ["Copyright Holder", "Ray Barclef"],
-      ["Trademark Applicant", "Faryl Brace"],
+      ["General Counsel", GOLD_STAFF[11]],
+      ["Intellectual Property Owner", staffAt(104)],
+      ["Copyright Holder", staffAt(105)],
+      ["Trademark Applicant", staffAt(106)],
       ["NDA Signatory (Self)", CARL],
     ],
   },
@@ -325,15 +335,19 @@ const ASSETS = {
   "crate-front": { src: "/ui/crate/front.png" },
   "crate-top": { src: "/ui/crate/top.png" },
   "crate-end": { src: "/ui/crate/endcap.png" },
-  vx27: { src: "/textures/vx27/vx27_body_albedo.png" },
+  vx27: { src: "/textures/vx27/vx27_body_albedo.webp" },
   "grenade-tex": { src: "/textures/grenade/grenade_reward_texture_pack_preview.png" },
   moon: { src: "/sky/moon_full.jpg" },
-  hazard: { src: "/textures/decal_hazard_stripes_worn/decal_hazard_stripes_worn_albedo_tileable.png" },
-  "bullet-1": { src: "/textures/bullet_holes/01_concrete_bullet_hole_alpha.png" },
-  "bullet-2": { src: "/textures/bullet_holes/02_concrete_bullet_hole_alpha.png" },
-  "bullet-3": { src: "/textures/bullet_holes/03_concrete_bullet_hole_alpha.png" },
-  "bullet-4": { src: "/textures/bullet_holes/04_concrete_bullet_hole_alpha.png" },
-  "bullet-5": { src: "/textures/bullet_holes/05_concrete_bullet_hole_alpha.png" },
+  hazard: {
+    src: "/textures/decal_hazard_stripes_worn/decal_hazard_stripes_worn_albedo_tileable.webp",
+  },
+  "bullet-1": { src: "/textures/bullet_holes/01_concrete_bullet_hole_alpha.webp" },
+  "bullet-2": { src: "/textures/bullet_holes/02_concrete_bullet_hole_alpha.webp" },
+  "bullet-3": { src: "/textures/bullet_holes/03_concrete_bullet_hole_alpha.webp" },
+  "bullet-4": { src: "/textures/bullet_holes/04_concrete_bullet_hole_alpha.webp" },
+  "bullet-5": { src: "/textures/bullet_holes/05_concrete_bullet_hole_alpha.webp" },
+  "oil-barrel": { src: "/textures/oil_barrel/barrel_body_albedo.webp" },
+  "sky-dome": { src: "/sky/sky_dome_equirectangular_8k_seamless.jpg" },
 };
 
 /** Prop art sprinkled between credit sections — keyed by section title. */
@@ -345,6 +359,7 @@ const PROPS_AFTER = {
   "Level Design & World": { layout: "solo", item: "second-weapon", caption: "Standard Issue" },
   "Lighting & Atmosphere": { layout: "moon" },
   "Visual Effects & Combat Feedback": { layout: "bullet-wall" },
+  "Environmental Hazards": { layout: "duo", items: ["oil-barrel", "hazard"], caption: "Handle With Care" },
   "Character & Animation": { layout: "solo", item: "stamina", caption: "Walk Power", spin: true },
   Audio: { layout: "duo", items: ["powepack", "grenade"], caption: "Soundtrack Fuel" },
   "User Interface & HUD": { layout: "hud-row", items: ["second-weapon", "radar", "stamina"] },
@@ -366,6 +381,7 @@ const SECTION_LAYOUTS = {
   "Level Design & World": { align: "center", cols: 1, flank: "hazard", flankSide: "left" },
   "Lighting & Atmosphere": { align: "center", cols: 1, flank: "moon", flankSide: "right" },
   "Visual Effects & Combat Feedback": { align: "center", cols: 1 },
+  "Environmental Hazards": { align: "center", cols: 1, flank: "oil-barrel", flankSide: "right" },
   "Character & Animation": { align: "center", cols: 1 },
   Audio: { align: "center", cols: 1 },
   "User Interface & HUD": { align: "center", cols: 1 },
@@ -390,6 +406,7 @@ const INTERSTITIAL_CYCLE = [
   "art-grenade-tex",
   "drift-radar",
   "art-bullet-wall",
+  "art-oil-barrel",
 ];
 
 function SectionRule({ align = "center" }) {
@@ -402,24 +419,26 @@ function SectionRule({ align = "center" }) {
   );
 }
 
-function StaffRosterSection() {
+function ProductionStaffSection() {
   return (
-    <section className="creditsSection creditsSection--center creditsStaffRoster">
-      <h2 className="creditsSectionTitle">Studio Staff</h2>
+    <section className="creditsSection creditsSection--center creditsProductionStaff">
+      <h2 className="creditsSectionTitle">Production Staff</h2>
       <SectionRule align="center" />
-      <p className="creditsStaffRosterLead">
-        The following personnel contributed to this production.
+      <p className="creditsProductionStaffLead">
+        The following {PRODUCTION_STAFF.length} personnel contributed to this production.
         <br />
         Any resemblance to real developers is purely alphabetical.
       </p>
-      <div className="creditsStaffRosterGrid">
-        {STAFF.map((name) => (
-          <div key={name} className="creditsStaffRosterName">
+      <div className="creditsProductionStaffGrid">
+        {PRODUCTION_STAFF.map((name) => (
+          <div key={name} className="creditsProductionStaffName">
             {name}
           </div>
         ))}
       </div>
-      <p className="creditsStaffRosterFine">…and literally nobody else.</p>
+      <p className="creditsProductionStaffFine">
+        …and literally nobody else. (It&apos;s still Carl.)
+      </p>
     </section>
   );
 }
@@ -436,9 +455,11 @@ function AnagramReveal() {
         <span />
       </div>
       <p className="creditsRevealBody">
-        Barry Calfe · Carly Faber · Clay Farber · Alec Frybar · Clare Barfy
+        {GOLD_STAFF.slice(0, 6).join(" · ")}
         <br />
-        Ray Barclef · Faryl Brace · Ralf Bracey · Farley Crab · Arby Calfer
+        {GOLD_STAFF.slice(6).join(" · ")}
+        <br />
+        …plus {PRODUCTION_STAFF.length - GOLD_STAFF.length} others you definitely read every single one of.
       </p>
       <p className="creditsRevealSpell">
         Unscramble the staff. It&apos;s always been{" "}
@@ -554,6 +575,15 @@ function CreditsInterstitial({ kind }) {
     );
   }
 
+  if (kind === "art-oil-barrel") {
+    return (
+      <div className="creditsInterstitial creditsInterstitial--oilBarrel" aria-hidden>
+        <CreditsAsset id="oil-barrel" className="creditsOilBarrelDisc" />
+        <p className="creditsPropCaption">Highly Flammable · Do Not Shoot</p>
+      </div>
+    );
+  }
+
   return null;
 }
 
@@ -647,24 +677,12 @@ function SongsSection() {
   );
 }
 
-function CreditsDecor() {
+function CreditsDecor({ scanlineActive }) {
   return (
     <>
       <div className="creditsGrid" aria-hidden />
-      <div className="creditsAurora" aria-hidden />
-      <div className="creditsScanline" aria-hidden />
-      <div className="creditsSweep" aria-hidden />
-      <div className="creditsSweep creditsSweep--reverse" aria-hidden />
-      <div className="creditsRadarWatermark" aria-hidden />
-      <div className="creditsRadarWatermark creditsRadarWatermarkRight" aria-hidden />
-      <div className="creditsHudWatermark" aria-hidden />
+      <CreditsScanlineCanvas active={scanlineActive} />
       <div className="creditsCornerBrackets" aria-hidden />
-      <div className="creditsParticles" aria-hidden>
-        {Array.from({ length: 18 }, (_, i) => (
-          <span key={i} className="creditsParticle" style={{ "--p-i": i }} />
-        ))}
-      </div>
-      <div className="creditsChromatic" aria-hidden />
     </>
   );
 }
@@ -674,11 +692,7 @@ function CreditsPropImg({ id, className = "" }) {
 }
 
 function CreditsAmmoCrate({ variant = "default" }) {
-  return (
-    <div className={`creditsAmmoCrate creditsAmmoCrate--${variant}`} aria-hidden>
-      <CreditsAmmoCratePreview variant={variant} />
-    </div>
-  );
+  return <CreditsAmmoCratePreview variant={variant} />;
 }
 
 function CreditsPropInsert({ layout, items, item, caption, spin, art }) {
@@ -870,6 +884,14 @@ export default function CreditsScene() {
   }, [fast]);
 
   useEffect(() => {
+    setCreditsPreviewPaused(paused || endPhase !== "scrolling");
+  }, [paused, endPhase]);
+
+  useEffect(() => {
+    preloadCreditsAssets().catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const camera = new THREE.PerspectiveCamera();
     const sounds = createSoundManager(camera);
     soundsRef.current = sounds;
@@ -923,6 +945,7 @@ export default function CreditsScene() {
 
     const scrollStartedRef = { current: false };
     let startTimer = 0;
+    let assetsReady = false;
 
     const applyMeasure = () => {
       const viewport = el.parentElement?.offsetHeight ?? window.innerHeight;
@@ -933,17 +956,23 @@ export default function CreditsScene() {
     };
 
     const scheduleStart = () => {
-      if (scrollStartedRef.current) return;
+      if (scrollStartedRef.current || !assetsReady) return;
       clearTimeout(startTimer);
       startTimer = window.setTimeout(() => {
-        if (scrollStartedRef.current) return;
+        if (scrollStartedRef.current || !assetsReady) return;
         scrollStartedRef.current = true;
         setReady(true);
-      }, 400);
+      }, 120);
     };
 
     applyMeasure();
-    scheduleStart();
+
+    preloadCreditsAssets()
+      .catch(() => {})
+      .finally(() => {
+        assetsReady = true;
+        scheduleStart();
+      });
 
     const ro = new ResizeObserver(() => {
       if (scrollStartedRef.current) return;
@@ -1095,31 +1124,55 @@ export default function CreditsScene() {
   useEffect(() => {
     if (!ready || endPhase !== "scrolling" || paused) return;
 
-    let rafId = 0;
-    const tick = () => {
-      if (endSequenceStartedRef.current || endPhase !== "scrolling") return;
+    const title = theEndTitleRef.current;
+    const viewport = scrollRef.current?.parentElement;
+    if (!title || !viewport) return;
 
-      const el = scrollRef.current;
-      const title = theEndTitleRef.current;
-      const viewport = el?.parentElement;
-      if (el && title && viewport) {
-        const titleRect = title.getBoundingClientRect();
-        const viewRect = viewport.getBoundingClientRect();
-        const titleCy = titleRect.top + titleRect.height / 2;
-        const viewCy = viewRect.top + viewRect.height / 2;
-        const targetCy = viewCy - THE_END_CENTER_BIAS_PX;
-        const settleSlack = Math.min(20, viewRect.height * 0.025);
-        if (titleCy <= targetCy + settleSlack) {
-          beginTheEndHold();
-          return;
-        }
+    let rafId = 0;
+
+    const stopTick = () => {
+      cancelAnimationFrame(rafId);
+      rafId = 0;
+    };
+
+    const tick = () => {
+      if (endSequenceStartedRef.current || endPhase !== "scrolling") {
+        stopTick();
+        return;
+      }
+
+      const titleRect = title.getBoundingClientRect();
+      const viewRect = viewport.getBoundingClientRect();
+      const titleCy = titleRect.top + titleRect.height / 2;
+      const viewCy = viewRect.top + viewRect.height / 2;
+      const targetCy = viewCy - THE_END_CENTER_BIAS_PX;
+      const settleSlack = Math.min(20, viewRect.height * 0.025);
+      if (titleCy <= targetCy + settleSlack) {
+        stopTick();
+        beginTheEndHold();
+        return;
       }
 
       rafId = requestAnimationFrame(tick);
     };
 
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
+    const proximityIo = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (!rafId) rafId = requestAnimationFrame(tick);
+        } else {
+          stopTick();
+        }
+      },
+      { root: viewport, rootMargin: "320px 0px", threshold: 0 },
+    );
+
+    proximityIo.observe(title);
+
+    return () => {
+      proximityIo.disconnect();
+      stopTick();
+    };
   }, [ready, endPhase, paused, beginTheEndHold]);
 
   useEffect(
@@ -1170,10 +1223,11 @@ export default function CreditsScene() {
   );
 
   const openPlayer = useCallback(() => {
+    if (endPhase === "scrolling") return;
     setPlayerOpen(true);
     setHintVisible(false);
     ensureLoadingMusic();
-  }, [ensureLoadingMusic]);
+  }, [ensureLoadingMusic, endPhase]);
 
   const closePlayer = useCallback(() => {
     setPlayerOpen(false);
@@ -1196,7 +1250,7 @@ export default function CreditsScene() {
       }
       if (e.code === "KeyM") {
         e.preventDefault();
-        togglePlayer();
+        if (endPhase !== "scrolling") togglePlayer();
       }
       if (e.code === "Escape" && playerOpen) {
         e.preventDefault();
@@ -1211,6 +1265,8 @@ export default function CreditsScene() {
     return () => window.removeEventListener("keydown", onKey);
   }, [togglePause, toggleFast, togglePlayer, closePlayer, playerOpen, endPhase, jumpToPreEnd, canControlScroll]);
 
+  const creditsEnded = endPhase === "done";
+
   return (
     <div
       className={`creditsRoot${playerOpen ? " creditsRoot--playerOpen" : ""}${endPhase === "theEndHold" ? " creditsRoot--theEndHold" : ""}`}
@@ -1218,8 +1274,7 @@ export default function CreditsScene() {
         if (!playerOpen) togglePause();
       }}
     >
-      <CreditsDecor />
-      <div className="creditsGrain" aria-hidden />
+      <CreditsDecor scanlineActive={!paused && endPhase === "scrolling"} />
       <div className="creditsIntroCurtain" aria-hidden />
       <div className="creditsVignette" aria-hidden />
 
@@ -1227,7 +1282,7 @@ export default function CreditsScene() {
         ← Back to Game
       </Link>
 
-      {!playerOpen ? (
+      {creditsEnded && !playerOpen ? (
         <div
           className="creditsMusicBar"
           role="button"
@@ -1267,7 +1322,7 @@ export default function CreditsScene() {
       {endPhase === "thankYou" ? <CreditsThankYou /> : null}
 
       <div className={`creditsHint${hintVisible && !playerOpen && endPhase === "scrolling" ? "" : " hidden"}`}>
-        Click or Space to pause · S fast-forward · M or top-right viz for soundtrack · . skip to finale
+        Click or Space to pause · S fast-forward · . skip to finale
       </div>
 
       <div className="creditsViewport">
@@ -1297,15 +1352,15 @@ export default function CreditsScene() {
 
           <div className="creditsOpener">
             <CreditBlock role="Written & Directed by" name={CARL} highlight />
-            <CreditBlock role="Based on an original idea by" name="Barry Calfe" />
-            <CreditBlock role="Inspired by the dreams of" name="Carly Faber" />
+            <CreditBlock role="Based on an original idea by" name="Fray Carl" />
+            <CreditBlock role="Inspired by the dreams of" name="Earl Farby" />
           </div>
 
           <CreditsInterstitial kind="art-vx27" />
 
           <div className="creditsSpacerLg" />
 
-          <StaffRosterSection />
+          <ProductionStaffSection />
 
           <div className="creditsSpacer" />
 
@@ -1325,13 +1380,12 @@ export default function CreditsScene() {
           <p className="creditsQuote">
             &ldquo;We couldn&apos;t have done it without the team.&rdquo;
             <br />
-            — Carl Fearby, after crediting himself ten times under different names
+            — Carl Fearby, after crediting himself {PRODUCTION_STAFF.length} times under different names
           </p>
 
           <div className="creditsFinale">
             <p className="creditsFinaleLead">
-              In association with Barry Calfe · Carly Faber · Clay Farber · Alec Frybar ·
-              Clare Barfy · Ray Barclef · Faryl Brace · Ralf Bracey · Farley Crab · Arby Calfer
+              In association with {GOLD_STAFF.join(" · ")}
             </p>
             <p className="creditsFinaleLead creditsFinaleLead--tight">
               Written · Directed · Produced · Programmed · Designed · Composed ·

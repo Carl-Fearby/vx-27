@@ -1,31 +1,60 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { mountCreditsRiflePreview } from "@/lib/CreditsRiflePreview";
+import { preloadCreditsAssetData } from "@/lib/preloadCreditsAssets";
+import {
+  creditsPreviewPriorityFromHost,
+  useCreditsLazy3d,
+} from "@/lib/useCreditsLazy3d";
 
 export default function CreditsRiflePreview({ variant = "hero", className = "" }) {
   const canvasRef = useRef(null);
+  const controllerRef = useRef(null);
+  const { hostRef, shouldRun, everVisible } = useCreditsLazy3d();
+
+  const getPriority = useCallback(
+    () => creditsPreviewPriorityFromHost(hostRef.current),
+    [],
+  );
 
   useEffect(() => {
+    if (!everVisible) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let cleanup = () => {};
     let cancelled = false;
 
-    mountCreditsRiflePreview(canvas, { variant }).then((dispose) => {
-      if (cancelled) dispose();
-      else cleanup = dispose;
-    });
+    preloadCreditsAssetData()
+      .catch(() => {})
+      .then(() => {
+        if (cancelled || !canvasRef.current) return;
+        return mountCreditsRiflePreview(canvas, { variant, getPriority });
+      })
+      .then((controller) => {
+        if (!controller || cancelled) {
+          controller?.dispose();
+          return;
+        }
+        controllerRef.current = controller;
+        controller.setActive(shouldRun);
+      });
 
     return () => {
       cancelled = true;
-      cleanup();
+      controllerRef.current?.dispose();
+      controllerRef.current = null;
     };
-  }, [variant]);
+  }, [everVisible, variant, getPriority]);
+
+  useEffect(() => {
+    controllerRef.current?.setActive(shouldRun);
+  }, [shouldRun]);
 
   return (
     <div
+      ref={hostRef}
       className={`creditsRifleFrame creditsRifleFrame--${variant}${className ? ` ${className}` : ""}`}
       aria-hidden
     >

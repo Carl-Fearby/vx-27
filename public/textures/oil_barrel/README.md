@@ -8,7 +8,9 @@ Used by `lib/OilBarrel.js` for the `oilBarrel` prop.
 node scripts/optimize-oil-barrel-textures.mjs all   # re-encode in-repo .webp
 ```
 
-Current shipped sizes (~**50 KB** exterior + **~260 KB** interior when open) are tuned for a **0.6 m** prop — body/caps **256px**, interior wall **1024×512** (2× U tile), floor **512×512**.
+Current shipped sizes (~**50 KB** exterior + **~150 KB** interior when open) are tuned for a **0.6 m** prop — body/caps **256px**, interior wall **768×384** (2× U tile), floor **512×512**.
+
+Mesh: one merged exterior draw call (wall + rims), **20** radial segments, shared materials/textures (no per-mesh map clones).
 
 Keep lossy normals (`q: 90` in the script); lossless WebP normals are larger than PNG.
 

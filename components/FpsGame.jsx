@@ -1,10 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { createLevelFromArena, disposeLevelGroup } from "@/lib/Level";
-import { collectArenaTextureIds, getLevelMeta, loadArenaConfig } from "@/lib/loadArena";
+import {
+  collectArenaTextureIds,
+  getLevelMeta,
+  isArenaLoadAbortError,
+  loadArenaConfig,
+} from "@/lib/loadArena";
 import { loadLevelTextureLibrary } from "@/lib/LevelTextures";
 import {
   createSkyDome,
@@ -25,6 +30,7 @@ import {
   resetRoomInteriorAmbient,
   resetViewmodelInteriorAmbient,
   syncLightLayersForZone,
+  syncOilBarrelFireLightLayers,
 } from "@/lib/SceneEnvironment";
 import {
   assignWorldLayers,
@@ -60,8 +66,17 @@ import {
 import {
   preloadOilBarrelAssets,
   ensureOilBarrelInteriorTextures,
+  ensureOilBarrelInteriorVideo,
   setOilBarrelTuning as applyOilBarrelMaterialTuning,
+  getOilBarrelTuning,
+  OIL_BARREL_FIRE_PROXIMITY_DAMAGE,
+  tickOilBarrelFireProximityDamage,
+  tickOilBarrelInteriorVideo,
+  collectOilBarrelFireLights,
+  ensureOilBarrelFlameMeshes,
+  refreshOilBarrelRenderLayers,
 } from "@/lib/OilBarrel";
+import { OIL_BARREL_FLICKER_OPTS } from "@/lib/OilBarrelFireLight";
 import {
   DEFAULT_OIL_BARREL_TUNING,
   loadOilBarrelTuneEnabled,
@@ -71,6 +86,13 @@ import {
   saveOilBarrelTuning,
 } from "@/lib/OilBarrelTuning";
 import OilBarrelTunePanel from "@/components/OilBarrelTunePanel";
+import {
+  OIL_BARREL_PILE_ID,
+  applyOilBarrelPileToArena,
+  checkArenaOilBarrelPile,
+  loadPileWizardPrefs,
+  savePileWizardPrefs,
+} from "@/lib/OilBarrelPileLayout";
 import {
   spawnLevelCollectibles,
   mountCompassCollectibleMarkers,
@@ -85,7 +107,9 @@ import {
 import {
   spawnGrenade, updateGrenades, disposeAllGrenades,
   updateTrajectoryPreview, hideTrajectoryPreview, disposePreview,
-  applyScreenShake, triggerScreenShake,
+  applyScreenShake,
+  triggerScreenShake,
+  triggerHurtScreenShake,
   getGrenadeParams, setGrenadeParams,
   getGrenadeExplosionVfx, setGrenadeExplosionVfx, resetGrenadeExplosionVfx,
   spawnGrenadeDrop, updateGrenadeDrops, disposeAllGrenadeDrops,
@@ -137,6 +161,7 @@ import {
 import {
   applyBulletSurfaceHit,
   collectLevelHitMeshes,
+  pickFirstBulletHit,
   disposeAllBulletHoles,
   preloadBulletHoleTextures,
   updateBulletHoles,
@@ -361,6 +386,9 @@ const DEATH_MIN_DISPLAY_MS = 800;
  *  The player can move/shoot/look around during this window — the fade
  *  is purely a visual transition off the death screen. */
 const DEATH_FADE_MS = 1200;
+/** Brief pulse of the death-screen vignette (open centre) when the player takes damage. */
+const HURT_VIGNETTE_FLASH_MS = 720;
+const HURT_VIGNETTE_PEAK_OPACITY = 1;
 const MAGAZINE_SIZE = 80;
 const SPARE_MAGAZINES = 4;
 /** Shrink HUD ammo digits when a stat exceeds two digits. */
@@ -454,6 +482,35 @@ function safeExitPointerLock() {
   } catch {
     // ignore — lock may already be releasing
   }
+}
+
+/** Death-screen blood art, masked so the crosshair view stays clear in the middle. */
+function triggerHurtVignetteFlash(flashEndRef) {
+  flashEndRef.current = performance.now() + HURT_VIGNETTE_FLASH_MS;
+}
+
+/** Vignette pulse + camera shake — use whenever the player takes damage. */
+function triggerPlayerHurtFeedback(flashEndRef) {
+  triggerHurtVignetteFlash(flashEndRef);
+  triggerHurtScreenShake();
+}
+
+function updateHurtVignette(el, flashEndMs) {
+  if (!el) return;
+  const now = performance.now();
+  if (now >= flashEndMs) {
+    el.style.opacity = "0";
+    el.style.visibility = "hidden";
+    return;
+  }
+  const elapsed = HURT_VIGNETTE_FLASH_MS - (flashEndMs - now);
+  const t = Math.min(1, Math.max(0, elapsed / HURT_VIGNETTE_FLASH_MS));
+  let intensity;
+  if (t < 0.1) intensity = t / 0.1;
+  else if (t < 0.42) intensity = 1;
+  else intensity = 1 - (t - 0.42) / 0.58;
+  el.style.visibility = "visible";
+  el.style.opacity = String(HURT_VIGNETTE_PEAK_OPACITY * intensity);
 }
 
 /** Low-health red ring — driven from the game loop, not CSS animation. */
@@ -631,6 +688,8 @@ export default function FpsGame() {
   const flashbangOverlayRef = useRef(null);
   const flashbangBlindStartRef = useRef(0);
   const damageVignetteRef = useRef(null);
+  const hurtVignetteRef = useRef(null);
+  const hurtVignetteFlashEndRef = useRef(0);
   const walkPowerRef = useRef(null);
   const deathReasonRef = useRef(null);
   /** Non-null while a death sequence is playing. The player stays frozen
@@ -681,6 +740,12 @@ export default function FpsGame() {
   const [oilBarrelTuning, setOilBarrelTuning] = useState(() =>
     loadOilBarrelTuning()
   );
+  const pilePrefs = loadPileWizardPrefs();
+  const [pileSeed, setPileSeed] = useState(pilePrefs.seed);
+  const [pileHubX, setPileHubX] = useState(pilePrefs.hub.x);
+  const [pileHubZ, setPileHubZ] = useState(pilePrefs.hub.z);
+  const [pileStatus, setPileStatus] = useState("");
+  const [pileBusy, setPileBusy] = useState(false);
   const [walkBobTuning, setWalkBobTuning] = useState(initialWalkBobTuning);
   const [stairWalkTuning, setStairWalkTuning] = useState(initialStairWalkTuning);
   const [sunTuneEnabled, setSunTuneEnabled] = useState(false);
@@ -776,6 +841,104 @@ export default function FpsGame() {
   const refitMoonShadowRef = useRef(null);
   const rebuildStairsRef = useRef(null);
   const rebuildOilBarrelsRef = useRef(null);
+  const arenaLiveRef = useRef(null);
+  const onOilBarrelTuningChange = useCallback((key, value) => {
+    setOilBarrelTuning((prev) => {
+      const next = normalizeOilBarrelTuning({ ...prev, [key]: value });
+      saveOilBarrelTuning(next);
+      applyOilBarrelMaterialTuning(next, sceneRef.current ?? undefined);
+      if (key === "topCap") {
+        if (value === false) {
+          ensureOilBarrelInteriorTextures().then(() => {
+            rebuildOilBarrelsRef.current?.();
+          });
+        } else {
+          rebuildOilBarrelsRef.current?.();
+        }
+      } else if (key === "interiorFire" && value === true) {
+        ensureOilBarrelInteriorTextures()
+          .then(() => ensureOilBarrelInteriorVideo())
+          .then(() => rebuildOilBarrelsRef.current?.());
+      }
+      return next;
+    });
+  }, []);
+
+  const persistPilePrefs = useCallback((seed, hubX, hubZ) => {
+    savePileWizardPrefs({ seed, hub: { x: hubX, z: hubZ } });
+  }, []);
+
+  const onPileGenerate = useCallback(() => {
+    if (pileBusy) return;
+    const arena = arenaLiveRef.current;
+    if (!arena) {
+      setPileStatus("Level not loaded yet.");
+      return;
+    }
+    setPileBusy(true);
+    setPileStatus("Applying pile layout…");
+    void (async () => {
+      try {
+        await new Promise((r) => setTimeout(r, 0));
+        const result = applyOilBarrelPileToArena(arena, {
+          hub: { x: pileHubX, z: pileHubZ },
+        });
+        persistPilePrefs(pileSeed, pileHubX, pileHubZ);
+        if (!result.ok) {
+          const miss = result.failed.length
+            ? result.failed.join(", ")
+            : "not enough barrels placed";
+          setPileStatus(
+            `Failed (${result.props.length} placed): ${miss}. Edit LEVEL1_OIL_BARREL_PILE_DEFS (see docs/OIL_BARREL_PILE_AI.md).`
+          );
+          return;
+        }
+        const check = checkArenaOilBarrelPile(arena);
+        if (!check.ok) {
+          setPileStatus(
+            `Applied ${result.props.length} barrels but check failed — overlaps remain.`
+          );
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 0));
+        rebuildOilBarrelsRef.current?.();
+        setPileStatus(
+          `Applied ${result.props.length} barrels at hub (${pileHubX.toFixed(2)}, ${pileHubZ.toFixed(2)}) — check OK.`
+        );
+      } finally {
+        setPileBusy(false);
+      }
+    })();
+  }, [pileBusy, pileSeed, pileHubX, pileHubZ, persistPilePrefs]);
+
+  const onPileCheck = useCallback(() => {
+    const arena = arenaLiveRef.current;
+    if (!arena) {
+      setPileStatus("Level not loaded yet.");
+      return;
+    }
+    const { ok, count } = checkArenaOilBarrelPile(arena);
+    setPileStatus(
+      ok
+        ? `Check OK — ${count} pile barrel(s), no overlaps.`
+        : `Check failed — ${count} pile barrel(s) intersect.`
+    );
+  }, []);
+
+  const onPileCopyJson = useCallback(async () => {
+    const arena = arenaLiveRef.current;
+    if (!arena) return;
+    const pile = (arena.props ?? []).filter((p) => OIL_BARREL_PILE_ID.test(p.id));
+    const text = JSON.stringify(pile, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      setPileStatus(`Copied ${pile.length} pile props to clipboard.`);
+    } catch {
+      setPileStatus("Copy failed — see console.");
+      console.log("Oil barrel pile props:", text);
+    }
+  }, []);
+
   const stairParamsRef = useRef(initialStairTuning);
   const walkBobTuningRef = useRef(initialWalkBobTuning);
   const stairWalkTuningRef = useRef(initialStairWalkTuning);
@@ -793,6 +956,8 @@ export default function FpsGame() {
   const weaponRef = useRef(null);
   const hemiRef = useRef(null);
   const roomLightsRef = useRef([]);
+  const oilBarrelFireLightsRef = useRef([]);
+  const roomCullablesRef = useRef([]);
   const dayNightToggleRef = useRef(null);
   const [hemiDay, setHemiDay] = useState(() => ({ ...DEFAULT_HEMI_DAY }));
   const [hemiNight, setHemiNight] = useState(() => ({ ...DEFAULT_HEMI_NIGHT }));
@@ -1095,6 +1260,7 @@ export default function FpsGame() {
     let onPointerLockChange = null;
     let onKeyDown = null;
     let onResize = null;
+    const arenaAbort = new AbortController();
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
@@ -1157,7 +1323,9 @@ export default function FpsGame() {
       }
 
       reportLoad(18, "Arena config");
-      const arena = await loadArenaConfig();
+      const arena = await loadArenaConfig(undefined, {
+        signal: arenaAbort.signal,
+      });
       if (!isActive()) return;
       setLevelMeta(getLevelMeta(arena));
       reportLoad(20, "Arena config");
@@ -1211,11 +1379,9 @@ export default function FpsGame() {
       setStairY(stairParams.position.y);
       setStairZ(stairParams.position.z);
       setStairRotationY(stairParams.rotationY);
-      level = createLevelFromArena(
-        scene,
-        { ...arena, stairs: stairParams },
-        levelTextures
-      );
+      const arenaLive = { ...arena, stairs: stairParams };
+      arenaLiveRef.current = arenaLive;
+      level = createLevelFromArena(scene, arenaLive, levelTextures);
       setArenaHasStairs(Boolean(arena.stairs));
       if (!isActive()) {
         if (level?.group) disposeLevelGroup(level.group);
@@ -1231,18 +1397,22 @@ export default function FpsGame() {
       levelObjectsRef.current = level.pillarMeshes ?? [];
       preloadBulletHoleTextures();
       const levelHitMeshes = collectLevelHitMeshes(level.group, level.targets);
-      // Per-room culling: hide interior shells and disable their lights
-      // when the room isn't visible to the camera (and the player isn't
-      // standing in it). Skips the room render pass entirely on frames
-      // where no room is in view.
-      const roomCullables = buildRoomCullables(
-        level.group,
-        arena.rooms ?? [],
-        roomLights,
-        arenaHalf,
-        attachWall,
-        arena.wallHeight
-      );
+      const syncInteriorLighting = () => {
+        oilBarrelFireLightsRef.current = collectOilBarrelFireLights(level.group);
+        initCandleFlicker(oilBarrelFireLightsRef.current, OIL_BARREL_FLICKER_OPTS);
+        roomCullablesRef.current = buildRoomCullables(
+          level.group,
+          arena.rooms ?? [],
+          [...roomLightsRef.current, ...oilBarrelFireLightsRef.current],
+          arenaHalf,
+          attachWall,
+          arena.wallHeight
+        );
+      };
+      ensureOilBarrelFlameMeshes(level.group);
+      refreshOilBarrelRenderLayers(level.group);
+      syncInteriorLighting();
+      syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, false);
       applySunLightPosition(sun, sunLightPosRef.current);
       applyMoonLightPosition(moon, moonLightPosRef.current);
       sunRef.current = sun;
@@ -1410,6 +1580,8 @@ export default function FpsGame() {
       };
       rebuildOilBarrelsRef.current = () => {
         level?.rebuildOilBarrels?.();
+        level?.resyncOilBarrelColliders?.();
+        syncInteriorLighting();
       };
 
       player = createPlayerController(camera, level.bounds, level.floorY, {
@@ -1420,6 +1592,7 @@ export default function FpsGame() {
         arenaBounds: level.arenaBounds,
         wallStandoff: arena.wallStandoff ?? 0.5,
         getDoorwayPassages: () => level.doorwayPassages ?? [],
+        getDoorwayOpenings: () => level.doorwayOpenings ?? [],
         getAttachWall: () => level.attachWall ?? "north",
         getIsInRoom: (x, z) =>
           isPointInsideAnyRoom(
@@ -1895,14 +2068,9 @@ export default function FpsGame() {
             false
           );
 
-          /** @type {THREE.Intersection | null} */
-          let bestHit = null;
-          for (const hit of targetHits) {
-            if (!bestHit || hit.distance < bestHit.distance) bestHit = hit;
-          }
-          for (const hit of surfaceHits) {
-            if (!bestHit || hit.distance < bestHit.distance) bestHit = hit;
-          }
+          const bestHit = pickFirstBulletHit(
+            targetHits.concat(surfaceHits).sort((a, b) => a.distance - b.distance)
+          );
 
           if (bestHit) {
             bullet.mesh.position.copy(bestHit.point);
@@ -1947,6 +2115,11 @@ export default function FpsGame() {
         if (!level.group.parent) scene.add(level.group);
         rafId = requestAnimationFrame(animate);
         try {
+        tickOilBarrelInteriorVideo(camera, scene);
+        sounds.updateOilBarrelFire(
+          level.group,
+          getOilBarrelTuning().interiorFire !== false
+        );
         const dt = Math.min((now - lastTime) / 1000, 0.05);
         lastTime = now;
         if (dt > 0) simTime += dt;
@@ -1982,7 +2155,10 @@ export default function FpsGame() {
 
         // Candle-flicker the warm interior lights. Uses rAF's absolute
         // timestamp so the wobble keeps phase across frame-time hitches.
-        updateCandleFlicker(roomLightsRef.current, now * 0.001);
+        updateCandleFlicker(
+          [...roomLightsRef.current, ...oilBarrelFireLightsRef.current],
+          now * 0.001
+        );
 
         const locked = input.isLocked();
         const aimHeld =
@@ -2036,6 +2212,25 @@ export default function FpsGame() {
 
         if (!frozen) {
           player.update(input, dt);
+
+          if (
+            playerHealthRef.current > 0 &&
+            tickOilBarrelFireProximityDamage(
+              level.group,
+              camera.position,
+              dt,
+              getOilBarrelTuning()
+            )
+          ) {
+            const newHp = Math.max(
+              0,
+              playerHealthRef.current - OIL_BARREL_FIRE_PROXIMITY_DAMAGE
+            );
+            playerHealthRef.current = newHp;
+            setPlayerHealth(newHp);
+            triggerPlayerHurtFeedback(hurtVignetteFlashEndRef);
+          }
+
           // Death-fall: dropped through a floor hole. Only trigger a new
           // death sequence when one isn't already in progress (otherwise
           // the fade-phase player could re-trigger themselves before they
@@ -2408,9 +2603,18 @@ export default function FpsGame() {
             onFloorHit: (pos, impact) => {
               sounds.playGrenadeFloorHit(scene, pos, { impact });
             },
-            onExplode: (pos) => {
+            onExplode: (pos, isFlashbang) => {
               sounds.playGrenadeExplosion(scene, pos);
               triggerScreenShake(camera.position, pos);
+              if (isFlashbang) return;
+              const distToPlayer = camera.position.distanceTo(pos);
+              if (distToPlayer < getGrenadeParams().blastRadius) {
+                const newHp = Math.max(0, playerHealthRef.current - 60);
+                playerHealthRef.current = newHp;
+                setPlayerHealth(newHp);
+                triggerPlayerHurtFeedback(hurtVignetteFlashEndRef);
+                if (newHp <= 0) grenadeSuicideRef.current = true;
+              }
             },
             countdownDuration: sounds.getGrenadeCountdownDuration(),
             onCountdown: (pos, playbackRate) => {
@@ -2426,22 +2630,6 @@ export default function FpsGame() {
             viewerPos: camera.position,
           }
         );
-        for (const g of grenades) {
-          if (
-            g.justDetonated &&
-            g.explosionPos &&
-            g.type !== PROJECTILE_FLASHBANG
-          ) {
-            const distToPlayer = camera.position.distanceTo(g.explosionPos);
-            if (distToPlayer < getGrenadeParams().blastRadius) {
-              const hp = playerHealthRef.current;
-              const newHp = Math.max(0, hp - 60);
-              playerHealthRef.current = newHp;
-              setPlayerHealth(newHp);
-              if (newHp <= 0) grenadeSuicideRef.current = true;
-            }
-          }
-        }
         applyScreenShake(camera, dt);
         updateFlashbangBlindVisuals(level.targets, simTime);
         updateFlashbangOverlay(
@@ -2626,6 +2814,10 @@ export default function FpsGame() {
           playerHealthRef.current,
           loadDoneRef.current && !deathStateRef.current
         );
+        updateHurtVignette(
+          hurtVignetteRef.current,
+          hurtVignetteFlashEndRef.current
+        );
         updateWalkPowerHud(
           walkPowerRef.current,
           player.getStamina(),
@@ -2646,7 +2838,8 @@ export default function FpsGame() {
           attachWall,
           level.catwalkDeckY
         );
-        syncLightLayersForZone(scene, inRoom, outdoorLights, roomLights);
+        syncLightLayersForZone(scene, inRoom, outdoorLights, roomLightsRef.current);
+        syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, inRoom);
 
         sky?.update(camera);
         resetCameraRenderLayers(camera);
@@ -2654,7 +2847,7 @@ export default function FpsGame() {
         // camera can't currently see, and tell the renderer to skip the
         // interior pass on frames where no room is in view.
         const visibleRoomCount = updateRoomCulling(
-          roomCullables,
+          roomCullablesRef.current,
           camera,
           camera.position,
           arenaHalf,
@@ -2787,10 +2980,22 @@ export default function FpsGame() {
       rafId = requestAnimationFrame(animate);
     }
 
-    init().catch((err) => console.error("Game init failed:", err));
+    init().catch((err) => {
+      if (disposed || isArenaLoadAbortError(err, arenaAbort.signal)) {
+        return;
+      }
+      const detail =
+        err instanceof Error
+          ? err.stack || err.message
+          : typeof err === "object" && err !== null
+            ? JSON.stringify(err)
+            : String(err);
+      console.error("Game init failed:", detail || err, err);
+    });
 
     return () => {
       disposed = true;
+      arenaAbort.abort();
       weaponLoadId += 1;
       cancelAnimationFrame(rafId);
       if (flashTimeout) clearTimeout(flashTimeout);
@@ -3153,6 +3358,7 @@ export default function FpsGame() {
               const next = Math.max(0, playerHealthRef.current - 10);
               playerHealthRef.current = next;
               setPlayerHealth(next);
+              triggerPlayerHurtFeedback(hurtVignetteFlashEndRef);
             }}
           >
             −10 HP
@@ -3242,6 +3448,9 @@ export default function FpsGame() {
 
       {/* Red vignette when low health — opacity set in game loop */}
       <div ref={damageVignetteRef} className="hudDamageVignette" aria-hidden="true" />
+
+      {/* Brief hurt flash — death overlay art, open centre (game loop opacity) */}
+      <div ref={hurtVignetteRef} className="hurtVignetteOverlay" aria-hidden="true" />
 
       {settingsOpen && (
         <div
@@ -3397,6 +3606,20 @@ export default function FpsGame() {
                 count is at or below this value. Default 1 (drops when you have
                 one or no spares left). Set to {AMMO_DROP_SPARE_THRESHOLD_MAX}{" "}
                 to always drop.
+              </p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={oilBarrelTuning.interiorFire !== false}
+                  onChange={(e) =>
+                    onOilBarrelTuningChange("interiorFire", e.target.checked)
+                  }
+                />
+                Oil barrel flames
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Interior fire video on open-top oil barrels. Saved with other
+                oil-barrel tuning.
               </p>
             </SettingsSection>
 
@@ -4036,27 +4259,7 @@ export default function FpsGame() {
         {oilBarrelTuneEnabled && (
           <OilBarrelTunePanel
             tuning={oilBarrelTuning}
-            onChange={(key, value) => {
-              setOilBarrelTuning((prev) => {
-                const next = normalizeOilBarrelTuning({
-                  ...prev,
-                  [key]: value,
-                });
-                saveOilBarrelTuning(next);
-                applyOilBarrelMaterialTuning(next, sceneRef.current ?? undefined);
-                if (key === "topCap") {
-                  const showInterior = value === false;
-                  if (showInterior) {
-                    ensureOilBarrelInteriorTextures().then(() => {
-                      rebuildOilBarrelsRef.current?.();
-                    });
-                  } else {
-                    rebuildOilBarrelsRef.current?.();
-                  }
-                }
-                return next;
-              });
-            }}
+            onChange={onOilBarrelTuningChange}
             onReset={() => {
               const next = { ...DEFAULT_OIL_BARREL_TUNING };
               saveOilBarrelTuning(next);
@@ -4077,6 +4280,23 @@ export default function FpsGame() {
               setOilBarrelTuneEnabled(false);
               saveOilBarrelTuneEnabled(false);
             }}
+            pileSeed={pileSeed}
+            pileHubX={pileHubX}
+            pileHubZ={pileHubZ}
+            pileStatus={pileStatus}
+            onPileSeedChange={(seed) => {
+              setPileSeed(seed);
+              persistPilePrefs(seed, pileHubX, pileHubZ);
+            }}
+            onPileHubChange={(x, z) => {
+              setPileHubX(x);
+              setPileHubZ(z);
+              persistPilePrefs(pileSeed, x, z);
+            }}
+            onPileGenerate={onPileGenerate}
+            pileBusy={pileBusy}
+            onPileCheck={onPileCheck}
+            onPileCopyJson={onPileCopyJson}
           />
         )}
         {arenaHasStairs && stairWalkTuneEnabled && (

@@ -8,10 +8,7 @@
     "height": 4096
   },
   "files": {
-    "primary_jpg": "night_sky_dome_equirectangular_8k_seamless.jpg",
-    "preview": "night_sky_dome_preview_2048.jpg",
-    "sample_mesh_obj": "sky_dome_hemisphere_inward.obj",
-    "sample_mesh_mtl": "sky_dome_hemisphere_inward.mtl"
+    "primary_jpg": "night_sky_dome_equirectangular_8k_seamless.jpg"
   },
   "implementation": {
     "mapping": "Use as a lat-long equirectangular skydome texture on the inside of a sphere or hemisphere.",

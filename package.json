@@ -10,7 +10,11 @@
     "start": "next start",
     "clean": "node scripts/clean-next.mjs",
     "prebuild": "node scripts/clean-next.mjs",
-    "textures:oil-barrel": "node scripts/optimize-oil-barrel-textures.mjs all"
+    "textures:oil-barrel": "node scripts/optimize-oil-barrel-textures.mjs all",
+    "textures:game": "node scripts/optimize-game-textures.mjs all",
+    "pile:barrels": "node scripts/generate-oil-barrel-pile.mjs --write",
+    "pile:barrels:dry": "node scripts/generate-oil-barrel-pile.mjs",
+    "pile:barrels:check": "node scripts/oil-barrel-pile-probe.mjs"
   },
   "dependencies": {
     "next": "^15.3.2",

@@ -4,7 +4,6 @@
  *
  *   node scripts/optimize-oil-barrel-textures.mjs exterior
  *   node scripts/optimize-oil-barrel-textures.mjs interior
- *   node scripts/optimize-oil-barrel-textures.mjs rim
  *   node scripts/optimize-oil-barrel-textures.mjs all
  *
  * Reads existing .webp in-repo, or .png source files when present.
@@ -18,8 +17,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.join(__dirname, "..");
 const TEX = path.join(REPO, "public/textures/oil_barrel");
 const INSIDE = path.join(TEX, "inside");
-const RIM_DIR = path.join(TEX, "rim");
-
 function which(cmd) {
   const r = spawnSync("which", [cmd], { encoding: "utf8" });
   return r.status === 0 ? r.stdout.trim() : null;
@@ -94,39 +91,11 @@ const EXTERIOR = [
   { out: "barrel_bottom_endcap_normal.webp", w: 256, h: 256, q: 85 },
 ];
 
-/** Interior wall tiles 2× on U — 1024 wide ≈ 512 texels per wrap around ~0.56 m ID. */
-/** Rim fillet ~4 cm tall — 256² is plenty; aggressive q for small download. */
-const RIM_TEX = [
-  {
-    base: "barrel_rim_reflective_metal_albedo.png",
-    out: "barrel_rim_albedo.webp",
-    w: 256,
-    h: 256,
-    q: 60,
-    dir: RIM_DIR,
-  },
-  {
-    base: "barrel_rim_reflective_metal_normal_opengl.png",
-    out: "barrel_rim_normal.webp",
-    w: 256,
-    h: 256,
-    q: 70,
-    dir: RIM_DIR,
-  },
-  {
-    base: "barrel_rim_reflective_metal_orm.png",
-    out: "barrel_rim_orm.webp",
-    w: 256,
-    h: 256,
-    q: 68,
-    dir: RIM_DIR,
-  },
-];
-
+/** Interior wall tiles 2× on U — 768×384 ≈ enough for open-top barrels. */
 const INTERIOR = [
-  { out: "barrel_inside_wall_albedo.webp", w: 1024, h: 512, q: 76, dir: INSIDE },
-  { out: "barrel_inside_wall_normal.webp", w: 1024, h: 512, q: 84, dir: INSIDE },
-  { out: "barrel_inside_wall_orm.webp", w: 1024, h: 512, q: 82, dir: INSIDE },
+  { out: "barrel_inside_wall_albedo.webp", w: 768, h: 384, q: 74, dir: INSIDE },
+  { out: "barrel_inside_wall_normal.webp", w: 768, h: 384, q: 82, dir: INSIDE },
+  { out: "barrel_inside_wall_orm.webp", w: 768, h: 384, q: 80, dir: INSIDE },
   { out: "barrel_inside_floor_albedo.webp", w: 512, h: 512, q: 76, dir: INSIDE },
   { out: "barrel_inside_floor_normal.webp", w: 512, h: 512, q: 84, dir: INSIDE },
   { out: "barrel_inside_floor_orm.webp", w: 512, h: 512, q: 82, dir: INSIDE },
@@ -135,9 +104,8 @@ const INTERIOR = [
 const mode = process.argv[2] ?? "all";
 if (mode === "exterior" || mode === "all") runPass("Exterior", EXTERIOR);
 if (mode === "interior" || mode === "all") runPass("Interior", INTERIOR);
-if (mode === "rim" || mode === "all") runPass("Rim", RIM_TEX);
-if (!["exterior", "interior", "rim", "all"].includes(mode)) {
-  console.error("Usage: optimize-oil-barrel-textures.mjs exterior|interior|rim|all");
+if (!["exterior", "interior", "all"].includes(mode)) {
+  console.error("Usage: optimize-oil-barrel-textures.mjs exterior|interior|all");
   process.exit(1);
 }
 

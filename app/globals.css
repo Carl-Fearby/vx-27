@@ -1472,6 +1472,46 @@ body {
   animation: deathOverlayFadeOut 1.2s ease-out forwards;
 }
 
+/* Hurt pulse: death-screen blood + red wash; radial mask keeps crosshair area clear. */
+.hurtVignetteOverlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+  visibility: hidden;
+  opacity: 0;
+  background-image:
+    url("/ui/death_overlay.jpg"),
+    radial-gradient(
+      ellipse 88% 82% at 50% 50%,
+      transparent 0%,
+      transparent 32%,
+      rgba(220, 20, 0, 0.45) 58%,
+      rgba(140, 0, 0, 0.82) 78%,
+      rgba(80, 0, 0, 0.95) 100%
+    );
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  filter: contrast(1.12) saturate(1.35) brightness(1.08);
+  -webkit-mask-image: radial-gradient(
+    ellipse 82% 78% at 50% 50%,
+    transparent 0%,
+    transparent 34%,
+    rgba(0, 0, 0, 0.55) 52%,
+    black 68%,
+    black 100%
+  );
+  mask-image: radial-gradient(
+    ellipse 82% 78% at 50% 50%,
+    transparent 0%,
+    transparent 34%,
+    rgba(0, 0, 0, 0.55) 52%,
+    black 68%,
+    black 100%
+  );
+}
+
 /* Full-viewport white overlay above the 3D canvas, below HUD (z-index 15+). */
 .flashbangOverlay {
   position: fixed;

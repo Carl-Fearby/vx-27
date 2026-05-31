@@ -35,7 +35,11 @@
     }
   ],
   "floorHoles": [
-    { "x": -8, "z": 2, "radius": 1.4 }
+    {
+      "x": -8,
+      "z": 2,
+      "radius": 1.4
+    }
   ],
   "rooms": [
     {
@@ -53,7 +57,11 @@
       "lights": [
         {
           "type": "point",
-          "position": [0, 3.2, 0],
+          "position": [
+            0,
+            3.2,
+            0
+          ],
           "color": "#ffaa55",
           "intensity": 10,
           "distance": 7,
@@ -69,10 +77,26 @@
     "pillar": "wall_corrugated_metal_weathered"
   },
   "pillars": [
-    { "x": -8, "z": -8, "shape": "rounded" },
-    { "x": 8, "z": -8, "shape": "rounded" },
-    { "x": -8, "z": 8, "shape": "rounded" },
-    { "x": 8, "z": 8, "shape": "rounded" },
+    {
+      "x": -8,
+      "z": -8,
+      "shape": "rounded"
+    },
+    {
+      "x": 8,
+      "z": -8,
+      "shape": "rounded"
+    },
+    {
+      "x": -8,
+      "z": 8,
+      "shape": "rounded"
+    },
+    {
+      "x": 8,
+      "z": 8,
+      "shape": "rounded"
+    },
     {
       "x": 0,
       "z": 0,
@@ -97,7 +121,7 @@
     "spawnPoints": [
       {
         "x": -8,
-        "z": 4.0,
+        "z": 4,
         "yaw": 0,
         "note": "On floor north of hole (-8, 2) — shoot to topple onto floor then slide into hole"
       }
@@ -122,111 +146,105 @@
     {
       "id": "oil_barrel_pile_stop_begin",
       "type": "oilBarrel",
-      "x": -7.532,
-      "z": -2.486,
+      "x": -7.35,
+      "z": -2.48,
+      "rotationY": 0.38,
       "topCap": true,
       "interiorFire": false,
-      "note": "=== STOP POINT BEGIN: barrel pile (no fire) — undo via docs/checkpoints/BARREL_PILE_STOP_POINT.md ==="
-    },
-    {
-      "id": "oil_barrel_on_side_qa",
-      "type": "oilBarrel",
-      "x": -6.88,
-      "z": -2.486,
-      "rotationY": 1.5707963267948966,
-      "topCap": false,
-      "layOnSide": true,
-      "interiorFire": false,
-      "note": "Pile seed — open, on side (+90° yaw)"
-    },
-    {
-      "id": "oil_barrel_pile_01",
-      "type": "oilBarrel",
-      "x": -7.18,
-      "z": -2.68,
-      "rotationY": 0.65,
-      "topCap": true,
-      "interiorFire": false,
-      "note": "Pile — upright capped, north edge"
+      "note": "=== STOP POINT BEGIN: dumped pile anchor ==="
     },
     {
       "id": "oil_barrel_pile_02",
       "type": "oilBarrel",
-      "x": -7.58,
-      "z": -2.18,
-      "rotationY": 1.85,
-      "rotationX": 0.52,
-      "topCap": false,
-      "interiorFire": false,
-      "note": "Pile — open, leaning ~30° onto cluster"
-    },
-    {
-      "id": "oil_barrel_pile_03",
-      "type": "oilBarrel",
-      "x": -6.65,
-      "z": -2.55,
-      "rotationY": 2.35,
-      "rotationX": -0.42,
+      "x": -7.09,
+      "z": -3.23,
+      "rotationY": 1.22,
       "topCap": true,
-      "interiorFire": false,
-      "note": "Pile — capped, lean east"
+      "interiorFire": false
     },
     {
-      "id": "oil_barrel_pile_04",
+      "id": "oil_barrel_pile_01",
       "type": "oilBarrel",
-      "x": -6.58,
-      "z": -2.28,
-      "rotationY": 3.141592653589793,
-      "rotationZ": 1.5707963267948966,
+      "x": -6.6,
+      "z": -2.21,
+      "rotationY": 2.45,
       "topCap": false,
+      "interiorFire": false
+    },
+    {
+      "id": "oil_barrel_on_side_qa",
+      "type": "oilBarrel",
+      "x": -7.77,
+      "z": -1.51,
+      "rotationY": 0.48,
+      "rotationZ": 1.5708,
       "layOnSide": true,
+      "topCap": false,
       "interiorFire": false,
-      "note": "Pile — open, on side wedged SE"
-    },
-    {
-      "id": "oil_barrel_pile_05",
-      "type": "oilBarrel",
-      "x": -7.42,
-      "z": -2.08,
-      "rotationY": -0.55,
-      "rotationX": 0.18,
-      "topCap": true,
-      "interiorFire": false,
-      "note": "Pile — capped, slight tilt south"
+      "note": "Dumped — wedged on side"
     },
     {
       "id": "oil_barrel_pile_06",
       "type": "oilBarrel",
-      "x": -7.05,
-      "z": -2.72,
-      "rotationY": 0.25,
-      "rotationX": 0.38,
-      "rotationZ": 0.15,
+      "x": -6.97,
+      "z": -1.64,
+      "rotationY": 3.85,
       "topCap": false,
-      "interiorFire": false,
-      "note": "Pile — open, cocked multi-axis"
+      "interiorFire": false
     },
     {
-      "id": "oil_barrel_pile_07",
+      "id": "oil_barrel_pile_03",
       "type": "oilBarrel",
-      "x": -6.78,
-      "z": -2.12,
-      "rotationY": 4.71238898038469,
-      "topCap": true,
+      "x": -8.22,
+      "z": -3.11,
+      "rotationY": 5.1,
+      "rotationX": 0.16,
+      "pileRole": "lean",
+      "topCap": false,
+      "interiorFire": false
+    },
+    {
+      "id": "oil_barrel_pile_04",
+      "type": "oilBarrel",
+      "x": -8.27,
+      "z": -2.33,
+      "rotationY": 1.05,
+      "rotationZ": 1.5708,
       "layOnSide": true,
-      "interiorFire": false,
-      "note": "Pile — capped, on side (270° yaw)"
+      "topCap": false,
+      "interiorFire": false
+    },
+    {
+      "id": "oil_barrel_pile_05",
+      "type": "oilBarrel",
+      "x": -7.67,
+      "z": -3.48,
+      "rotationY": 0.73,
+      "topCap": true,
+      "interiorFire": false
     },
     {
       "id": "oil_barrel_pile_08",
       "type": "oilBarrel",
-      "x": -7.68,
-      "z": -2.42,
-      "rotationY": 2.1,
-      "rotationX": -0.55,
+      "x": -6.4,
+      "z": -3,
+      "rotationY": 2.08,
+      "rotationZ": 1.5708,
+      "layOnSide": true,
       "topCap": false,
       "interiorFire": false,
-      "note": "=== STOP POINT END: barrel pile — 8 added + 2 seeds, all interiorFire false ==="
+      "note": "=== STOP POINT END: dumped pile ==="
+    },
+    {
+      "id": "oil_barrel_pile_07",
+      "type": "oilBarrel",
+      "x": -7.38,
+      "z": -2.46,
+      "rotationY": 1.75,
+      "pileRole": "stack",
+      "topCap": true,
+      "interiorFire": false,
+      "note": "Only stack — spawn last, footprint on anchor"
     }
   ],
   "collectibles": [

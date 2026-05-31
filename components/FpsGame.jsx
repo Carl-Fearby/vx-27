@@ -2849,9 +2849,16 @@ export default function FpsGame() {
         const visibleRoomCount = updateRoomCulling(
           roomCullablesRef.current,
           camera,
-          camera.position,
+          {
+            x: player.getX(),
+            z: player.getZ(),
+            footY: player.getFootY(),
+          },
           arenaHalf,
-          attachWall
+          attachWall,
+          level.catwalkDeckY,
+          level.doorwayOpenings ?? [],
+          arena.wallThickness ?? 0.5
         );
         renderSceneWithLayeredLighting(renderer, scene, camera, {
           skyRoot: sky?.mesh ?? null,

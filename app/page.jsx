@@ -1,5 +1,5 @@
-import GameShell from "@/components/GameShell";
+import MarketingSite from "@/components/MarketingSite";
 
 export default function Home() {
-  return <GameShell />;
+  return <MarketingSite />;
 }

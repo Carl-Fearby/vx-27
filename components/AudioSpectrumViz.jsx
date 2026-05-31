@@ -306,6 +306,16 @@ function drawHudFrame(ctx, w, h, pulse) {
   ctx.lineTo(pad, h - pad);
   ctx.lineTo(pad + arm, h - pad);
   ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(w - pad - arm, pad);
+  ctx.lineTo(w - pad, pad);
+  ctx.lineTo(w - pad, pad + arm);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(w - pad - arm, h - pad);
+  ctx.lineTo(w - pad, h - pad);
+  ctx.lineTo(w - pad, h - pad - arm);
+  ctx.stroke();
 }
 
 function drawScanline(ctx, w, h, phase) {

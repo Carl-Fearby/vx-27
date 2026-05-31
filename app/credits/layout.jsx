@@ -1,3 +1,5 @@
+import "./credits.css";
+
 export const metadata = {
   title: "Credits — VX-27",
   description: "The people who made this game. (It's all Carl.)",

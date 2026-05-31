@@ -14,6 +14,11 @@ const nextConfig = {
   reactStrictMode: false,
   distDir,
   transpilePackages: ["three"],
+  async redirects() {
+    return [
+      { source: "/game/credits", destination: "/credits", permanent: true },
+    ];
+  },
   turbopack: {
     resolveAlias: {
       three: threeTurbopackAlias,

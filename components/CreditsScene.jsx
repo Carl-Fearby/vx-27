@@ -11,7 +11,6 @@ import {
   MUSIC_TRACK_KEY,
   MUSIC_TRACKS,
 } from "@/lib/Sound";
-import "@/app/credits/credits.css";
 import CreditsRiflePreview from "@/components/CreditsRiflePreview";
 import CreditsAmmoCratePreview from "@/components/CreditsAmmoCratePreview";
 import CreditsBigBangFinale from "@/components/CreditsBigBangFinale";
@@ -22,6 +21,7 @@ import { setCreditsPreviewPaused } from "@/lib/creditsPreviewScheduler";
 import {
   GOLD_STAFF,
   PRODUCTION_STAFF,
+  PRODUCTION_STAFF_SHUFFLED,
   staffAt,
 } from "@/lib/CreditsStaffNames";
 
@@ -430,7 +430,7 @@ function ProductionStaffSection() {
         Any resemblance to real developers is purely alphabetical.
       </p>
       <div className="creditsProductionStaffGrid">
-        {PRODUCTION_STAFF.map((name) => (
+        {PRODUCTION_STAFF_SHUFFLED.map((name) => (
           <div key={name} className="creditsProductionStaffName">
             {name}
           </div>
@@ -945,7 +945,7 @@ export default function CreditsScene() {
 
     const scrollStartedRef = { current: false };
     let startTimer = 0;
-    let assetsReady = false;
+    let cancelled = false;
 
     const applyMeasure = () => {
       const viewport = el.parentElement?.offsetHeight ?? window.innerHeight;
@@ -956,23 +956,17 @@ export default function CreditsScene() {
     };
 
     const scheduleStart = () => {
-      if (scrollStartedRef.current || !assetsReady) return;
+      if (scrollStartedRef.current || cancelled) return;
       clearTimeout(startTimer);
       startTimer = window.setTimeout(() => {
-        if (scrollStartedRef.current || !assetsReady) return;
+        if (scrollStartedRef.current || cancelled) return;
         scrollStartedRef.current = true;
         setReady(true);
       }, 120);
     };
 
     applyMeasure();
-
-    preloadCreditsAssets()
-      .catch(() => {})
-      .finally(() => {
-        assetsReady = true;
-        scheduleStart();
-      });
+    scheduleStart();
 
     const ro = new ResizeObserver(() => {
       if (scrollStartedRef.current) return;
@@ -989,6 +983,7 @@ export default function CreditsScene() {
     window.addEventListener("resize", onResize);
 
     return () => {
+      cancelled = true;
       clearTimeout(startTimer);
       ro.disconnect();
       window.removeEventListener("resize", onResize);
@@ -1279,7 +1274,7 @@ export default function CreditsScene() {
       <div className="creditsVignette" aria-hidden />
 
       <Link href="/" className="creditsBack" onClick={(e) => e.stopPropagation()}>
-        ← Back to Game
+        ← Back to site
       </Link>
 
       {creditsEnded && !playerOpen ? (

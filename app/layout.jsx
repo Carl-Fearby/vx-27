@@ -9,9 +9,9 @@ const orbitron = Orbitron({
 });
 
 export const metadata = {
-  title: "VX-27 — Tactical Arena FPS",
+  title: "VX-27 — The experiment is still running.",
   description:
-    "Browser-based first-person combat. Clear the arena, stack the barrels, survive the catwalk.",
+    "A tactical sci-fi FPS built mostly solo — looking for collaborators who want to make games for fun. Play the prototype or join the build.",
 };
 
 export default function RootLayout({ children }) {

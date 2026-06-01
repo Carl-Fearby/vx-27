@@ -282,6 +282,19 @@ body {
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
 }
 
+.mktWipBadge {
+  padding: 0.2rem 0.55rem;
+  border: 1px solid rgba(255, 196, 92, 0.45);
+  border-radius: 2px;
+  background: rgba(255, 170, 40, 0.12);
+  color: #ffd899;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
+}
+
 .mktHeroTitle {
   margin: 0 0 1.25rem;
   font-family: var(--font);
@@ -855,6 +868,171 @@ body {
   box-shadow: 0 0 8px var(--blue-glow);
 }
 
+/* Collaborate */
+.mktCollaborate {
+  position: relative;
+  z-index: 10;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(4rem, 10vw, 7rem) clamp(1.25rem, 4vw, 3rem);
+  border-top: 1px solid rgba(94, 170, 255, 0.1);
+}
+
+.mktCollaborateHead {
+  max-width: 44rem;
+  margin-bottom: 2.5rem;
+}
+
+.mktCollaborateHead h2 {
+  margin: 0 0 1.25rem;
+  font-family: var(--font);
+  font-size: clamp(1.65rem, 3.5vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+
+.mktCollaborateLead {
+  margin: 0 0 1rem;
+  font-size: 1.02rem;
+  line-height: 1.75;
+  color: var(--text-dim);
+}
+
+.mktCollaborateLead:last-of-type {
+  margin-bottom: 0;
+}
+
+.mktCollaborateQuote {
+  margin-bottom: 2.5rem;
+}
+
+.mktCollaborateGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-bottom: 2.5rem;
+  background: rgba(94, 170, 255, 0.12);
+  border: 1px solid rgba(94, 170, 255, 0.12);
+}
+
+.mktCollaborateCard {
+  padding: 1.35rem 1.25rem 1.5rem;
+  background: var(--panel);
+}
+
+.mktCollaborateCard h3 {
+  margin: 0 0 0.65rem;
+  font-family: var(--font);
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--blue-hot);
+}
+
+.mktCollaborateCard p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+
+.mktCollaborateCta {
+  padding: 1.75rem 1.5rem;
+  border: 1px solid rgba(255, 196, 92, 0.18);
+  background:
+    linear-gradient(135deg, rgba(255, 170, 40, 0.06), rgba(94, 170, 255, 0.05)),
+    rgba(6, 10, 18, 0.72);
+}
+
+.mktCollaborateCtaLead {
+  margin: 0 0 1.35rem;
+  max-width: 40rem;
+  font-size: 1rem;
+  line-height: 1.72;
+  color: var(--text-dim);
+}
+
+.mktCollaborateActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem 1.75rem;
+}
+
+.mktCollaborateCtaLead a {
+  color: rgba(255, 196, 92, 0.92);
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 196, 92, 0.35);
+  text-underline-offset: 0.2em;
+}
+
+.mktCollaborateCtaLead a:hover {
+  color: #ffd080;
+}
+
+.mktContact {
+  margin: 0 0 2.5rem;
+  padding: 1.75rem 1.5rem;
+  border: 1px solid rgba(94, 170, 255, 0.16);
+  background: rgba(6, 10, 18, 0.55);
+}
+
+.mktContact h3 {
+  margin: 0.35rem 0 0.85rem;
+  font-size: clamp(1.35rem, 3vw, 1.65rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.mktContactLead {
+  margin: 0 0 1.35rem;
+  max-width: 40rem;
+  font-size: 1rem;
+  line-height: 1.72;
+  color: var(--text-dim);
+}
+
+.mktContactLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.25rem;
+}
+
+.mktContactLink {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: min(100%, 14rem);
+  padding: 1rem 1.15rem;
+  border: 1px solid rgba(94, 170, 255, 0.22);
+  background: rgba(2, 6, 14, 0.65);
+  text-decoration: none;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.mktContactLink:hover {
+  border-color: rgba(255, 196, 92, 0.45);
+  background: rgba(255, 170, 40, 0.06);
+}
+
+.mktContactLinkLabel {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(180, 210, 255, 0.5);
+}
+
+.mktContactLinkValue {
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  color: rgba(220, 235, 255, 0.92);
+}
+
 /* Launch CTA */
 .mktLaunch {
   position: relative;
@@ -937,6 +1115,10 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .mktCollaborateGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .mktOpsGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -969,6 +1151,10 @@ body {
 
   .mktNavLinks a:not(.mktNavPlay) {
     display: none;
+  }
+
+  .mktCollaborateGrid {
+    grid-template-columns: 1fr;
   }
 
   .mktOpsGrid {

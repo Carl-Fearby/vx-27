@@ -1,13 +1,14 @@
 {
   "asset_type": "sky_dome",
   "name": "Night Sky Dome with Stars",
-  "version": "1.0",
+  "version": "1.1-4k-webp",
   "format": "equirectangular",
   "resolution": {
-    "width": 8192,
-    "height": 4096
+    "width": 4096,
+    "height": 2048
   },
   "files": {
+    "primary_webp": "night_sky_dome_equirectangular_4k.webp",
     "primary_jpg": "night_sky_dome_equirectangular_8k_seamless.jpg"
   },
   "implementation": {
@@ -25,7 +26,7 @@
       "horizontal": "repeat",
       "vertical": "clamp",
       "left_right_edges_match": true,
-      "seam_fix_blend_width_px": 256,
+      "seam_fix_blend_width_px": 128,
       "left_right_edge_abs_diff_max": 0
     },
     "orientation": {

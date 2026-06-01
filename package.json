@@ -12,9 +12,17 @@
     "prebuild": "node scripts/clean-next.mjs",
     "textures:oil-barrel": "node scripts/optimize-oil-barrel-textures.mjs all",
     "textures:game": "node scripts/optimize-game-textures.mjs all",
+    "textures:sky": "node scripts/optimize-sky-dome.mjs",
+    "textures:ui": "node scripts/optimize-ui-images.mjs",
     "pile:barrels": "node scripts/generate-oil-barrel-pile.mjs --write",
     "pile:barrels:dry": "node scripts/generate-oil-barrel-pile.mjs",
-    "pile:barrels:check": "node scripts/oil-barrel-pile-probe.mjs"
+    "pile:barrels:check": "node scripts/oil-barrel-pile-probe.mjs",
+    "deploy:fasthosts": "node scripts/deploy-fasthosts.mjs",
+    "deploy:fasthosts:build": "node scripts/deploy-fasthosts.mjs --build-only",
+    "deploy:fasthosts:probe": "node scripts/deploy-fasthosts.mjs --probe"
+  },
+  "devDependencies": {
+    "basic-ftp": "^5.3.1"
   },
   "dependencies": {
     "next": "^15.3.2",

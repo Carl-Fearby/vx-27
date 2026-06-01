@@ -5,99 +5,139 @@ import Link from "next/link";
 import Image from "next/image";
 import CreditsScanlineCanvas from "@/components/CreditsScanlineCanvas";
 
-const POSTER = "/ui/vx-27poster.png";
+const POSTER = "/ui/vx-27poster.webp";
+const GITHUB_REPO = "https://github.com/neofuture/GameEngine2";
+
+const CONTACT = {
+  name: "Carl Fearby",
+  email: "carlfearby@me.com",
+  whatsappDisplay: "07940 147138",
+  whatsappHref: "https://wa.me/447940147138",
+};
 
 const TELEMETRY = [
+  { label: "STATUS", value: "Solo build · needs collaborators" },
+  { label: "ZONE", value: "Exclusion sector · sealed" },
+  { label: "THREAT", value: "Remnant · contractors · drones" },
   { label: "RENDER", value: "WebGL · Three.js" },
-  { label: "ARENA", value: "Modular industrial" },
-  { label: "INPUT", value: "KBM · pointer lock" },
-  { label: "AUDIO", value: "Spatial SFX + score" },
   { label: "DEPLOY", value: "Zero install" },
+];
+
+const COLLAB_AREAS = [
+  {
+    label: "Code",
+    text: "JavaScript, React, Three.js, and browser-native game systems — movement, weapons, lighting, collision, and performance.",
+  },
+  {
+    label: "Level design",
+    text: "Industrial sectors, props, vertical layout, and encounter flow. Help shape arenas that feel abandoned in a hurry.",
+  },
+  {
+    label: "Art & atmosphere",
+    text: "Textures, materials, environmental storytelling, and the dirty industrial look — rust, concrete, oil, and smoke.",
+  },
+  {
+    label: "Audio",
+    text: "Spatial SFX, ambient beds, weapon feedback, and score. Atmosphere is half the dread.",
+  },
+  {
+    label: "Narrative",
+    text: "Lore, mission copy, HUD voice, and faction writing. The experiment still needs a story.",
+  },
+  {
+    label: "QA & playtesting",
+    text: "Break builds, report bugs, stress-test performance, and tell us what feels wrong before players do.",
+  },
 ];
 
 const BRIEFING = [
   {
     label: "Situation",
-    text: "Sector 27 was a fuel-handling yard before the trial program moved in. Now it is a live-fire box: concrete, catwalks, and rooms bolted onto the perimeter like afterthoughts.",
+    text: "VX-27 was an experimental combat initiative — autonomous battlefield systems, enhanced soldiers, chemical performance boosters. Officially a security project. Unofficially, a human trial zone hidden inside abandoned industrial districts and forgotten urban ruins.",
   },
   {
     label: "Objective",
-    text: "Move fast, spend stamina wisely, and treat vertical space as cover — not decoration. Targets reset. Barrels do not.",
+    text: "You are part of a specialist breach team sent into the exclusion zone to recover classified assets before rival forces do. The mission begins as a recovery operation. It becomes a survival operation.",
   },
   {
     label: "Threat",
-    text: "Open drums burn from the inside out — twin flames, shifting shadows, heat that punishes curiosity. Dark service rooms swallow sunlight until you find the torch. Grenades roll. The arena remembers every shortcut you take twice.",
+    text: "The contaminated sectors are still active. Automated defence systems patrol. Rogue mercenary units fight over whatever technology remains. The deeper you push, the clearer it becomes: VX-27 was never just a weapon. It was a control system.",
   },
 ];
 
 const STORY_BEATS = [
   {
-    chapter: "Act I",
-    title: "The floor remembers footfall",
-    body: "You drop into gravel and rust-stained asphalt. Corrugated walls swallow sound until gunfire tears the silence open. Doorways cut the arena into lanes; attached service rooms pull you off the main kill floor and into tighter angles.",
-    detail: "Learn the sprint rhythm. Crouch under lintels. The compass is honest — the map is not.",
+    chapter: "Origin",
+    title: "The programme",
+    body: "In the near future, the world's most powerful defence corporations stopped building weapons for governments — and started building wars for themselves. At the centre of it all was VX-27.",
+    detail: "Autonomous battlefield systems. Enhanced soldiers. Chemical performance boosters.",
   },
   {
-    chapter: "Act II",
-    title: "Height is a weapon",
-    body: "Stairs climb to a perimeter catwalk that rings the yard. From up here the barrels look like chess pieces someone kicked. North passages bleed into exterior decks — good for flanking, bad for forgetting where the edge is.",
-    detail: "Control the catwalk or donate it. Every stair is a funnel. Every landing is a gamble.",
+    chapter: "Collapse",
+    title: "Locked down overnight",
+    body: "When the programme collapsed, the test zones were sealed. No evacuation. No rescue. No witnesses. Years later, the walls are failing.",
+    detail: "Survivors whisper about strange signals from deep inside the old testing grounds.",
   },
   {
-    chapter: "Act III",
-    title: "Fire finds the gaps",
-    body: "Oil drums stack where physics gave up. One shot turns a pile into a furnace — interior flame, paired lights that never flicker in sync, rolling shadow on corrugated steel. Grenades finish what the barrels start. The HUD stays minimal until your health disagrees.",
-    detail: "Hazards compound. Pickups bait you. Survival is a route, not a stat.",
+    chapter: "The zone",
+    title: "A graveyard of failed experiments",
+    body: "Flooded corridors glow with emergency lights. Security drones still scan empty rooms. Ammo crates sit beside bodies nobody came back for. Barrels leak chemical residue into cracked concrete floors.",
+    detail: "The world did not end here. It was engineered here.",
   },
   {
-    chapter: "Act IV",
-    title: "What the dark keeps",
-    body: "Perimeter rooms attach like bruises — no skylight, low ambient, walls that drink laser fire and keep the scars. Toggle the weapon light and carve a cone through the gloom. Bullet holes stay where they land; the muzzle flash does not lie anymore.",
-    detail: "F for torch. Attached rooms for ambush. Read the walls — they remember.",
+    chapter: "Now",
+    title: "Something is still running",
+    body: "You push deeper into rusted steel, broken concrete, toxic spills, and military technology that refuses to die. Old HUD transmitters flicker with mission data from soldiers long dead.",
+    detail: "VX-27 was not shut down. It adapted.",
   },
 ];
 
-const COMMS = [
+const FACTIONS = [
   {
-    id: "TX-0412",
-    speaker: "Control",
-    line: "VX-27 trial is hot. You are cleared to the floor. Do not treat the catwalk like a balcony.",
+    id: "FAC-01",
+    name: "The Remnant",
+    line: "Former security forces trapped inside the zone. Some are loyal to the old programme. Some have gone rogue. All of them know the terrain better than you do.",
   },
   {
-    id: "TX-0419",
-    speaker: "Field log",
-    line: "Barrel pile at grid zero is unstable. Recommend distance. Recommend not recommending.",
+    id: "FAC-02",
+    name: "Blacksite Contractors",
+    line: "Private military teams sent in by corporations to recover VX-27 assets. They are not interested in rescue. They are not interested in witnesses.",
   },
   {
-    id: "TX-0431",
-    speaker: "Field log",
-    line: "Service room off north catwalk — zero ambient until torch. Barrel pair throwing two shadows. Recommend not standing between them.",
+    id: "FAC-03",
+    name: "Automated Defence Systems",
+    line: "Drones, turrets, scanners, and dormant combat machines still following corrupted orders from the original VX-27 command network.",
+  },
+  {
+    id: "FAC-04",
+    name: "The Exposed",
+    line: "Survivors altered by long-term exposure to experimental compounds and battlefield conditioning systems. Unpredictable, aggressive, and drawn to signal activity.",
   },
 ];
 
 const OPS = [
   {
     code: "MOV",
-    title: "Arena movement",
-    body: "Sprint until your lungs disagree, crouch under fire, read stair ramps before you commit. The floor plan is a weapon — if you learn its grammar.",
+    title: "Tactical movement",
+    body: "Sprint until your lungs disagree, crouch under fire, read stair ramps before you commit. Vertical space is cover — not decoration.",
     accent: "0.12s response",
   },
   {
     code: "WPN",
     title: "Iron-sight gunplay",
-    body: "Recoil you can feel, ADS that costs time, a cone torch for night work and attached rooms. Impacts leave marks on concrete and corrugated steel — aligned with the shot, not floating in front of it.",
+    body: "Recoil you can feel, ADS that costs time, a cone torch for night work and attached rooms. Every weapon feels like it was built for a war that got out of control.",
     accent: "hitscan + torch",
   },
   {
     code: "HZD",
     title: "Burning barrels",
-    body: "Stacked oil drums, interior fire video, dual flicker lights per barrel with independent shadow play. The pile does not stay neat. Neither does your route once something ignites.",
+    body: "Stacked oil drums, interior fire video, dual flicker lights per barrel with independent shadow play. Chemical residue on cracked concrete. Hazards compound.",
     accent: "paired dynamic light",
   },
   {
     code: "NAV",
-    title: "Vertical control",
-    body: "Attached rooms, ceiling cuts, perimeter catwalks. Take the high ground or lose it to someone who understood the layout faster.",
+    title: "Industrial sectors",
+    body: "Attached rooms, ceiling cuts, perimeter catwalks, flooded corridors. Every environment tells the story of something abandoned in a hurry.",
     accent: "multi-level",
   },
 ];
@@ -127,7 +167,10 @@ export default function MarketingSite() {
         <nav className="mktNavLinks">
           <a href="#briefing">Briefing</a>
           <a href="#story">Story</a>
+          <a href="#factions">Threats</a>
           <a href="#ops">Systems</a>
+          <a href="#collaborate">Join us</a>
+          <a href="#contact">Contact</a>
           <Link href="/credits">Credits</Link>
           <Link href="/game" className="mktNavPlay">
             <span>Deploy</span>
@@ -156,33 +199,41 @@ export default function MarketingSite() {
           <div className="mktHeroMain">
             <div className="mktStatusRow">
               <span className="mktPulse" aria-hidden />
-              <span className="mktStatusText">Arena link established</span>
+              <span className="mktStatusText">Exclusion zone link established</span>
               <span className="mktStatusSep">·</span>
-              <span className="mktStatusDim">SYS/ARENA-01</span>
+              <span className="mktStatusDim">SYS/VX-27</span>
+              <span className="mktWipBadge">Work in progress</span>
             </div>
 
             <h1 className="mktHeroTitle">
-              <span className="mktHeroTitleLine">Close quarters.</span>
-              <span className="mktHeroTitleLine mktHeroTitleAccent">Full send.</span>
+              <span className="mktHeroTitleLine">Enter the</span>
+              <span className="mktHeroTitleLine mktHeroTitleAccent">exclusion zone.</span>
             </h1>
 
             <p className="mktHeroDeck">
-              The VX-27 trial drops you into a decommissioned fuel yard turned
-              combat crucible — a browser-native shooter where industrial decay,
-              vertical lanes, and burning barrels write the story faster than you can.
+              A classified weapons programme has gone dark. The city is sealed.
+              The systems are active. The enemy is already inside. VX-27 drops you
+              into a brutal near-future combat zone built from rusted steel, broken
+              concrete, toxic spills, abandoned weapons, and military technology
+              that refuses to die.
             </p>
             <p className="mktHeroTagline">
-              No install. No queue. One arena, many ways to misjudge a corner.
+              VX-27 — The experiment is still running. I built what you can play
+              today mostly on my own — I cannot finish this without collaborators
+              who want to make games for fun.
             </p>
 
             <div className="mktHeroActions">
               <Link href="/game" className="mktPlayBtn">
-                <span className="mktPlayBtnLabel">Enter the arena</span>
+                <span className="mktPlayBtnLabel">Enter the zone</span>
                 <span className="mktPlayBtnSub">Click to capture mouse</span>
               </Link>
+              <a href="#collaborate" className="mktGhostLink">
+                Help build it
+                <span aria-hidden>↓</span>
+              </a>
               <a href="#briefing" className="mktGhostLink">
                 Read the briefing
-                <span aria-hidden>↓</span>
               </a>
             </div>
           </div>
@@ -213,11 +264,14 @@ export default function MarketingSite() {
       <section id="briefing" className="mktBriefing">
         <div className="mktBriefingIntro">
           <p className="mktKicker">Mission briefing</p>
-          <h2>You were sent to evaluate a weapon. The building had other ideas.</h2>
+          <h2>A classified weapons programme. A dead city. A war nobody was meant to survive.</h2>
           <p className="mktBriefingLead">
-            VX-27 is not a hero story — it is a stress test with architecture.
-            A modular industrial arena where movement, aim, and nerve are measured
-            in seconds, and the environment keeps score long after the targets fall.
+            VX-27 is a tactical sci-fi FPS set inside a collapsed military test zone
+            where abandoned weapons, rogue soldiers, and automated defence systems still
+            fight a war that should have ended years ago. Enter contaminated industrial
+            sectors, recover classified technology, survive hostile forces, and uncover
+            the truth behind the VX-27 programme — before the system decides you are
+            part of the experiment.
           </p>
         </div>
         <div className="mktBriefingGrid">
@@ -230,21 +284,21 @@ export default function MarketingSite() {
         </div>
         <blockquote className="mktPullQuote">
           <p>
-            &ldquo;We built a shooter you can launch from a link. Then we built
-            an arena mean enough to deserve it.&rdquo;
+            &ldquo;And something inside the zone is still running the experiment.&rdquo;
           </p>
-          <footer>— Trial program memo, heavily redacted</footer>
+          <footer>— Breach team intercept, signal marked VX-27</footer>
         </blockquote>
       </section>
 
       <section id="story" className="mktStory">
         <div className="mktStoryHead">
-          <p className="mktKicker">Campaign arc</p>
-          <h2>Four acts. One yard. No respawn lecture.</h2>
+          <p className="mktKicker">World lore</p>
+          <h2>The zone was engineered for war. Now it keeps the war alive.</h2>
           <p className="mktStoryDeck">
-            You will not watch this story — you will walk it. From the first
-            footstep on rusted grate to the last paired glow of barrel fire under the
-            catwalk, every layer of the facility teaches a different kind of fear.
+            The VX-27 zone was once a sprawling industrial weapons district — part
+            factory, part research site, part urban combat simulation. Every street,
+            warehouse, bunker, and service tunnel was designed to test new forms of
+            warfare. Now the place is a graveyard of failed experiments.
           </p>
         </div>
         <div className="mktStoryTimeline">
@@ -264,19 +318,19 @@ export default function MarketingSite() {
         </div>
       </section>
 
-      <section className="mktComms">
+      <section id="factions" className="mktComms">
         <div className="mktCommsHead">
-          <p className="mktKicker">Intercepted traffic</p>
-          <h2>Radio chatter from the trial floor</h2>
+          <p className="mktKicker">Enemy factions</p>
+          <h2>Hostile forces inside the exclusion zone</h2>
         </div>
         <div className="mktCommsFeed">
-          {COMMS.map((tx) => (
-            <article key={tx.id} className="mktCommsLine">
+          {FACTIONS.map((faction) => (
+            <article key={faction.id} className="mktCommsLine">
               <header>
-                <span className="mktCommsId">{tx.id}</span>
-                <span className="mktCommsSpeaker">{tx.speaker}</span>
+                <span className="mktCommsId">{faction.id}</span>
+                <span className="mktCommsSpeaker">{faction.name}</span>
               </header>
-              <p>{tx.line}</p>
+              <p>{faction.line}</p>
             </article>
           ))}
         </div>
@@ -285,10 +339,11 @@ export default function MarketingSite() {
       <section id="ops" className="mktOps">
         <div className="mktOpsHead">
           <p className="mktKicker">Combat systems</p>
-          <h2>The gear speaks last. The arena speaks first.</h2>
+          <h2>Grounded sci-fi combat. Dirty industrial realism.</h2>
           <p className="mktOpsDeck">
-            Underneath the fiction is a real shooter: responsive movement, readable
-            gunplay, and systems that collide on purpose. These are the tools you
+            This is not a shiny future. This is rust, concrete, oil, smoke, metal,
+            and panic. VX-27 is built around oppressive atmosphere, tactical HUD
+            design, and combat that punishes curiosity. These are the tools you
             inherit the moment you cross the threshold.
           </p>
         </div>
@@ -318,18 +373,20 @@ export default function MarketingSite() {
           />
         </figure>
         <div className="mktIntelCopy">
-          <p className="mktKicker">Field intel</p>
-          <h2>Built for the browser. Written for the brave or the bored.</h2>
+          <p className="mktKicker">Player role</p>
+          <h2>You are not a superhero. You are not the chosen one.</h2>
           <p className="mktIntelBody">
-            Real-time shadows, layered interior lighting — paired barrel flames,
-            weapon torch, moon and sun — and piles that look dumped by someone in a
-            hurry. The trial runs entirely in your browser — load the page, lock the
-            mouse, and accept that the loading screen music will outlast your first life.
+            You are a trained operator dropped into a hostile zone with limited intel,
+            limited ammunition, and a command structure that may not be telling you
+            the full truth. Then it becomes something worse — a choice between extracting
+            the VX-27 technology or destroying everything before it reaches the outside
+            world.
           </p>
           <p className="mktIntelBody">
-            When the arena goes quiet, the credits roll — a monument to everyone
-            who touched the project, and approximately one person who touched it
-            twice as much as he admits. You can read them. You should read them.
+            The trial runs entirely in your browser — load the page, lock the mouse,
+            and accept that the loading screen music will outlast your first life.
+            Real-time shadows, layered interior lighting, and piles that look dumped
+            by someone in a hurry.
           </p>
           <ul className="mktIntelList">
             <li>Pointer-lock FPS — WASD, sprint, crouch, aim, torch on F</li>
@@ -344,6 +401,100 @@ export default function MarketingSite() {
         </div>
       </section>
 
+      <section id="collaborate" className="mktCollaborate">
+        <div className="mktCollaborateHead">
+          <p className="mktKicker">Development status</p>
+          <h2>I cannot build this alone.</h2>
+          <p className="mktCollaborateLead">
+            Everything you can play right now — the movement, the guns, the barrels,
+            the lighting, the levels — has been built mostly by one person in spare
+            time. That was enough to prove the idea. It is not enough to finish VX-27.
+          </p>
+          <p className="mktCollaborateLead">
+            I need collaborators. Not employees. Not investors. People who want to
+            make a game for fun — to learn, experiment, break things, and see something
+            cool come together without treating it like a job interview.
+          </p>
+          <p className="mktCollaborateLead">
+            No studio résumé required. If you are curious about game development and
+            happy to pitch in when you can, you are exactly who I am looking for.
+          </p>
+        </div>
+
+        <blockquote className="mktPullQuote mktCollaborateQuote">
+          <p>
+            &ldquo;I can keep pushing this forward on my own — but I cannot get it
+            to where it deserves to be without help. If building games for fun sounds
+            like your kind of stupid idea, get in touch.&rdquo;
+          </p>
+          <footer>— {CONTACT.name}</footer>
+        </blockquote>
+
+        <div id="contact" className="mktContact">
+          <p className="mktKicker">Get in touch</p>
+          <h3>Talk to me directly</h3>
+          <p className="mktContactLead">
+            I&apos;m {CONTACT.name} — building VX-27 mostly on my own in spare time.
+            If you want to collaborate, ask a question, or just say hello, WhatsApp or
+            email is fine. No recruiters, no pitch deck — {CONTACT.name}, straight about what
+            this is and where it needs help.
+          </p>
+          <div className="mktContactLinks">
+            <a
+              href={CONTACT.whatsappHref}
+              className="mktContactLink"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className="mktContactLinkLabel">WhatsApp</span>
+              <span className="mktContactLinkValue">{CONTACT.whatsappDisplay}</span>
+            </a>
+            <a href={`mailto:${CONTACT.email}`} className="mktContactLink">
+              <span className="mktContactLinkLabel">Email</span>
+              <span className="mktContactLinkValue">{CONTACT.email}</span>
+            </a>
+          </div>
+        </div>
+
+        <div className="mktCollaborateGrid">
+          {COLLAB_AREAS.map((area) => (
+            <article key={area.label} className="mktCollaborateCard">
+              <h3>{area.label}</h3>
+              <p>{area.text}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className="mktCollaborateCta">
+          <p className="mktCollaborateCtaLead">
+            Prefer GitHub? Introduce yourself there — tell me what you would like to work
+            on, what you want to learn, and how much time you realistically have. Or
+            message me on{" "}
+            <a href={CONTACT.whatsappHref} target="_blank" rel="noopener noreferrer">
+              WhatsApp
+            </a>{" "}
+            /{" "}
+            <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>. No pressure, no
+            nonsense.
+          </p>
+          <div className="mktCollaborateActions">
+            <a
+              href={GITHUB_REPO}
+              className="mktPlayBtn mktPlayBtnCompact"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span className="mktPlayBtnLabel">View on GitHub</span>
+              <span className="mktPlayBtnSub">Say hello · no résumé needed</span>
+            </a>
+            <a href={`${GITHUB_REPO}/issues`} className="mktGhostLink" target="_blank" rel="noopener noreferrer">
+              Open an issue to collaborate
+              <span aria-hidden>↗</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section className="mktLaunch">
         <div className="mktLaunchGlow" aria-hidden />
         <Image
@@ -353,14 +504,13 @@ export default function MarketingSite() {
           height={160}
           className="mktLaunchLogo"
         />
-        <h2>The yard is waiting.</h2>
+        <h2>Survive the breach. Recover the truth.</h2>
         <p>
-          Fullscreen recommended. Headphones help. Dark rooms want the torch —
-          burning barrels want distance. Everything else is still trying to kill you.
+          Escape before the zone closes around you. Fullscreen recommended.
+          Headphones help. Dark rooms want the torch — burning barrels want distance.
         </p>
         <p className="mktLaunchNarrative">
-          Step through the link. Become the trial. See how far the story goes
-          before the barrels rewrite it.
+          You were sent to recover a weapon. You found something worse.
         </p>
         <Link href="/game" className="mktPlayBtn mktPlayBtnLaunch">
           <span className="mktPlayBtnLabel">Launch VX-27</span>
@@ -368,9 +518,15 @@ export default function MarketingSite() {
       </section>
 
       <footer className="mktFooter">
-        <p>© VX-27 · GameEngine2</p>
+        <p>© VX-27 · {CONTACT.name}</p>
         <div className="mktFooterLinks">
           <Link href="/game">Play</Link>
+          <a href="#collaborate">Collaborate</a>
+          <a href={CONTACT.whatsappHref} target="_blank" rel="noopener noreferrer">
+            WhatsApp
+          </a>
+          <a href={`mailto:${CONTACT.email}`}>Email</a>
+          <a href={GITHUB_REPO} target="_blank" rel="noopener noreferrer">GitHub</a>
           <Link href="/credits">Credits</Link>
         </div>
       </footer>

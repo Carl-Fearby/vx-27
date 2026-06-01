@@ -6,6 +6,12 @@ dist
 *.log
 .env
 .env.*
+scripts/fasthosts.deploy.env
 
 # Raw source packs (runtime assets live under public/)
 CONSTRUCTION ASSETS/
+
+# 8K sky JPG sources (regenerate with npm run textures:sky)
+public/sky/_source/
+# UI PNG sources after lossless WebP conversion (npm run textures:ui)
+public/ui/_source/

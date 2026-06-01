@@ -76,7 +76,9 @@ import {
   ensureOilBarrelFlameMeshes,
   refreshOilBarrelRenderLayers,
 } from "@/lib/OilBarrel";
-import { initOilBarrelFireLightFlicker } from "@/lib/OilBarrelFireLight";
+import {
+  initOilBarrelFireLightFlicker,
+} from "@/lib/OilBarrelFireLight";
 import {
   DEFAULT_OIL_BARREL_TUNING,
   loadOilBarrelTuneEnabled,
@@ -271,11 +273,11 @@ const DEFAULT_FLASHBANG_COUNT = 4;
 const SECONDARY_WEAPON_UI = {
   [GRENADE_WEAPON_SLOT]: {
     label: "GRANADE",
-    icon: "/ui/grenade.png",
+    icon: "/ui/grenade.webp",
   },
   [FLASHBANG_WEAPON_SLOT]: {
     label: "FLASHBANG",
-    icon: "/ui/grenade.png",
+    icon: "/ui/grenade.webp",
   },
 };
 
@@ -335,10 +337,13 @@ const LEGACY_LOOK_EASE_KEY = "fps-look-ease";
 const RENDER_SCALE_KEY = "fps-render-scale";
 const PLAYER_HEIGHT_KEY = "fps-player-height";
 const SHOW_FPS_KEY = "fps-show-counter";
+const SHOW_HUD_KEY = "fps-show-hud";
 const SHOW_PLAYER_COORDS_KEY = "fps-show-player-coords";
 const MUSIC_ENABLED_KEY = "fps-music-enabled";
-const DEFAULT_LOOK = 7;
-const DEFAULT_MOUSE_EASE = 0;
+const DEFAULT_KEYBOARD_LOOK = 10;
+const DEFAULT_KEYBOARD_EASE = 10;
+const DEFAULT_MOUSE_LOOK = 7;
+const DEFAULT_MOUSE_EASE = 1;
 const DEFAULT_MAX_LOOK_RATE = 2.5;
 const DEFAULT_PLAYER_HEIGHT = 1.65;
 /** Multiplier on `min(devicePixelRatio, 2)` — 1.0 = full quality, 0.5 = quarter pixel count. */
@@ -367,6 +372,11 @@ function effectivePixelRatio(scale) {
 function loadShowFps() {
   if (typeof window === "undefined") return false;
   return window.localStorage.getItem(SHOW_FPS_KEY) === "true";
+}
+
+function loadShowHud() {
+  if (typeof window === "undefined") return true;
+  return window.localStorage.getItem(SHOW_HUD_KEY) !== "false";
 }
 
 function loadMusicEnabled() {
@@ -678,6 +688,7 @@ export default function FpsGame() {
   const playerCoordsHudRef = useRef(null);
   const showDevOverlayRef = useRef(false);
   const showPlayerCoordsRef = useRef(false);
+  const showHudRef = useRef(true);
   const compassTapeRef = useRef(null);
   const compassViewportRef = useRef(null);
   const compassMarkersRef = useRef(null);
@@ -704,9 +715,9 @@ export default function FpsGame() {
   const renderScaleRef = useRef(DEFAULT_RENDER_SCALE);
   const rendererRef = useRef(null);
   const soundsRef = useRef(null);
-  const [keyboardLook, setKeyboardLook] = useState(DEFAULT_LOOK);
-  const [keyboardEase, setKeyboardEase] = useState(DEFAULT_LOOK);
-  const [mouseLook, setMouseLook] = useState(DEFAULT_LOOK);
+  const [keyboardLook, setKeyboardLook] = useState(DEFAULT_KEYBOARD_LOOK);
+  const [keyboardEase, setKeyboardEase] = useState(DEFAULT_KEYBOARD_EASE);
+  const [mouseLook, setMouseLook] = useState(DEFAULT_MOUSE_LOOK);
   const [mouseEase, setMouseEase] = useState(DEFAULT_MOUSE_EASE);
   const [maxLookRate, setMaxLookRate] = useState(DEFAULT_MAX_LOOK_RATE);
   const [playerHeight, setPlayerHeight] = useState(DEFAULT_PLAYER_HEIGHT);
@@ -761,6 +772,7 @@ export default function FpsGame() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
   const [showFps, setShowFps] = useState(false);
+  const [showHud, setShowHud] = useState(() => loadShowHud());
   const [musicEnabled, setMusicEnabled] = useState(true);
   const musicEnabledRef = useRef(true);
   const [ammoDropSpareThreshold, setAmmoDropSpareThreshold] = useState(
@@ -821,9 +833,9 @@ export default function FpsGame() {
   const controlsOpenRef = useRef(false);
   const weaponTuneEnabledRef = useRef(false);
   const invertYRef = useRef(false);
-  const keyboardLookRef = useRef(DEFAULT_LOOK);
-  const keyboardEaseRef = useRef(DEFAULT_LOOK);
-  const mouseLookRef = useRef(DEFAULT_LOOK);
+  const keyboardLookRef = useRef(DEFAULT_KEYBOARD_LOOK);
+  const keyboardEaseRef = useRef(DEFAULT_KEYBOARD_EASE);
+  const mouseLookRef = useRef(DEFAULT_MOUSE_LOOK);
   const mouseEaseRef = useRef(DEFAULT_MOUSE_EASE);
   const maxLookRateRef = useRef(DEFAULT_MAX_LOOK_RATE);
   const playerHeightRef = useRef(DEFAULT_PLAYER_HEIGHT);
@@ -1079,6 +1091,7 @@ export default function FpsGame() {
   ammoDropSpareThresholdRef.current = ammoDropSpareThreshold;
   showDevOverlayRef.current = showDevOverlay;
   showPlayerCoordsRef.current = showPlayerCoords;
+  showHudRef.current = showHud;
   if (showPlayerCoords && !colliderDebugEnabledRef.current) {
     colliderDebugEnabledRef.current = true;
     setColliderDebugEnabled(true);
@@ -1143,14 +1156,18 @@ export default function FpsGame() {
       const v = parseFloat(localStorage.getItem(key));
       return Number.isNaN(v) ? fallback : v;
     };
-    const speedFallback = Number.isNaN(legacySpeed) ? DEFAULT_LOOK : legacySpeed;
-    const easeFallback = Number.isNaN(legacyEase) ? DEFAULT_LOOK : legacyEase;
+    const speedFallback = Number.isNaN(legacySpeed)
+      ? DEFAULT_KEYBOARD_LOOK
+      : legacySpeed;
+    const easeFallback = Number.isNaN(legacyEase)
+      ? DEFAULT_KEYBOARD_EASE
+      : legacyEase;
     const mouseEaseFallback = Number.isNaN(legacyEase)
       ? DEFAULT_MOUSE_EASE
       : legacyEase;
     const kbLook = read(KEYBOARD_LOOK_KEY, speedFallback);
     const kbEase = read(KEYBOARD_EASE_KEY, easeFallback);
-    const mLook = read(MOUSE_LOOK_KEY, speedFallback);
+    const mLook = read(MOUSE_LOOK_KEY, DEFAULT_MOUSE_LOOK);
     const mEase = read(MOUSE_EASE_KEY, mouseEaseFallback);
     const maxRate = read(LOOK_MAX_RATE_KEY, DEFAULT_MAX_LOOK_RATE);
     const tuneEnabled = loadWeaponTuneEnabled();
@@ -1166,6 +1183,7 @@ export default function FpsGame() {
     setRenderScale(storedScale);
     renderScaleRef.current = storedScale;
     setShowFps(loadShowFps());
+    setShowHud(loadShowHud());
     const storedMusicEnabled = loadMusicEnabled();
     const storedLoadingTrack = loadStoredLoadingTrackId();
     setMusicEnabled(storedMusicEnabled);
@@ -1308,10 +1326,10 @@ export default function FpsGame() {
       };
 
       reportLoad(5, "Renderer & scene");
-      reportLoad(8, "Audio — SFX, footsteps + body hits + music");
-      await sounds.preload();
+      reportLoad(8, "Loading music");
+      await sounds.preloadMusic();
       if (!isActive()) return;
-      reportLoad(12, "Audio ready");
+      reportLoad(14, "Music ready");
       if (musicEnabledRef.current) {
         sounds.resume();
         if (loadDoneRef.current) {
@@ -1321,6 +1339,8 @@ export default function FpsGame() {
           sounds.startLoadingMusic({ trackId: loadingMusicTrackIdRef.current });
         }
       }
+
+      const sfxPromise = sounds.preloadSfx();
 
       reportLoad(18, "Arena config");
       const arena = await loadArenaConfig(undefined, {
@@ -2847,7 +2867,7 @@ export default function FpsGame() {
         // Per-room frustum culling — hide rooms (and their lights) that the
         // camera can't currently see, and tell the renderer to skip the
         // interior pass on frames where no room is in view.
-        const visibleRoomCount = updateRoomCulling(
+        const { visibleCount: visibleRoomCount } = updateRoomCulling(
           roomCullablesRef.current,
           camera,
           {
@@ -2865,7 +2885,7 @@ export default function FpsGame() {
           skyRoot: sky?.mesh ?? null,
           skipRoomPass: visibleRoomCount === 0,
         });
-        if (level?.targets) {
+        if (level?.targets && showHudRef.current) {
           renderTargetHealthBarsPass(renderer, scene, camera, level.targets);
         }
         weapon?.renderViewmodel(renderer, scene, camera);
@@ -2966,7 +2986,11 @@ export default function FpsGame() {
       if (!isActive()) return;
       reportLoad(96, "View weapon");
 
-      reportLoad(97, "GPU warmup");
+      await sfxPromise;
+      if (!isActive()) return;
+      reportLoad(97, "Sound effects");
+
+      reportLoad(98, "GPU warmup");
       await warmupGameGpu({
         renderer,
         scene,
@@ -2980,7 +3004,7 @@ export default function FpsGame() {
         bounds: level.bounds,
       });
       if (!isActive()) return;
-      reportLoad(98, "GPU ready");
+      reportLoad(99, "GPU ready");
 
       gameReady = true;
       reportLoad(100, "Ready");
@@ -3130,7 +3154,7 @@ export default function FpsGame() {
   };
 
   return (
-    <div className="gameRoot">
+    <div className={`gameRoot${showHud ? "" : " gameHudHidden"}`}>
       <div
         className={`loadingOverlay${loadDone ? " loadingDone" : ""}`}
         onClick={() => {
@@ -3228,7 +3252,7 @@ export default function FpsGame() {
             setSettingsOpen(true);
           }}
         >
-          <img src="/ui/settings.png" alt="" className="hudGearImg" />
+          <img src="/ui/settings.webp" alt="" className="hudGearImg" />
         </button>
 
         {/* Left section — ROUNDS */}
@@ -3256,7 +3280,7 @@ export default function FpsGame() {
             className={`hudFireModeOption${fireMode === "auto" ? " hudFireModeActive" : ""}`}
             onClick={() => { fireModeRef.current = "auto"; setFireMode("auto"); }}
           >
-            <img src={fireMode === "auto" ? "/ui/bullet_selected.png" : "/ui/bullet.png"} className="hudBulletIcon" alt="" />
+            <img src={fireMode === "auto" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
             <span className="hudFireModeLabel">A</span>
           </button>
           <button
@@ -3264,16 +3288,16 @@ export default function FpsGame() {
             className={`hudFireModeOption${fireMode === "burst" ? " hudFireModeActive" : ""}`}
             onClick={() => { fireModeRef.current = "burst"; setFireMode("burst"); }}
           >
-            <img src={fireMode === "burst" ? "/ui/bullet_selected.png" : "/ui/bullet.png"} className="hudBulletIcon" alt="" />
-            <img src={fireMode === "burst" ? "/ui/bullet_selected.png" : "/ui/bullet.png"} className="hudBulletIcon" alt="" />
-            <img src={fireMode === "burst" ? "/ui/bullet_selected.png" : "/ui/bullet.png"} className="hudBulletIcon" alt="" />
+            <img src={fireMode === "burst" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
+            <img src={fireMode === "burst" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
+            <img src={fireMode === "burst" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
           </button>
           <button
             type="button"
             className={`hudFireModeOption${fireMode === "single" ? " hudFireModeActive" : ""}`}
             onClick={() => { fireModeRef.current = "single"; setFireMode("single"); }}
           >
-            <img src={fireMode === "single" ? "/ui/bullet_selected.png" : "/ui/bullet.png"} className="hudBulletIcon" alt="" />
+            <img src={fireMode === "single" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
           </button>
         </div>
 
@@ -3297,7 +3321,7 @@ export default function FpsGame() {
         }}
       >
         <div className="hudStaminaIcon" aria-hidden="true">
-          <img src="/ui/stamina-icon.png" className="hudStaminaFist" alt="" />
+          <img src="/ui/stamina-icon.webp" className="hudStaminaFist" alt="" />
         </div>
         <div className="hudStaminaTrack">
           <div
@@ -4048,6 +4072,18 @@ export default function FpsGame() {
                   }}
                 />
                 Show dev overlay (HP demo buttons)
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={showHud}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setShowHud(checked);
+                    localStorage.setItem(SHOW_HUD_KEY, String(checked));
+                  }}
+                />
+                Show HUD (ammo, health, radar, crosshair)
               </label>
               <label className="settingRow">
                 <input
@@ -5133,14 +5169,14 @@ export default function FpsGame() {
           </div>
         </div>
       )}
-      {showFps && (
+      {showFps && showHud && (
         <div className="topRightHud">
           <div ref={fpsRef} className="fpsCounter" aria-live="polite">
             — FPS
           </div>
         </div>
       )}
-      {showPlayerCoords && !settingsOpen && (
+      {showPlayerCoords && showHud && !settingsOpen && (
         <div
           ref={playerCoordsHudRef}
           className="hudPlayerCoords"
@@ -5153,6 +5189,18 @@ export default function FpsGame() {
         >
           X —  Z —  foot —
         </div>
+      )}
+      {!showHud && loadDone && (
+        <button
+          type="button"
+          className="hudRestoreChip"
+          onClick={() => {
+            setShowHud(true);
+            localStorage.setItem(SHOW_HUD_KEY, "true");
+          }}
+        >
+          Show HUD
+        </button>
       )}
       <PickupFlashLayer ref={pickupFlashLayerRef} />
       <WeaponSlotStack

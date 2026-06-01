@@ -1,13 +1,14 @@
 {
   "asset_type": "sky_dome",
   "name": "Bright Day Sky Dome",
-  "version": "3.2-jpg-only-seam-fixed",
+  "version": "4.0-4k-webp",
   "format": "equirectangular",
   "resolution": {
-    "width": 8192,
-    "height": 4096
+    "width": 4096,
+    "height": 2048
   },
   "files": {
+    "primary_webp": "sky_dome_equirectangular_4k.webp",
     "primary_jpg": "sky_dome_equirectangular_8k_seamless.jpg"
   },
   "implementation": {
@@ -29,7 +30,7 @@
   },
   "qa": {
     "edge_seam_fixed": true,
-    "edge_blend_width_px": 768
+    "edge_blend_width_px": 384
   },
   "visual_description": {
     "time_of_day": "daylight",

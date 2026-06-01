@@ -1,0 +1,15 @@
+# Fasthosts / Apache — Next.js static export (flat .html routes)
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # next.config redirect (not applied on static export)
+  RewriteRule ^game/credits/?$ /credits [R=301,L]
+
+  # /game -> game.html, /credits -> credits.html, etc.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.html -f
+  RewriteRule ^(.+?)/?$ $1.html [L]
+</IfModule>

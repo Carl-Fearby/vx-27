@@ -13,6 +13,9 @@ const distDir = path.join("node_modules", ".cache", "next");
 const nextConfig = {
   reactStrictMode: false,
   distDir,
+  ...(process.env.STATIC_EXPORT === "1"
+    ? { output: "export", images: { unoptimized: true } }
+    : {}),
   transpilePackages: ["three"],
   async redirects() {
     return [

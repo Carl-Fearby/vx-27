@@ -254,6 +254,47 @@ body {
   inset: 0;
 }
 
+/* Dev toggle: hide all in-game HUD for clean captures. */
+.gameHudHidden .hudBottomBar,
+.gameHudHidden .hudStaminaBar,
+.gameHudHidden .hudCompass,
+.gameHudHidden .hudBarCompass,
+.gameHudHidden .hudRadar,
+.gameHudHidden .hudHealthBar,
+.gameHudHidden .hudMissionInfo,
+.gameHudHidden .hudDamageVignette,
+.gameHudHidden .hudSecondWeapon,
+.gameHudHidden .crosshair,
+.gameHudHidden .topRightHud,
+.gameHudHidden .hudPlayerCoords,
+.gameHudHidden .demoBtnGroup,
+.gameHudHidden .pickupOverlayRow {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.hudRestoreChip {
+  position: fixed;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  z-index: 40;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid rgba(120, 200, 255, 0.45);
+  border-radius: 2px;
+  background: rgba(8, 16, 28, 0.88);
+  color: rgba(210, 230, 255, 0.92);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.hudRestoreChip:hover {
+  border-color: rgba(160, 220, 255, 0.7);
+  color: #fff;
+}
+
 .gameCanvas {
   display: block;
   width: 100%;
@@ -273,7 +314,7 @@ body {
   z-index: 15;
   width: min(44rem, 76vw);
   aspect-ratio: 2178 / 405;
-  background-image: url("/ui/ammo_hud.png");
+  background-image: url("/ui/ammo_hud.webp");
   background-size: 100% 100%;
   background-repeat: no-repeat;
   pointer-events: none;
@@ -452,7 +493,7 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url("/ui/health_bar.png");
+  background-image: url("/ui/health_bar.webp");
   background-size: 100% 100%;
   background-repeat: no-repeat;
   transform: scaleX(-1);
@@ -1375,7 +1416,7 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background: url("/ui/radar_hud.png") center / contain no-repeat;
+  background: url("/ui/radar_hud.webp") center / contain no-repeat;
   transform: rotate(180deg);
   pointer-events: none;
   z-index: 0;
@@ -1832,7 +1873,7 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url("/ui/health_bar.png");
+  background-image: url("/ui/health_bar.webp");
   background-size: 100% 100%;
   background-repeat: no-repeat;
   pointer-events: none;
@@ -1927,7 +1968,7 @@ body {
   bottom: 0;
   width: 100%;
   aspect-ratio: 600 / 180;
-  background: url("/ui/second-weapon.png") center / 100% 100% no-repeat;
+  background: url("/ui/second-weapon.webp") center / 100% 100% no-repeat;
   transform-origin: bottom right;
   transform: translate(var(--slot-x, 0px), var(--slot-y, 0px))
     scale(var(--slot-scale, 1));

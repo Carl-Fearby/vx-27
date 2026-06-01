@@ -45,7 +45,7 @@ export default function HudCompass({ tapeRef, viewportRef, markersRef }) {
       <div className="hudCompassFrame">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/ui/compass-background.png"
+          src="/ui/compass-background.webp"
           alt=""
           className="hudCompassBg"
           draggable={false}
@@ -77,7 +77,7 @@ export default function HudCompass({ tapeRef, viewportRef, markersRef }) {
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/ui/compass-pin.png"
+          src="/ui/compass-pin.webp"
           alt=""
           className="hudCompassPin"
           draggable={false}

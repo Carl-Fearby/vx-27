@@ -102,7 +102,7 @@
       "z": 0,
       "shape": "rounded",
       "texture": "decal_hazard_stripes_worn",
-      "poster": "/ui/vx-27poster.png",
+      "poster": "/ui/vx-27poster.webp",
       "posterWidth": 1.056,
       "posterScale": 0.8,
       "posterRollDeg": 5,
@@ -136,12 +136,36 @@
       "note": "Open top on arena floor — original placement; omit topCap so tune panel can toggle lid"
     },
     {
-      "id": "oil_barrel_service_corner",
+      "id": "oil_barrel_service_nw",
       "type": "oilBarrel",
-      "x": -4.7,
-      "z": -22.35,
+      "x": -4.3,
+      "z": -21.95,
       "roomId": "service_room",
-      "note": "Second barrel in dark service room NW corner — flame video + flickering point light"
+      "note": "Dark service room NW corner — open top, interior fire"
+    },
+    {
+      "id": "oil_barrel_service_ne",
+      "type": "oilBarrel",
+      "x": 4.3,
+      "z": -21.95,
+      "roomId": "service_room",
+      "note": "Dark service room NE corner — open top, interior fire"
+    },
+    {
+      "id": "oil_barrel_service_sw",
+      "type": "oilBarrel",
+      "x": -4.3,
+      "z": -15.7,
+      "roomId": "service_room",
+      "note": "Dark service room SW corner — open top, interior fire"
+    },
+    {
+      "id": "oil_barrel_service_se",
+      "type": "oilBarrel",
+      "x": 4.3,
+      "z": -15.7,
+      "roomId": "service_room",
+      "note": "Dark service room SE corner — open top, interior fire"
     },
     {
       "id": "oil_barrel_pile_stop_begin",

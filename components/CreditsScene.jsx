@@ -327,13 +327,13 @@ const SECTIONS = [
 ];
 
 const ASSETS = {
-  grenade: { src: "/ui/grenade.png" },
-  powepack: { src: "/ui/powepack.png" },
-  stamina: { src: "/ui/stamina-icon.png" },
-  "second-weapon": { src: "/ui/second-weapon.png" },
-  radar: { src: "/ui/radar_hud.png" },
-  "crate-front": { src: "/ui/crate/front.png" },
-  "crate-top": { src: "/ui/crate/top.png" },
+  grenade: { src: "/ui/grenade.webp" },
+  powepack: { src: "/ui/powepack.webp" },
+  stamina: { src: "/ui/stamina-icon.webp" },
+  "second-weapon": { src: "/ui/second-weapon.webp" },
+  radar: { src: "/ui/radar_hud.webp" },
+  "crate-front": { src: "/ui/crate/front.webp" },
+  "crate-top": { src: "/ui/crate/top.webp" },
   "crate-end": { src: "/ui/crate/endcap.png" },
   vx27: { src: "/textures/vx27/vx27_body_albedo.webp" },
   "grenade-tex": { src: "/textures/grenade/grenade_reward_texture_pack_preview.png" },
@@ -347,7 +347,7 @@ const ASSETS = {
   "bullet-4": { src: "/textures/bullet_holes/04_concrete_bullet_hole_alpha.webp" },
   "bullet-5": { src: "/textures/bullet_holes/05_concrete_bullet_hole_alpha.webp" },
   "oil-barrel": { src: "/textures/oil_barrel/barrel_body_albedo.webp" },
-  "sky-dome": { src: "/sky/sky_dome_equirectangular_8k_seamless.jpg" },
+  "sky-dome": { src: "/sky/sky_dome_equirectangular_4k.webp" },
 };
 
 /** Prop art sprinkled between credit sections — keyed by section title. */

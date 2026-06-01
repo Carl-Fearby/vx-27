@@ -168,6 +168,21 @@ export default function OilBarrelTunePanel({
         onChange={(v) => onChange("interiorFireLightIntensity", v)}
       />
       <BarControl
+        label="Fire shadow strength"
+        value={tuning.interiorFireShadowIntensity}
+        min={L.interiorFireShadowIntensity.min}
+        max={L.interiorFireShadowIntensity.max}
+        step={L.interiorFireShadowIntensity.step}
+        nudge={L.interiorFireShadowIntensity.nudge}
+        format={(v) => `${Math.round(v * 100)}%`}
+        onChange={(v) => onChange("interiorFireShadowIntensity", v)}
+      />
+      <p className="settingsHint" style={{ marginTop: 0 }}>
+        Softens the shadow edge only — the centre stays fully black. 0% turns
+        shadows off. In rooms, fill light skips the wall pass so it cannot wash
+        the umbra.
+      </p>
+      <BarControl
         label="Fire light left X (m)"
         value={tuning.interiorFireLightLeftX}
         min={L.interiorFireLightLeftX.min}

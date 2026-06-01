@@ -120,6 +120,12 @@ const FACTIONS = [
 
 const OPS = [
   {
+    code: "CRG",
+    title: "VX-27 cargo module",
+    body: "Corrugated shell, rounded roof, interior liner, and twin doors you open with E. Shoot the metal — bullet holes stick to doors open or closed, inside and out.",
+    accent: "E interact · decals",
+  },
+  {
     code: "MOV",
     title: "Tactical movement",
     body: "Sprint until your lungs disagree, crouch under fire, read stair ramps before you commit. Vertical space is cover — not decoration.",
@@ -404,10 +410,16 @@ export default function MarketingSite() {
           </p>
           <ul className="mktIntelList">
             <li>Pointer-lock FPS — WASD, sprint, crouch, aim, torch on F</li>
+            <li>VX-27 cargo container — open doors, fight inside, bullet decals on shell</li>
             <li>Catwalks, stairs, attached dark rooms with real collision</li>
-            <li>Dual-flame barrels, grenades, health, and stamina pickups</li>
-            <li>Bullet decals, full HUD — compass, radar, ammo, damage feedback</li>
+            <li>Dumped barrel pile and burning open-top drum beside the module</li>
+            <li>Grenades, health, stamina pickups — full HUD with compass and radar</li>
           </ul>
+          <p className="mktIntelBody" style={{ marginTop: "1rem" }}>
+            Settings → Development opens live tuning panels — weapon pose, lighting,
+            barrel pile placement, VX-27 container JSON export, and more. Tweak in-game,
+            copy JSON, bake into the level.
+          </p>
           <Link href="/game" className="mktPlayBtn mktPlayBtnCompact">
             <span className="mktPlayBtnLabel">Play now</span>
             <span className="mktPlayBtnSub">Free · in-browser</span>

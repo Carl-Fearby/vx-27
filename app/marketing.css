@@ -1455,6 +1455,10 @@ body {
   .mktIntelVisual {
     order: -1;
   }
+
+  .mktDevColumns {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {

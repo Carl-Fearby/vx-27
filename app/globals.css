@@ -372,17 +372,18 @@ body {
 
 .hudAmmoValue {
   font-family: var(--font-futuristic), "Orbitron", "Eurostile", "Rajdhani", sans-serif;
-  font-size: var(--hud-value-font, clamp(1.4rem, 3.2vw, 2.4rem));
+  font-size: var(--hud-value-font, clamp(0.95rem, 2.16vw, 1.62rem));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.08em;
   line-height: 1;
   text-align: center;
-  color: rgba(94, 170, 255, 0.75);
+  color: rgb(94, 170, 255);
+  transform: translateY(var(--hud-value-y, 8px));
 }
 
 .hudAmmoValueCompact {
-  font-size: clamp(0.95rem, 2.15vw, 1.55rem);
+  font-size: clamp(0.65rem, 1.44vw, 1.05rem);
   letter-spacing: 0.04em;
 }
 
@@ -2074,6 +2075,38 @@ body {
 
 .crosshairVisible {
   opacity: 0.85;
+}
+
+.crosshairDoorTarget {
+  opacity: 1;
+}
+
+.crosshairDoorTarget::before,
+.crosshairDoorTarget::after {
+  background: rgba(120, 230, 255, 1);
+  box-shadow: 0 0 8px rgba(80, 200, 255, 0.85);
+}
+
+.doorInteractPrompt {
+  position: fixed;
+  left: 50%;
+  top: calc(50% + 1.35rem);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0;
+  transition: opacity 0.12s ease-out;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(180, 235, 255, 0.95);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
+  white-space: nowrap;
+}
+
+.doorInteractPromptVisible {
+  opacity: 1;
 }
 
 .crosshair::before,

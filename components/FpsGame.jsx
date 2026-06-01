@@ -76,6 +76,37 @@ import {
   ensureOilBarrelFlameMeshes,
   refreshOilBarrelRenderLayers,
 } from "@/lib/OilBarrel";
+import { arenaHasVx27Containers, preloadVx27ContainerAssets, applyVx27ContainerDoorTuning, consumeVx27DoorColliderDirty, readVx27ContainerDoorTuning, readVx27ContainerEdgeRadius, readVx27ContainerExteriorCornerRadius, readVx27ContainerInteriorInsets, readVx27ContainerScale, rebuildVx27ContainerExterior, rebuildVx27ContainerInterior, rebuildVx27ContainerScale, refreshVx27ContainerRenderLayers, setVx27ContainerExteriorCornerRadius, setVx27ContainerMaterialTuning, updateVx27ContainerDoorAnimations } from "@/lib/Vx27Container";
+import { updateVx27ContainerDoorWizard } from "@/lib/Vx27ContainerDoorWizard";
+import {
+  collectVx27DoorInteractMeshes,
+  getVx27DoorInteractLabel,
+  pickVx27DoorUnderCrosshair,
+  toggleVx27ContainerDoorLeaf,
+} from "@/lib/Vx27ContainerDoorInteract";
+import { DEFAULT_VX27_CONTAINER_DOOR_TUNING } from "@/lib/Vx27ContainerDoorTuning";
+import {
+  DEFAULT_VX27_CONTAINER_MATERIAL_TUNING,
+  loadVx27ContainerMaterialTuning,
+  normalizeVx27ContainerMaterialTuning,
+  saveVx27ContainerMaterialTuning,
+} from "@/lib/Vx27ContainerMaterialTuning";
+import {
+  applyVx27ContainerPlacement,
+  buildVx27ContainerPropJson,
+  getVx27ContainerPlacementBounds,
+  loadVx27ContainerInteriorInsets,
+  loadVx27ContainerEdgeRadius,
+  loadVx27ContainerExteriorCornerRadius,
+  loadVx27ContainerTuneEnabled,
+  readVx27ContainerPlacement,
+  saveVx27ContainerEdgeRadius,
+  saveVx27ContainerExteriorCornerRadius,
+  saveVx27ContainerInteriorInsets,
+  saveVx27ContainerTuneEnabled,
+  syncVx27ContainerCollider,
+} from "@/lib/Vx27ContainerTuning";
+import Vx27ContainerTunePanel from "@/components/Vx27ContainerTunePanel";
 import {
   initOilBarrelFireLightFlicker,
 } from "@/lib/OilBarrelFireLight";
@@ -122,6 +153,7 @@ import { groundSupportFromLevel } from "@/lib/GroundSupport";
 import {
   setColliderDebug,
   updateColliderDebugOverlay,
+  invalidateColliderDebugOverlay,
 } from "@/lib/ColliderDebug.js";
 import { warmupGameGpu, resetGameGpuWarmup } from "@/lib/GpuWarmup";
 import {
@@ -683,6 +715,7 @@ const WeaponSlotStack = memo(function WeaponSlotStack({
 export default function FpsGame() {
   const canvasRef = useRef(null);
   const crosshairRef = useRef(null);
+  const doorInteractPromptRef = useRef(null);
   const fpsRef = useRef(null);
   const playerCoordsMenuRef = useRef(null);
   const playerCoordsHudRef = useRef(null);
@@ -751,6 +784,43 @@ export default function FpsGame() {
   const [oilBarrelTuning, setOilBarrelTuning] = useState(() =>
     loadOilBarrelTuning()
   );
+  const [vx27ContainerTuneEnabled, setVx27ContainerTuneEnabled] = useState(false);
+  const [arenaHasVx27ContainersState, setArenaHasVx27ContainersState] = useState(false);
+  const [containerTuneIndex, setContainerTuneIndex] = useState(0);
+  const containerTuneIndexRef = useRef(0);
+  const [containerPropLabels, setContainerPropLabels] = useState([]);
+  const [containerX, setContainerX] = useState(0);
+  const [containerZ, setContainerZ] = useState(0);
+  const [containerFloorY, setContainerFloorY] = useState(0);
+  const [containerRotationY, setContainerRotationY] = useState(0);
+  const initialContainerInsets = loadVx27ContainerInteriorInsets();
+  const [containerInsetLeft, setContainerInsetLeft] = useState(initialContainerInsets.left);
+  const [containerInsetRight, setContainerInsetRight] = useState(initialContainerInsets.right);
+  const [containerInsetFront, setContainerInsetFront] = useState(initialContainerInsets.front);
+  const [containerInsetBack, setContainerInsetBack] = useState(initialContainerInsets.back);
+  const [containerFloorOffset, setContainerFloorOffset] = useState(
+    initialContainerInsets.floorOffset
+  );
+  const [containerCeilingOffset, setContainerCeilingOffset] = useState(
+    initialContainerInsets.ceilingOffset
+  );
+  const [containerEdgeRadius, setContainerEdgeRadius] = useState(() =>
+    loadVx27ContainerEdgeRadius()
+  );
+  const [containerExteriorCornerRadius, setContainerExteriorCornerRadius] =
+    useState(() => loadVx27ContainerExteriorCornerRadius());
+  const [containerScale, setContainerScale] = useState(1);
+  const [containerMaterialTuning, setContainerMaterialTuning] = useState(() =>
+    loadVx27ContainerMaterialTuning()
+  );
+  const [containerDoorTuning, setContainerDoorTuning] = useState(
+    () => DEFAULT_VX27_CONTAINER_DOOR_TUNING
+  );
+  const [containerDoorWizardEnabled, setContainerDoorWizardEnabled] = useState(false);
+  const containerDoorWizardEnabledRef = useRef(false);
+  const [containerBounds, setContainerBounds] = useState(() =>
+    getVx27ContainerPlacementBounds(null, 0, 4.35)
+  );
   const pilePrefs = loadPileWizardPrefs();
   const [pileSeed, setPileSeed] = useState(pilePrefs.seed);
   const [pileHubX, setPileHubX] = useState(pilePrefs.hub.x);
@@ -795,7 +865,7 @@ export default function FpsGame() {
   const [hudMagY, setHudMagY] = useState(10);
   const [hudMagsX, setHudMagsX] = useState(67);
   const [hudMagsY, setHudMagsY] = useState(10);
-  const [hudValueFont, setHudValueFont] = useState(4.4);
+  const [hudValueFont, setHudValueFont] = useState(2.97);
   const [hudLabelY, setHudLabelY] = useState(8);
   const [hudFireModeY, setHudFireModeY] = useState(14.5);
   const [hudBarCompassX, setHudBarCompassX] = useState(92);
@@ -819,6 +889,8 @@ export default function FpsGame() {
   const hitDebugEnabledRef = useRef(false);
   const [colliderDebugEnabled, setColliderDebugEnabled] = useState(false);
   const colliderDebugEnabledRef = useRef(false);
+  const [containerColliderDebugOnly, setContainerColliderDebugOnly] = useState(false);
+  const containerColliderDebugOnlyRef = useRef(false);
   const [hitzoneOverlayEnabled, setHitzoneOverlayEnabled] = useState(false);
   const [levelEditEnabled, setLevelEditEnabled] = useState(false);
   const levelEditEnabledRef = useRef(false);
@@ -853,7 +925,27 @@ export default function FpsGame() {
   const refitMoonShadowRef = useRef(null);
   const rebuildStairsRef = useRef(null);
   const rebuildOilBarrelsRef = useRef(null);
+  const vx27ContainersRef = useRef([]);
+  const vx27ContainerCommitRef = useRef(null);
+  const vx27ContainerInteriorCommitRef = useRef(null);
+  const vx27ContainerExteriorCommitRef = useRef(null);
+  const vx27ContainerExteriorCornerCommitRef = useRef(null);
+  const vx27ContainerScaleCommitRef = useRef(null);
+  const vx27ContainerDoorCommitRef = useRef(null);
+  const getPlayerPlacementRef = useRef(null);
   const arenaLiveRef = useRef(null);
+  const onContainerMaterialChange = useCallback((key, value) => {
+    setContainerMaterialTuning((prev) => {
+      const next = normalizeVx27ContainerMaterialTuning({ ...prev, [key]: value });
+      saveVx27ContainerMaterialTuning(next);
+      const containerGroup =
+        vx27ContainersRef.current[containerTuneIndexRef.current] ??
+        sceneRef.current ??
+        undefined;
+      setVx27ContainerMaterialTuning(next, containerGroup);
+      return next;
+    });
+  }, []);
   const onOilBarrelTuningChange = useCallback((key, value) => {
     setOilBarrelTuning((prev) => {
       const next = normalizeOilBarrelTuning({ ...prev, [key]: value });
@@ -1092,11 +1184,7 @@ export default function FpsGame() {
   showDevOverlayRef.current = showDevOverlay;
   showPlayerCoordsRef.current = showPlayerCoords;
   showHudRef.current = showHud;
-  if (showPlayerCoords && !colliderDebugEnabledRef.current) {
-    colliderDebugEnabledRef.current = true;
-    setColliderDebugEnabled(true);
-    if (sceneRef.current) setColliderDebug(sceneRef.current, true);
-  }
+  containerTuneIndexRef.current = containerTuneIndex;
 
   scheduleGameplayHudSyncRef.current = () => {
     if (hudSyncPendingRef.current) return;
@@ -1205,6 +1293,7 @@ export default function FpsGame() {
     const stairWalkEnabled = loadStairWalkTuneEnabled();
     const hudBarEnabled = loadHudBarTuneEnabled();
     const oilBarrelEnabled = loadOilBarrelTuneEnabled();
+    const vx27ContainerEnabled = loadVx27ContainerTuneEnabled();
     setInvertYLook(storedInvert);
     const storedScale = loadRenderScale();
     setRenderScale(storedScale);
@@ -1228,9 +1317,11 @@ export default function FpsGame() {
     setHudBarTuneEnabled(hudBarEnabled);
     setHudBarLayout(loadHudBarTuning());
     setOilBarrelTuneEnabled(oilBarrelEnabled);
+    setVx27ContainerTuneEnabled(vx27ContainerEnabled);
     const barrelTuning = loadOilBarrelTuning();
     setOilBarrelTuning(barrelTuning);
     applyOilBarrelMaterialTuning(barrelTuning, sceneRef.current ?? undefined);
+    setContainerMaterialTuning(loadVx27ContainerMaterialTuning());
     setKeyboardLook(kbLook);
     setKeyboardEase(kbEase);
     setMouseLook(mLook);
@@ -1329,7 +1420,9 @@ export default function FpsGame() {
       scene.fog = new THREE.Fog(DAY_CLEAR_COLOR, 45, 95);
       sceneRef.current = scene;
       if (hitDebugEnabledRef.current) setHitDebug(scene, true);
-      if (colliderDebugEnabledRef.current) setColliderDebug(scene, true);
+      if (colliderDebugEnabledRef.current || containerColliderDebugOnlyRef.current) {
+        setColliderDebug(scene, true);
+      }
 
       const HIP_FOV = 75;
       const ADS_FOV = 52;
@@ -1394,6 +1487,8 @@ export default function FpsGame() {
       reportLoad(54, "Oil barrel assets");
       await preloadOilBarrelAssets(arena);
       if (!isActive()) return;
+      await preloadVx27ContainerAssets(arena);
+      if (!isActive()) return;
       reportLoad(55, "HP orb textures");
       await preloadHpOrbAssets();
       if (!isActive()) return;
@@ -1442,6 +1537,51 @@ export default function FpsGame() {
       reportLoad(72, "Level geometry");
       targetsRef.current = level.targets;
       levelObjectsRef.current = level.pillarMeshes ?? [];
+      vx27ContainersRef.current = level.vx27ContainerMeshes ?? [];
+      setArenaHasVx27ContainersState(
+        vx27ContainersRef.current.length > 0 || arenaHasVx27Containers(arena)
+      );
+      setContainerPropLabels(
+        vx27ContainersRef.current.map(
+          (group) => group.userData.vx27PropId ?? "vx27_container"
+        )
+      );
+      setContainerBounds(
+        getVx27ContainerPlacementBounds(
+          level.bounds,
+          level.floorY,
+          level.catwalkDeckY
+        )
+      );
+      if (vx27ContainersRef.current.length > 0) {
+        const firstGroup = vx27ContainersRef.current[0];
+        const propMaterial = firstGroup.userData.vx27PropDef?.materialTuning;
+        const materialTuning = propMaterial
+          ? normalizeVx27ContainerMaterialTuning(propMaterial)
+          : loadVx27ContainerMaterialTuning();
+        setContainerMaterialTuning(materialTuning);
+        setVx27ContainerMaterialTuning(materialTuning, firstGroup);
+
+        const placement = readVx27ContainerPlacement(firstGroup);
+        const insets = readVx27ContainerInteriorInsets(firstGroup);
+        setContainerTuneIndex(0);
+        setContainerX(placement.x);
+        setContainerZ(placement.z);
+        setContainerFloorY(placement.floorY);
+        setContainerRotationY(placement.rotationY);
+        setContainerInsetLeft(insets.left);
+        setContainerInsetRight(insets.right);
+        setContainerInsetFront(insets.front);
+        setContainerInsetBack(insets.back);
+        setContainerFloorOffset(insets.floorOffset);
+        setContainerCeilingOffset(insets.ceilingOffset);
+        setContainerEdgeRadius(readVx27ContainerEdgeRadius(firstGroup));
+        setContainerExteriorCornerRadius(
+          readVx27ContainerExteriorCornerRadius(firstGroup)
+        );
+        setContainerScale(readVx27ContainerScale(firstGroup));
+        setContainerDoorTuning(readVx27ContainerDoorTuning(firstGroup));
+      }
       preloadBulletHoleTextures();
       const levelHitMeshes = collectLevelHitMeshes(level.group, level.targets);
       const syncInteriorLighting = () => {
@@ -1458,6 +1598,7 @@ export default function FpsGame() {
       };
       ensureOilBarrelFlameMeshes(level.group);
       refreshOilBarrelRenderLayers(level.group);
+      refreshVx27ContainerRenderLayers(level.group);
       syncInteriorLighting();
       syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, false);
       applySunLightPosition(sun, sunLightPosRef.current);
@@ -1618,8 +1759,176 @@ export default function FpsGame() {
           ...level.stairColliders,
           ...level.ceilingColliders
         );
+        invalidateColliderDebugOverlay();
       }
       syncAllColliders();
+      vx27ContainerCommitRef.current = (index, placement) => {
+        const group = vx27ContainersRef.current[index];
+        if (!group) return;
+        applyVx27ContainerPlacement(group, placement);
+        syncVx27ContainerCollider(
+          level.colliders,
+          group.userData.vx27PropId,
+          placement,
+          {
+            ...group.userData.vx27PropDef,
+            interiorInsets: group.userData.vx27InteriorInsets,
+            edgeRadius: group.userData.vx27EdgeRadius,
+            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
+            scale: group.userData.vx27Scale,
+            doorTuning: group.userData.vx27DoorTuning,
+          }
+        );
+        syncAllColliders();
+      };
+      vx27ContainerScaleCommitRef.current = (index, scale) => {
+        const group = vx27ContainersRef.current[index];
+        if (!group) return;
+        rebuildVx27ContainerScale(group, scale);
+        const placement = readVx27ContainerPlacement(group);
+        syncVx27ContainerCollider(
+          level.colliders,
+          group.userData.vx27PropId,
+          placement,
+          {
+            ...group.userData.vx27PropDef,
+            interiorInsets: group.userData.vx27InteriorInsets,
+            edgeRadius: group.userData.vx27EdgeRadius,
+            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
+            scale: group.userData.vx27Scale,
+            doorTuning: group.userData.vx27DoorTuning,
+          }
+        );
+        syncAllColliders();
+      };
+      vx27ContainerInteriorCommitRef.current = (index, insets) => {
+        const group = vx27ContainersRef.current[index];
+        if (!group) return;
+        const normalized = rebuildVx27ContainerInterior(group, insets);
+        saveVx27ContainerInteriorInsets(normalized);
+        const placement = readVx27ContainerPlacement(group);
+        syncVx27ContainerCollider(
+          level.colliders,
+          group.userData.vx27PropId,
+          placement,
+          {
+            ...group.userData.vx27PropDef,
+            interiorInsets: normalized,
+            edgeRadius: group.userData.vx27EdgeRadius,
+            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
+            scale: group.userData.vx27Scale,
+            doorTuning: group.userData.vx27DoorTuning,
+          }
+        );
+        syncAllColliders();
+      };
+      vx27ContainerExteriorCommitRef.current = (index, edgeRadius) => {
+        const group = vx27ContainersRef.current[index];
+        if (!group) return;
+        const normalized = rebuildVx27ContainerExterior(group, edgeRadius);
+        saveVx27ContainerEdgeRadius(normalized);
+        group.userData.vx27EdgeRadius = normalized;
+        const placement = readVx27ContainerPlacement(group);
+        syncVx27ContainerCollider(
+          level.colliders,
+          group.userData.vx27PropId,
+          placement,
+          {
+            ...group.userData.vx27PropDef,
+            interiorInsets: group.userData.vx27InteriorInsets,
+            edgeRadius: normalized,
+            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
+            scale: group.userData.vx27Scale,
+            width: group.userData.vx27Width,
+            height: group.userData.vx27Height,
+            length: group.userData.vx27Length,
+            doorTuning: group.userData.vx27DoorTuning,
+          }
+        );
+        syncAllColliders();
+      };
+      vx27ContainerExteriorCornerCommitRef.current = (index, exteriorCornerRadius) => {
+        const group = vx27ContainersRef.current[index];
+        if (!group) return;
+        const normalized = setVx27ContainerExteriorCornerRadius(group, exteriorCornerRadius);
+        saveVx27ContainerExteriorCornerRadius(normalized);
+        const placement = readVx27ContainerPlacement(group);
+        syncVx27ContainerCollider(
+          level.colliders,
+          group.userData.vx27PropId,
+          placement,
+          {
+            ...group.userData.vx27PropDef,
+            interiorInsets: group.userData.vx27InteriorInsets,
+            edgeRadius: group.userData.vx27EdgeRadius,
+            exteriorCornerRadius: normalized,
+            scale: group.userData.vx27Scale,
+            width: group.userData.vx27Width,
+            height: group.userData.vx27Height,
+            length: group.userData.vx27Length,
+            doorTuning: group.userData.vx27DoorTuning,
+          }
+        );
+        syncAllColliders();
+      };
+      vx27ContainerDoorCommitRef.current = (index, doorPatch) => {
+        const group = vx27ContainersRef.current[index];
+        if (!group) return;
+        const normalized = applyVx27ContainerDoorTuning(group, doorPatch, {
+          animate: true,
+        });
+        const placement = readVx27ContainerPlacement(group);
+        const anim = group.userData.vx27DoorAnim;
+        if (!anim?.active) {
+          syncVx27ContainerCollider(
+            level.colliders,
+            group.userData.vx27PropId,
+            placement,
+            {
+              ...group.userData.vx27PropDef,
+              interiorInsets: group.userData.vx27InteriorInsets,
+              edgeRadius: group.userData.vx27EdgeRadius,
+              exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
+              scale: group.userData.vx27Scale,
+              width: group.userData.vx27Width,
+              height: group.userData.vx27Height,
+              length: group.userData.vx27Length,
+              doorTuning: normalized,
+            }
+          );
+          syncAllColliders();
+        }
+        if (containerDoorWizardEnabledRef.current) {
+          updateVx27ContainerDoorWizard(group, true);
+        }
+      };
+      for (const group of vx27ContainersRef.current) {
+        syncVx27ContainerCollider(
+          level.colliders,
+          group.userData.vx27PropId,
+          readVx27ContainerPlacement(group),
+          {
+            ...group.userData.vx27PropDef,
+            interiorInsets: group.userData.vx27InteriorInsets,
+            edgeRadius: group.userData.vx27EdgeRadius,
+            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
+            scale: group.userData.vx27Scale,
+            width: group.userData.vx27Width,
+            height: group.userData.vx27Height,
+            length: group.userData.vx27Length,
+            doorTuning: group.userData.vx27DoorTuning,
+          }
+        );
+      }
+      syncAllColliders();
+      getPlayerPlacementRef.current = () => {
+        if (!player) return null;
+        return {
+          x: camera.position.x,
+          z: camera.position.z,
+          floorY: player.getFootY(),
+        };
+      };
       rebuildStairsRef.current = (params) => {
         if (!level?.rebuildStairs) return;
         level.rebuildStairs(params);
@@ -1690,6 +1999,8 @@ export default function FpsGame() {
       shootRaycaster.layers.enable(WORLD_LAYER);
       shootRaycaster.layers.enable(ROOM_INTERIOR_LAYER);
       const hitRaycaster = new THREE.Raycaster();
+      hitRaycaster.layers.enable(WORLD_LAYER);
+      hitRaycaster.layers.enable(ROOM_INTERIOR_LAYER);
       const screenCenter = new THREE.Vector2(0, 0);
       const currentWeaponLoad = ++weaponLoadId;
       reportLoad(74, "View weapon (rifle GLTF)");
@@ -2483,6 +2794,49 @@ export default function FpsGame() {
         }
         camera.updateMatrixWorld(true);
 
+        const canInteract =
+          locked &&
+          !frozen &&
+          !rebindActionRef.current &&
+          !settingsOpenRef.current &&
+          !controlsOpenRef.current;
+        let doorTarget = null;
+        if (canInteract && vx27ContainersRef.current.length > 0) {
+          hitRaycaster.setFromCamera(screenCenter, camera);
+          const doorMeshes = collectVx27DoorInteractMeshes(
+            vx27ContainersRef.current
+          );
+          doorTarget = pickVx27DoorUnderCrosshair(hitRaycaster, doorMeshes);
+        }
+        crosshair.classList.toggle("crosshairDoorTarget", Boolean(doorTarget));
+        const doorPromptEl = doorInteractPromptRef.current;
+        if (doorPromptEl) {
+          if (doorTarget) {
+            doorPromptEl.textContent = getVx27DoorInteractLabel(
+              doorTarget.group,
+              doorTarget.end,
+              doorTarget.side
+            );
+            doorPromptEl.classList.add("doorInteractPromptVisible");
+            doorPromptEl.setAttribute("aria-hidden", "false");
+          } else {
+            doorPromptEl.textContent = "";
+            doorPromptEl.classList.remove("doorInteractPromptVisible");
+            doorPromptEl.setAttribute("aria-hidden", "true");
+          }
+        }
+        if (
+          doorTarget &&
+          canInteract &&
+          wasBindingPressed(input, bindingsRef.current, "interact")
+        ) {
+          toggleVx27ContainerDoorLeaf(
+            doorTarget.group,
+            doorTarget.end,
+            doorTarget.side
+          );
+        }
+
         if (
           canUseWeapons &&
           wasBindingPressed(input, bindingsRef.current, "flashlight")
@@ -2718,11 +3072,15 @@ export default function FpsGame() {
         );
         updateTargetHealthBars(level.targets, dt, camera);
         updateHitDebugMarkers(dt);
-        if (colliderDebugEnabledRef.current) {
+        if (colliderDebugEnabledRef.current || containerColliderDebugOnlyRef.current) {
           const shadowCasters = collectibleEntries
             .filter((e) => !e.collected && e.drop?.mesh)
             .map((e) => e.drop.mesh.userData?.pickupShadowCaster)
             .filter(Boolean);
+          const filterPropId = containerColliderDebugOnlyRef.current
+            ? vx27ContainersRef.current[containerTuneIndexRef.current]?.userData
+                ?.vx27PropId ?? null
+            : null;
           updateColliderDebugOverlay(
             allColliders,
             {
@@ -2735,9 +3093,38 @@ export default function FpsGame() {
             {
               ...player.getMovementDebugSnapshot?.(),
               shadowCasters,
+            },
+            filterPropId != null ? { propId: filterPropId } : undefined
+          );
+        }
+        updateVx27ContainerDoorAnimations(vx27ContainersRef.current, dt);
+        if (containerDoorWizardEnabledRef.current) {
+          const wizardGroup =
+            vx27ContainersRef.current[containerTuneIndexRef.current];
+          if (wizardGroup) updateVx27ContainerDoorWizard(wizardGroup, true);
+        }
+        let doorCollidersDirty = false;
+        for (const doorGroup of vx27ContainersRef.current) {
+          if (!consumeVx27DoorColliderDirty(doorGroup)) continue;
+          doorCollidersDirty = true;
+          syncVx27ContainerCollider(
+            level.colliders,
+            doorGroup.userData.vx27PropId,
+            readVx27ContainerPlacement(doorGroup),
+            {
+              ...doorGroup.userData.vx27PropDef,
+              interiorInsets: doorGroup.userData.vx27InteriorInsets,
+              edgeRadius: doorGroup.userData.vx27EdgeRadius,
+              exteriorCornerRadius: doorGroup.userData.vx27ExteriorCornerRadius,
+              scale: doorGroup.userData.vx27Scale,
+              width: doorGroup.userData.vx27Width,
+              height: doorGroup.userData.vx27Height,
+              length: doorGroup.userData.vx27Length,
+              doorTuning: doorGroup.userData.vx27DoorTuning,
             }
           );
         }
+        if (doorCollidersDirty) syncAllColliders();
         updateDeathAnimations(level.targets, dt, (mesh) => {
           deactivateTarget(mesh);
           scheduleRespawn(mesh);
@@ -3880,6 +4267,24 @@ export default function FpsGame() {
               <label className="settingRow">
                 <input
                   type="checkbox"
+                  checked={vx27ContainerTuneEnabled}
+                  disabled={!arenaHasVx27ContainersState}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setVx27ContainerTuneEnabled(checked);
+                    saveVx27ContainerTuneEnabled(checked);
+                  }}
+                />
+                VX-27 container placement
+                {!arenaHasVx27ContainersState && (
+                  <span className="settingsHint" style={{ marginLeft: "0.4rem" }}>
+                    (no containers in this arena)
+                  </span>
+                )}
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
                   checked={stairWalkTuneEnabled}
                   disabled={!arenaHasStairs}
                   onChange={(e) => {
@@ -4045,7 +4450,10 @@ export default function FpsGame() {
                     setColliderDebugEnabled(checked);
                     colliderDebugEnabledRef.current = checked;
                     if (sceneRef.current) {
-                      setColliderDebug(sceneRef.current, checked);
+                      setColliderDebug(
+                        sceneRef.current,
+                        checked || containerColliderDebugOnlyRef.current
+                      );
                     }
                   }}
                 />
@@ -4334,6 +4742,257 @@ export default function FpsGame() {
             onClose={() => {
               setHudBarTuneEnabled(false);
               saveHudBarTuneEnabled(false);
+            }}
+          />
+        )}
+        {arenaHasVx27ContainersState && vx27ContainerTuneEnabled && (
+          <Vx27ContainerTunePanel
+            propLabel={containerPropLabels[containerTuneIndex]}
+            propLabels={containerPropLabels}
+            selectedIndex={containerTuneIndex}
+            onSelectedIndexChange={(index) => {
+              setContainerTuneIndex(index);
+              const group = vx27ContainersRef.current[index];
+              if (!group) return;
+              const placement = readVx27ContainerPlacement(group);
+              const insets = readVx27ContainerInteriorInsets(group);
+              setContainerX(placement.x);
+              setContainerZ(placement.z);
+              setContainerFloorY(placement.floorY);
+              setContainerRotationY(placement.rotationY);
+              setContainerInsetLeft(insets.left);
+              setContainerInsetRight(insets.right);
+              setContainerInsetFront(insets.front);
+              setContainerInsetBack(insets.back);
+              setContainerFloorOffset(insets.floorOffset);
+              setContainerCeilingOffset(insets.ceilingOffset);
+              setContainerEdgeRadius(readVx27ContainerEdgeRadius(group));
+              setContainerExteriorCornerRadius(
+                readVx27ContainerExteriorCornerRadius(group)
+              );
+              setContainerScale(readVx27ContainerScale(group));
+              setContainerDoorTuning(readVx27ContainerDoorTuning(group));
+            }}
+            bounds={containerBounds}
+            floorDeckY={floorDeckY}
+            x={containerX}
+            z={containerZ}
+            floorY={containerFloorY}
+            rotationY={containerRotationY}
+            scale={containerScale}
+            onXChange={(value) => {
+              setContainerX(value);
+              vx27ContainerCommitRef.current?.(containerTuneIndex, {
+                x: value,
+                z: containerZ,
+                floorY: containerFloorY,
+                rotationY: containerRotationY,
+              });
+            }}
+            onZChange={(value) => {
+              setContainerZ(value);
+              vx27ContainerCommitRef.current?.(containerTuneIndex, {
+                x: containerX,
+                z: value,
+                floorY: containerFloorY,
+                rotationY: containerRotationY,
+              });
+            }}
+            onFloorYChange={(value) => {
+              setContainerFloorY(value);
+              vx27ContainerCommitRef.current?.(containerTuneIndex, {
+                x: containerX,
+                z: containerZ,
+                floorY: value,
+                rotationY: containerRotationY,
+              });
+            }}
+            onRotationChange={(value) => {
+              setContainerRotationY(value);
+              vx27ContainerCommitRef.current?.(containerTuneIndex, {
+                x: containerX,
+                z: containerZ,
+                floorY: containerFloorY,
+                rotationY: value,
+              });
+            }}
+            onScaleChange={(value) => {
+              setContainerScale(value);
+              vx27ContainerScaleCommitRef.current?.(containerTuneIndex, value);
+            }}
+            insetLeft={containerInsetLeft}
+            insetRight={containerInsetRight}
+            insetFront={containerInsetFront}
+            insetBack={containerInsetBack}
+            floorOffset={containerFloorOffset}
+            ceilingOffset={containerCeilingOffset}
+            edgeRadius={containerEdgeRadius}
+            exteriorCornerRadius={containerExteriorCornerRadius}
+            onInsetLeftChange={(value) => {
+              setContainerInsetLeft(value);
+              vx27ContainerInteriorCommitRef.current?.(containerTuneIndex, {
+                left: value,
+                right: containerInsetRight,
+                front: containerInsetFront,
+                back: containerInsetBack,
+                floorOffset: containerFloorOffset,
+                ceilingOffset: containerCeilingOffset,
+              });
+            }}
+            onInsetRightChange={(value) => {
+              setContainerInsetRight(value);
+              vx27ContainerInteriorCommitRef.current?.(containerTuneIndex, {
+                left: containerInsetLeft,
+                right: value,
+                front: containerInsetFront,
+                back: containerInsetBack,
+                floorOffset: containerFloorOffset,
+                ceilingOffset: containerCeilingOffset,
+              });
+            }}
+            onInsetFrontChange={(value) => {
+              setContainerInsetFront(value);
+              vx27ContainerInteriorCommitRef.current?.(containerTuneIndex, {
+                left: containerInsetLeft,
+                right: containerInsetRight,
+                front: value,
+                back: containerInsetBack,
+                floorOffset: containerFloorOffset,
+                ceilingOffset: containerCeilingOffset,
+              });
+            }}
+            onInsetBackChange={(value) => {
+              setContainerInsetBack(value);
+              vx27ContainerInteriorCommitRef.current?.(containerTuneIndex, {
+                left: containerInsetLeft,
+                right: containerInsetRight,
+                front: containerInsetFront,
+                back: value,
+                floorOffset: containerFloorOffset,
+                ceilingOffset: containerCeilingOffset,
+              });
+            }}
+            onFloorOffsetChange={(value) => {
+              setContainerFloorOffset(value);
+              vx27ContainerInteriorCommitRef.current?.(containerTuneIndex, {
+                left: containerInsetLeft,
+                right: containerInsetRight,
+                front: containerInsetFront,
+                back: containerInsetBack,
+                floorOffset: value,
+                ceilingOffset: containerCeilingOffset,
+              });
+            }}
+            onCeilingOffsetChange={(value) => {
+              setContainerCeilingOffset(value);
+              vx27ContainerInteriorCommitRef.current?.(containerTuneIndex, {
+                left: containerInsetLeft,
+                right: containerInsetRight,
+                front: containerInsetFront,
+                back: containerInsetBack,
+                floorOffset: containerFloorOffset,
+                ceilingOffset: value,
+              });
+            }}
+            onEdgeRadiusChange={(value) => {
+              setContainerEdgeRadius(value);
+              vx27ContainerExteriorCommitRef.current?.(containerTuneIndex, value);
+            }}
+            onExteriorCornerRadiusChange={(value) => {
+              setContainerExteriorCornerRadius(value);
+              vx27ContainerExteriorCornerCommitRef.current?.(
+                containerTuneIndex,
+                value
+              );
+            }}
+            doorTuning={containerDoorTuning}
+            onDoorChange={(key, value) => {
+              setContainerDoorTuning((prev) => ({ ...prev, [key]: value }));
+              vx27ContainerDoorCommitRef.current?.(containerTuneIndex, {
+                [key]: value,
+              });
+            }}
+            doorWizardEnabled={containerDoorWizardEnabled}
+            onDoorWizardEnabledChange={(checked) => {
+              setContainerDoorWizardEnabled(checked);
+              containerDoorWizardEnabledRef.current = checked;
+              const group = vx27ContainersRef.current[containerTuneIndex];
+              if (group) updateVx27ContainerDoorWizard(group, checked);
+            }}
+            materialTuning={containerMaterialTuning}
+            onMaterialChange={onContainerMaterialChange}
+            onMaterialReset={() => {
+              const next = { ...DEFAULT_VX27_CONTAINER_MATERIAL_TUNING };
+              saveVx27ContainerMaterialTuning(next);
+              setContainerMaterialTuning(next);
+              const group =
+                vx27ContainersRef.current[containerTuneIndex] ?? sceneRef.current;
+              setVx27ContainerMaterialTuning(next, group ?? undefined);
+            }}
+            onSnapToPlayer={() => {
+              const pos = getPlayerPlacementRef.current?.();
+              if (!pos) return;
+              setContainerX(pos.x);
+              setContainerZ(pos.z);
+              setContainerFloorY(pos.floorY);
+              vx27ContainerCommitRef.current?.(containerTuneIndex, {
+                x: pos.x,
+                z: pos.z,
+                floorY: pos.floorY,
+                rotationY: containerRotationY,
+              });
+            }}
+            onCopyJson={async () => {
+              const group = vx27ContainersRef.current[containerTuneIndex];
+              if (!group) return;
+              const placement = readVx27ContainerPlacement(group);
+              const insets = readVx27ContainerInteriorInsets(group);
+              const edgeRadius = readVx27ContainerEdgeRadius(group);
+              const exteriorCornerRadius =
+                readVx27ContainerExteriorCornerRadius(group);
+              const scale = readVx27ContainerScale(group);
+              const doorTuning = readVx27ContainerDoorTuning(group);
+              const json = buildVx27ContainerPropJson(
+                group.userData.vx27PropDef ?? { type: "vx27Container" },
+                placement,
+                insets,
+                containerMaterialTuning,
+                edgeRadius,
+                exteriorCornerRadius,
+                scale,
+                doorTuning
+              );
+              const text = JSON.stringify(json, null, 2);
+              try {
+                await navigator.clipboard.writeText(text);
+              } catch {
+                /* ignore */
+              }
+              console.log("VX-27 container prop:", text);
+            }}
+            showCollidersOnly={containerColliderDebugOnly}
+            onShowCollidersOnlyChange={(checked) => {
+              setContainerColliderDebugOnly(checked);
+              containerColliderDebugOnlyRef.current = checked;
+              if (sceneRef.current) {
+                setColliderDebug(
+                  sceneRef.current,
+                  checked || colliderDebugEnabledRef.current
+                );
+              }
+            }}
+            onClose={() => {
+              setContainerColliderDebugOnly(false);
+              containerColliderDebugOnlyRef.current = false;
+              setContainerDoorWizardEnabled(false);
+              containerDoorWizardEnabledRef.current = false;
+              const wizardGroup = vx27ContainersRef.current[containerTuneIndex];
+              if (wizardGroup) updateVx27ContainerDoorWizard(wizardGroup, false);
+              if (sceneRef.current && !colliderDebugEnabledRef.current) {
+                setColliderDebug(sceneRef.current, false);
+              }
+              setVx27ContainerTuneEnabled(false);
+              saveVx27ContainerTuneEnabled(false);
             }}
           />
         )}
@@ -5246,6 +5905,11 @@ export default function FpsGame() {
         layoutStyle={weaponSlotLayoutStyle}
       />
       <div ref={crosshairRef} className="crosshair crosshairVisible" />
+      <div
+        ref={doorInteractPromptRef}
+        className="doorInteractPrompt"
+        aria-hidden="true"
+      />
       <div
         ref={deathOverlayRef}
         className="deathOverlay"

@@ -1,0 +1,115 @@
+{
+  "asset": "VX-27 square sci-fi shipping container",
+  "profile": "square end profile",
+  "units": "texture-only pack; model scale left to 3D artist",
+  "workflow": "metallic_roughness",
+  "colour_space": {
+    "albedo": "sRGB",
+    "normal": "linear",
+    "roughness": "linear",
+    "metallic": "linear",
+    "height": "linear",
+    "ao": "linear",
+    "alpha": "linear",
+    "emissive_mask": "linear",
+    "orm": "linear RGB: R=AO, G=Roughness, B=Metallic"
+  },
+  "notes": [
+    "White in emissive masks is the light source area; tint cyan/blue in engine.",
+    "Door texture is single-sided; flip/mirror it for opposite door.",
+    "Top/bottom texture can be reused for roof and floor.",
+    "End cap is the square opening surround only.",
+    "Generated PBR support maps are procedural from the albedo and corrected emissive masks; treat as game-ready starting maps, not physically scanned maps."
+  ],
+  "sets": {
+    "side": {
+      "dimensions_px": [
+        1774,
+        887
+      ],
+      "albedo": "vx27_container_side_albedo.png",
+      "normal": "vx27_container_side_normal.png",
+      "roughness": "vx27_container_side_roughness.png",
+      "metallic": "vx27_container_side_metallic.png",
+      "height": "vx27_container_side_height.png",
+      "ao": "vx27_container_side_ao.png",
+      "alpha": "vx27_container_side_alpha.png",
+      "emissive_mask": "vx27_container_side_emissive_mask.png",
+      "orm": "vx27_container_side_orm.png"
+    },
+    "inside_wall": {
+      "dimensions_px": [
+        1774,
+        887
+      ],
+      "albedo": "vx27_container_inside_wall_albedo.png",
+      "normal": "vx27_container_inside_wall_normal.png",
+      "roughness": "vx27_container_inside_wall_roughness.png",
+      "metallic": "vx27_container_inside_wall_metallic.png",
+      "height": "vx27_container_inside_wall_height.png",
+      "ao": "vx27_container_inside_wall_ao.png",
+      "alpha": "vx27_container_inside_wall_alpha.png",
+      "emissive_mask": "vx27_container_inside_wall_emissive_mask.png",
+      "orm": "vx27_container_inside_wall_orm.png"
+    },
+    "top_bottom": {
+      "dimensions_px": [
+        1774,
+        887
+      ],
+      "albedo": "vx27_container_top_bottom_albedo.png",
+      "normal": "vx27_container_top_bottom_normal.png",
+      "roughness": "vx27_container_top_bottom_roughness.png",
+      "metallic": "vx27_container_top_bottom_metallic.png",
+      "height": "vx27_container_top_bottom_height.png",
+      "ao": "vx27_container_top_bottom_ao.png",
+      "alpha": "vx27_container_top_bottom_alpha.png",
+      "emissive_mask": "vx27_container_top_bottom_emissive_mask.png",
+      "orm": "vx27_container_top_bottom_orm.png"
+    },
+    "corner_arc": {
+      "dimensions_px": [
+        1024,
+        1024
+      ],
+      "albedo": "vx27_container_corner_arc_albedo.png",
+      "normal": "vx27_container_corner_arc_normal.png",
+      "roughness": "vx27_container_corner_arc_roughness.png",
+      "metallic": "vx27_container_corner_arc_metallic.png",
+      "height": "vx27_container_corner_arc_height.png",
+      "ao": "vx27_container_corner_arc_ao.png",
+      "alpha": "vx27_container_corner_arc_alpha.png",
+      "orm": "vx27_container_corner_arc_orm.png"
+    },
+    "endcap_square": {
+      "dimensions_px": [
+        1254,
+        1254
+      ],
+      "albedo": "vx27_container_endcap_square_albedo.png",
+      "normal": "vx27_container_endcap_square_normal.png",
+      "roughness": "vx27_container_endcap_square_roughness.png",
+      "metallic": "vx27_container_endcap_square_metallic.png",
+      "height": "vx27_container_endcap_square_height.png",
+      "ao": "vx27_container_endcap_square_ao.png",
+      "alpha": "vx27_container_endcap_square_alpha.png",
+      "emissive_mask": "vx27_container_endcap_square_emissive_mask.png",
+      "orm": "vx27_container_endcap_square_orm.png"
+    },
+    "door": {
+      "dimensions_px": [
+        887,
+        1774
+      ],
+      "albedo": "vx27_container_door_albedo.png",
+      "normal": "vx27_container_door_normal.png",
+      "roughness": "vx27_container_door_roughness.png",
+      "metallic": "vx27_container_door_metallic.png",
+      "height": "vx27_container_door_height.png",
+      "ao": "vx27_container_door_ao.png",
+      "alpha": "vx27_container_door_alpha.png",
+      "emissive_mask": "vx27_container_door_emissive_mask.png",
+      "orm": "vx27_container_door_orm.png"
+    }
+  }
+}

@@ -2988,7 +2988,11 @@ export default function FpsGame() {
     }
 
     init().catch((err) => {
-      if (disposed || isArenaLoadAbortError(err, arenaAbort.signal)) {
+      if (
+        disposed ||
+        arenaAbort.signal.aborted ||
+        isArenaLoadAbortError(err, arenaAbort.signal)
+      ) {
         return;
       }
       const detail =

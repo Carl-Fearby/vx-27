@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import CreditsScanlineCanvas from "@/components/CreditsScanlineCanvas";
+import MarketingBrowserBanner, {
+  useNonChromeBrowser,
+} from "@/components/MarketingBrowserBanner";
 
 const POSTER = "/ui/vx-27poster.webp";
 const GITHUB_REPO = "https://github.com/neofuture/GameEngine2";
@@ -144,6 +147,7 @@ const OPS = [
 
 export default function MarketingSite() {
   const [navSolid, setNavSolid] = useState(false);
+  const showBrowserBanner = useNonChromeBrowser();
 
   useEffect(() => {
     const onScroll = () => setNavSolid(window.scrollY > 48);
@@ -153,7 +157,8 @@ export default function MarketingSite() {
   }, []);
 
   return (
-    <div className="mkt">
+    <div className={`mkt${showBrowserBanner ? " mktHasBrowserBanner" : ""}`}>
+      {showBrowserBanner ? <MarketingBrowserBanner /> : null}
       <CreditsScanlineCanvas active />
       <div className="mktGrid" aria-hidden />
       <div className="mktNoise" aria-hidden />

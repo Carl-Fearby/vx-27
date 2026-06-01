@@ -22,6 +22,7 @@ body {
   --font: var(--font-futuristic), "Orbitron", "Rajdhani", sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --mkt-browser-banner-height: 2.65rem;
 
   position: relative;
   min-height: 100vh;
@@ -119,6 +120,56 @@ body {
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+/* Browser compatibility banner (non-Chrome only) */
+.mktBrowserBanner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem 0.75rem;
+  min-height: var(--mkt-browser-banner-height);
+  padding: 0.5rem clamp(1rem, 4vw, 2rem);
+  text-align: center;
+  background: rgba(36, 22, 6, 0.94);
+  border-bottom: 1px solid rgba(255, 176, 72, 0.38);
+  backdrop-filter: blur(10px);
+}
+
+.mktBrowserBannerLabel {
+  flex-shrink: 0;
+  padding: 0.12rem 0.45rem;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 210, 140, 0.95);
+  border: 1px solid rgba(255, 176, 72, 0.45);
+  border-radius: 2px;
+}
+
+.mktBrowserBannerText {
+  margin: 0;
+  max-width: 52rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(255, 236, 210, 0.92);
+}
+
+.mktBrowserBannerText strong {
+  color: #ffd48a;
+  font-weight: 600;
+}
+
+.mktHasBrowserBanner .mktNav {
+  top: var(--mkt-browser-banner-height);
 }
 
 /* Nav */

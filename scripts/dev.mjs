@@ -8,6 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const reset = args.includes("--reset");
 const useWebpack = args.includes("--webpack");
+const useHttp = args.includes("--http");
 const devArgs = useWebpack ? [] : ["--turbo"];
 
 function killPort(port) {
@@ -48,7 +49,16 @@ spawnSync("node", ["scripts/generate-version-history.mjs"], {
   stdio: "inherit",
 });
 
-const child = spawn("next", ["dev", ...devArgs], {
+const nextArgs = ["dev", ...devArgs];
+if (!useHttp) {
+  nextArgs.push("--experimental-https");
+}
+
+if (!useHttp) {
+  console.log("Starting dev server at https://localhost:3000 (use --http for plain HTTP)");
+}
+
+const child = spawn("next", nextArgs, {
   cwd: root,
   stdio: "inherit",
   shell: process.platform === "win32",

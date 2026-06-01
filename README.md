@@ -9,7 +9,9 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Click the overlay to capture the mouse. Press **Esc** to release pointer lock.
+Open [https://localhost:3000](https://localhost:3000) (self-signed cert — your browser will ask you to trust it once). Use `npm run dev:http` if you need plain HTTP instead.
+
+Click the overlay to capture the mouse. Press **Esc** to release pointer lock.
 
 ## Project structure
 

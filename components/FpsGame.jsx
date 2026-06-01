@@ -802,7 +802,7 @@ export default function FpsGame() {
   const [hudBarCompassY, setHudBarCompassY] = useState(21);
   const [hudBarCompassSize, setHudBarCompassSize] = useState(6.3);
   const [hbCorner, setHbCorner] = useState(3);
-  const [radarInnerX] = useState(52);
+  const [radarInnerX] = useState(49);
   const [radarInnerY] = useState(50);
   const [radarInnerSize] = useState(80);
   const [radarLeft] = useState(1.5);
@@ -1147,6 +1147,33 @@ export default function FpsGame() {
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [rebindAction]);
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.repeat || rebindActionRef.current) return;
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      if (e.code === "KeyH") {
+        setShowHud((prev) => {
+          const next = !prev;
+          localStorage.setItem(SHOW_HUD_KEY, String(next));
+          return next;
+        });
+        return;
+      }
+      if (e.code === "KeyI") {
+        setInvertYLook((prev) => {
+          const next = !prev;
+          invertYRef.current = next;
+          localStorage.setItem(INVERT_Y_KEY, String(next));
+          return next;
+        });
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   useEffect(() => {
     const storedInvert = localStorage.getItem(INVERT_Y_KEY) === "true";
@@ -2884,6 +2911,7 @@ export default function FpsGame() {
         renderSceneWithLayeredLighting(renderer, scene, camera, {
           skyRoot: sky?.mesh ?? null,
           skipRoomPass: visibleRoomCount === 0,
+          outdoorShadowLights: outdoorLights,
         });
         if (level?.targets && showHudRef.current) {
           renderTargetHealthBarsPass(renderer, scene, camera, level.targets);
@@ -2923,15 +2951,6 @@ export default function FpsGame() {
           } else {
             safeExitPointerLock();
           }
-          return;
-        }
-        if (e.code === "KeyI" && !e.repeat) {
-          setInvertYLook((prev) => {
-            const next = !prev;
-            invertYRef.current = next;
-            localStorage.setItem(INVERT_Y_KEY, String(next));
-            return next;
-          });
         }
       };
       onResize = () => {
@@ -3002,8 +3021,22 @@ export default function FpsGame() {
         floorY: level.floorY,
         colliders: allColliders,
         bounds: level.bounds,
+        levelCollectibleMeshes: collectibleEntries
+          .map((e) => e.drop?.mesh)
+          .filter(Boolean),
       });
       if (!isActive()) return;
+      refreshLevelPickupShadows(
+        level.pickupsGroup ?? scene,
+        collectibleEntries.map((e) => e.drop?.mesh),
+        level.group
+      );
+      renderer.shadowMap.needsUpdate = true;
+      if (sunIsDayRef.current) {
+        refitSunShadowRef.current?.();
+      } else {
+        refitMoonShadowRef.current?.();
+      }
       reportLoad(99, "GPU ready");
 
       gameReady = true;
@@ -3035,7 +3068,7 @@ export default function FpsGame() {
       weaponLoadId += 1;
       cancelAnimationFrame(rafId);
       if (flashTimeout) clearTimeout(flashTimeout);
-      if (gameReady) {
+      if (onKeyDown) {
         canvas.removeEventListener("click", onCanvasClick);
         document.removeEventListener("pointerlockchange", onPointerLockChange);
         document.removeEventListener("pointerlockerror", onPointerLockChange);
@@ -4083,7 +4116,7 @@ export default function FpsGame() {
                     localStorage.setItem(SHOW_HUD_KEY, String(checked));
                   }}
                 />
-                Show HUD (ammo, health, radar, crosshair)
+                Show HUD (ammo, health, radar, crosshair) — press H in-game
               </label>
               <label className="settingRow">
                 <input
@@ -5199,7 +5232,7 @@ export default function FpsGame() {
             localStorage.setItem(SHOW_HUD_KEY, "true");
           }}
         >
-          Show HUD
+          Show HUD (H)
         </button>
       )}
       <PickupFlashLayer ref={pickupFlashLayerRef} />

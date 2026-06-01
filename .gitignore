@@ -20,3 +20,6 @@ public/ui/_source/
 
 # Auto-generated git snapshot for /version (npm run version:history)
 lib/gitCommitHistory.json
+
+# Self-signed certs from `next dev --experimental-https`
+certificates/

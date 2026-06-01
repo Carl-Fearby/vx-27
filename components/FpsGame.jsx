@@ -120,12 +120,13 @@ import {
 } from "@/lib/OilBarrelTuning";
 import OilBarrelTunePanel from "@/components/OilBarrelTunePanel";
 import {
-  OIL_BARREL_PILE_ID,
+  isOilBarrelPileManagedProp,
   applyOilBarrelPileToArena,
   checkArenaOilBarrelPile,
   loadPileWizardPrefs,
   savePileWizardPrefs,
 } from "@/lib/OilBarrelPileLayout";
+import { rebuildLevelOilBarrels } from "@/lib/LevelProps";
 import {
   spawnLevelCollectibles,
   mountCompassCollectibleMarkers,
@@ -785,6 +786,8 @@ export default function FpsGame() {
     loadOilBarrelTuning()
   );
   const [vx27ContainerTuneEnabled, setVx27ContainerTuneEnabled] = useState(false);
+  const vx27ContainerTuneEnabledRef = useRef(false);
+  const containerDoorTuningKeyRef = useRef("");
   const [arenaHasVx27ContainersState, setArenaHasVx27ContainersState] = useState(false);
   const [containerTuneIndex, setContainerTuneIndex] = useState(0);
   const containerTuneIndexRef = useRef(0);
@@ -825,6 +828,9 @@ export default function FpsGame() {
   const [pileSeed, setPileSeed] = useState(pilePrefs.seed);
   const [pileHubX, setPileHubX] = useState(pilePrefs.hub.x);
   const [pileHubZ, setPileHubZ] = useState(pilePrefs.hub.z);
+  const [pileHubRotationY, setPileHubRotationY] = useState(
+    pilePrefs.hub.rotationY ?? 0
+  );
   const [pileStatus, setPileStatus] = useState("");
   const [pileBusy, setPileBusy] = useState(false);
   const [walkBobTuning, setWalkBobTuning] = useState(initialWalkBobTuning);
@@ -925,6 +931,7 @@ export default function FpsGame() {
   const refitMoonShadowRef = useRef(null);
   const rebuildStairsRef = useRef(null);
   const rebuildOilBarrelsRef = useRef(null);
+  const pilePlacementRafRef = useRef(0);
   const vx27ContainersRef = useRef([]);
   const vx27ContainerCommitRef = useRef(null);
   const vx27ContainerInteriorCommitRef = useRef(null);
@@ -968,52 +975,77 @@ export default function FpsGame() {
     });
   }, []);
 
-  const persistPilePrefs = useCallback((seed, hubX, hubZ) => {
-    savePileWizardPrefs({ seed, hub: { x: hubX, z: hubZ } });
+  const persistPilePrefs = useCallback((seed, hubX, hubZ, hubRotationY) => {
+    savePileWizardPrefs({
+      seed,
+      hub: { x: hubX, z: hubZ, rotationY: hubRotationY },
+    });
   }, []);
+
+  const applyPilePlacementToScene = useCallback(
+    (hubX, hubZ, hubRotationY, { persist = true } = {}) => {
+      const arena = arenaLiveRef.current;
+      if (!arena) {
+        setPileStatus("Level not loaded yet.");
+        return null;
+      }
+      const result = applyOilBarrelPileToArena(arena, {
+        hub: { x: hubX, z: hubZ },
+        rotationY: hubRotationY,
+      });
+      rebuildOilBarrelsRef.current?.();
+      if (persist) {
+        persistPilePrefs(pileSeed, hubX, hubZ, hubRotationY);
+      }
+      const check = checkArenaOilBarrelPile(arena);
+      const rotDeg = (hubRotationY * (180 / Math.PI)).toFixed(1);
+      if (!result.ok) {
+        const miss = result.failed.length
+          ? result.failed.join(", ")
+          : "not enough barrels placed";
+        setPileStatus(
+          `Pile at (${hubX.toFixed(2)}, ${hubZ.toFixed(2)}, ${rotDeg}°) — ${miss}.`
+        );
+      } else if (!check.ok) {
+        setPileStatus(
+          `Pile at (${hubX.toFixed(2)}, ${hubZ.toFixed(2)}, ${rotDeg}°) — overlaps detected.`
+        );
+      } else {
+        setPileStatus(
+          `Pile at (${hubX.toFixed(2)}, ${hubZ.toFixed(2)}, ${rotDeg}°) — check OK.`
+        );
+      }
+      return result;
+    },
+    [pileSeed, persistPilePrefs]
+  );
+
+  const schedulePilePlacement = useCallback(
+    (hubX, hubZ, hubRotationY) => {
+      if (pilePlacementRafRef.current) {
+        cancelAnimationFrame(pilePlacementRafRef.current);
+      }
+      pilePlacementRafRef.current = requestAnimationFrame(() => {
+        pilePlacementRafRef.current = 0;
+        applyPilePlacementToScene(hubX, hubZ, hubRotationY);
+      });
+    },
+    [applyPilePlacementToScene]
+  );
 
   const onPileGenerate = useCallback(() => {
     if (pileBusy) return;
-    const arena = arenaLiveRef.current;
-    if (!arena) {
-      setPileStatus("Level not loaded yet.");
-      return;
-    }
     setPileBusy(true);
     setPileStatus("Applying pile layout…");
     void (async () => {
       try {
         await new Promise((r) => setTimeout(r, 0));
-        const result = applyOilBarrelPileToArena(arena, {
-          hub: { x: pileHubX, z: pileHubZ },
-        });
-        persistPilePrefs(pileSeed, pileHubX, pileHubZ);
-        if (!result.ok) {
-          const miss = result.failed.length
-            ? result.failed.join(", ")
-            : "not enough barrels placed";
-          setPileStatus(
-            `Failed (${result.props.length} placed): ${miss}. Edit LEVEL1_OIL_BARREL_PILE_DEFS (see docs/OIL_BARREL_PILE_AI.md).`
-          );
-          return;
-        }
-        const check = checkArenaOilBarrelPile(arena);
-        if (!check.ok) {
-          setPileStatus(
-            `Applied ${result.props.length} barrels but check failed — overlaps remain.`
-          );
-          return;
-        }
-        await new Promise((r) => setTimeout(r, 0));
-        rebuildOilBarrelsRef.current?.();
-        setPileStatus(
-          `Applied ${result.props.length} barrels at hub (${pileHubX.toFixed(2)}, ${pileHubZ.toFixed(2)}) — check OK.`
-        );
+        applyPilePlacementToScene(pileHubX, pileHubZ, pileHubRotationY);
       } finally {
         setPileBusy(false);
       }
     })();
-  }, [pileBusy, pileSeed, pileHubX, pileHubZ, persistPilePrefs]);
+  }, [pileBusy, pileHubX, pileHubZ, pileHubRotationY, applyPilePlacementToScene]);
 
   const onPileCheck = useCallback(() => {
     const arena = arenaLiveRef.current;
@@ -1032,7 +1064,7 @@ export default function FpsGame() {
   const onPileCopyJson = useCallback(async () => {
     const arena = arenaLiveRef.current;
     if (!arena) return;
-    const pile = (arena.props ?? []).filter((p) => OIL_BARREL_PILE_ID.test(p.id));
+    const pile = (arena.props ?? []).filter((p) => isOilBarrelPileManagedProp(p));
     const text = JSON.stringify(pile, null, 2);
     try {
       await navigator.clipboard.writeText(text);
@@ -1185,6 +1217,7 @@ export default function FpsGame() {
   showPlayerCoordsRef.current = showPlayerCoords;
   showHudRef.current = showHud;
   containerTuneIndexRef.current = containerTuneIndex;
+  vx27ContainerTuneEnabledRef.current = vx27ContainerTuneEnabled;
 
   scheduleGameplayHudSyncRef.current = () => {
     if (hudSyncPendingRef.current) return;
@@ -1523,6 +1556,13 @@ export default function FpsGame() {
       setStairRotationY(stairParams.rotationY);
       const arenaLive = { ...arena, stairs: stairParams };
       arenaLiveRef.current = arenaLive;
+      const pileAnchor = arenaLive.props?.find(
+        (p) => p.id === "oil_barrel_pile_stop_begin"
+      );
+      if (pileAnchor) {
+        setPileHubX(pileAnchor.x);
+        setPileHubZ(pileAnchor.z);
+      }
       level = createLevelFromArena(scene, arenaLive, levelTextures);
       setArenaHasStairs(Boolean(arena.stairs));
       if (!isActive()) {
@@ -1935,7 +1975,9 @@ export default function FpsGame() {
         syncAllColliders();
       };
       rebuildOilBarrelsRef.current = () => {
-        level?.rebuildOilBarrels?.();
+        const arena = arenaLiveRef.current;
+        if (!arena || !level?.group) return;
+        rebuildLevelOilBarrels(level.group, arena);
         level?.resyncOilBarrelColliders?.();
         syncInteriorLighting();
       };
@@ -2002,6 +2044,20 @@ export default function FpsGame() {
       hitRaycaster.layers.enable(WORLD_LAYER);
       hitRaycaster.layers.enable(ROOM_INTERIOR_LAYER);
       const screenCenter = new THREE.Vector2(0, 0);
+
+      /** Keep tune-panel open sliders + export JSON aligned with in-game door state. */
+      const syncContainerDoorTuningPanel = (group, preferTarget = false) => {
+        if (!vx27ContainerTuneEnabledRef.current || !group) return;
+        if (group !== vx27ContainersRef.current[containerTuneIndexRef.current]) {
+          return;
+        }
+        const next = readVx27ContainerDoorTuning(group, { preferTarget });
+        const key = `${next.frontLeftOpen}|${next.frontRightOpen}|${next.backLeftOpen}|${next.backRightOpen}`;
+        if (key === containerDoorTuningKeyRef.current) return;
+        containerDoorTuningKeyRef.current = key;
+        setContainerDoorTuning(next);
+      };
+
       const currentWeaponLoad = ++weaponLoadId;
       reportLoad(74, "View weapon (rifle GLTF)");
       const weaponPromise = loadViewWeapon(camera, scene, undefined, { maxAnisotropy })
@@ -2106,6 +2162,7 @@ export default function FpsGame() {
               targets: level.targets,
               config: targetConfig,
               skip: mesh,
+              spawnPoint: fixed,
             });
             if (!pos) return;
             activateTargetAt(
@@ -2835,6 +2892,7 @@ export default function FpsGame() {
             doorTarget.end,
             doorTarget.side
           );
+          syncContainerDoorTuningPanel(doorTarget.group, true);
         }
 
         if (
@@ -3098,15 +3156,20 @@ export default function FpsGame() {
           );
         }
         updateVx27ContainerDoorAnimations(vx27ContainersRef.current, dt);
+        const tunedContainer =
+          vx27ContainersRef.current[containerTuneIndexRef.current];
+        if (tunedContainer?.userData.vx27DoorAnim?.active) {
+          syncContainerDoorTuningPanel(tunedContainer);
+        }
         if (containerDoorWizardEnabledRef.current) {
-          const wizardGroup =
-            vx27ContainersRef.current[containerTuneIndexRef.current];
+          const wizardGroup = tunedContainer;
           if (wizardGroup) updateVx27ContainerDoorWizard(wizardGroup, true);
         }
         let doorCollidersDirty = false;
         for (const doorGroup of vx27ContainersRef.current) {
           if (!consumeVx27DoorColliderDirty(doorGroup)) continue;
           doorCollidersDirty = true;
+          syncContainerDoorTuningPanel(doorGroup);
           syncVx27ContainerCollider(
             level.colliders,
             doorGroup.userData.vx27PropId,
@@ -4752,6 +4815,7 @@ export default function FpsGame() {
             selectedIndex={containerTuneIndex}
             onSelectedIndexChange={(index) => {
               setContainerTuneIndex(index);
+              containerDoorTuningKeyRef.current = "";
               const group = vx27ContainersRef.current[index];
               if (!group) return;
               const placement = readVx27ContainerPlacement(group);
@@ -5023,15 +5087,20 @@ export default function FpsGame() {
             pileSeed={pileSeed}
             pileHubX={pileHubX}
             pileHubZ={pileHubZ}
+            pileHubRotationY={pileHubRotationY}
             pileStatus={pileStatus}
             onPileSeedChange={(seed) => {
               setPileSeed(seed);
-              persistPilePrefs(seed, pileHubX, pileHubZ);
+              persistPilePrefs(seed, pileHubX, pileHubZ, pileHubRotationY);
             }}
             onPileHubChange={(x, z) => {
               setPileHubX(x);
               setPileHubZ(z);
-              persistPilePrefs(pileSeed, x, z);
+              schedulePilePlacement(x, z, pileHubRotationY);
+            }}
+            onPileHubRotationChange={(rotationY) => {
+              setPileHubRotationY(rotationY);
+              schedulePilePlacement(pileHubX, pileHubZ, rotationY);
             }}
             onPileGenerate={onPileGenerate}
             pileBusy={pileBusy}

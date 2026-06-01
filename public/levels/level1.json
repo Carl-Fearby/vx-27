@@ -124,6 +124,15 @@
         "z": 4,
         "yaw": 0,
         "note": "On floor north of hole (-8, 2) — shoot to topple onto floor then slide into hole"
+      },
+      {
+        "x": -3.3,
+        "z": 8.69,
+        "y": 0.141,
+        "yaw": 3.14,
+        "random": true,
+        "chance": 0.5,
+        "note": "Inside VX-27 cargo module — 50% chance one target spawns here"
       }
     ]
   },
@@ -175,18 +184,18 @@
         "bottomOffset": 0.286,
         "thickness": 0.02,
         "openingEdgeRadius": 0.035,
-        "frontLeftOpen": 0,
+        "frontLeftOpen": 135,
         "frontRightOpen": 0,
         "backLeftOpen": 0,
-        "backRightOpen": 0
+        "backRightOpen": 135
       }
     },
     {
       "id": "oil_barrel_textured",
       "type": "oilBarrel",
-      "x": -5.95,
-      "z": -1.282,
-      "note": "Open top on arena floor — original placement; omit topCap so tune panel can toggle lid"
+      "x": -4.3081,
+      "z": 5.6862,
+      "note": "Open top on arena floor — moves with pile; fire from global tuning"
     },
     {
       "id": "oil_barrel_service_nw",
@@ -223,9 +232,9 @@
     {
       "id": "oil_barrel_pile_stop_begin",
       "type": "oilBarrel",
-      "x": -7.35,
-      "z": -2.48,
-      "rotationY": 0.38,
+      "x": -5.6,
+      "z": 7,
+      "rotationY": -1.1216,
       "topCap": true,
       "interiorFire": false,
       "note": "=== STOP POINT BEGIN: dumped pile anchor ==="
@@ -233,27 +242,27 @@
     {
       "id": "oil_barrel_pile_02",
       "type": "oilBarrel",
-      "x": -7.09,
-      "z": -3.23,
-      "rotationY": 1.22,
+      "x": -6.3302,
+      "z": 6.6888,
+      "rotationY": -0.2816,
       "topCap": true,
       "interiorFire": false
     },
     {
       "id": "oil_barrel_pile_01",
       "type": "oilBarrel",
-      "x": -6.6,
-      "z": -2.21,
-      "rotationY": 2.45,
+      "x": -5.2788,
+      "z": 6.2705,
+      "rotationY": 0.9484,
       "topCap": false,
       "interiorFire": false
     },
     {
       "id": "oil_barrel_on_side_qa",
       "type": "oilBarrel",
-      "x": -7.77,
-      "z": -1.51,
-      "rotationY": 0.48,
+      "x": -4.6614,
+      "z": 7.4861,
+      "rotationY": -1.0216,
       "rotationZ": 1.5708,
       "layOnSide": true,
       "topCap": false,
@@ -263,18 +272,18 @@
     {
       "id": "oil_barrel_pile_06",
       "type": "oilBarrel",
-      "x": -6.97,
-      "z": -1.64,
-      "rotationY": 3.85,
+      "x": -4.7357,
+      "z": 6.679,
+      "rotationY": 2.3484,
       "topCap": false,
       "interiorFire": false
     },
     {
       "id": "oil_barrel_pile_03",
       "type": "oilBarrel",
-      "x": -8.22,
-      "z": -3.11,
-      "rotationY": 5.1,
+      "x": -6.2887,
+      "z": 7.8244,
+      "rotationY": 3.5984,
       "rotationX": 0.16,
       "pileRole": "lean",
       "topCap": false,
@@ -283,9 +292,9 @@
     {
       "id": "oil_barrel_pile_04",
       "type": "oilBarrel",
-      "x": -8.27,
-      "z": -2.33,
-      "rotationY": 1.05,
+      "x": -5.514,
+      "z": 7.9282,
+      "rotationY": -0.4516,
       "rotationZ": 1.5708,
       "layOnSide": true,
       "topCap": false,
@@ -294,18 +303,18 @@
     {
       "id": "oil_barrel_pile_05",
       "type": "oilBarrel",
-      "x": -7.67,
-      "z": -3.48,
-      "rotationY": 0.73,
+      "x": -6.6197,
+      "z": 7.2501,
+      "rotationY": -0.7716,
       "topCap": true,
       "interiorFire": false
     },
     {
       "id": "oil_barrel_pile_08",
       "type": "oilBarrel",
-      "x": -6.4,
-      "z": -3,
-      "rotationY": 2.08,
+      "x": -6.0531,
+      "z": 6.0163,
+      "rotationY": 0.5784,
       "rotationZ": 1.5708,
       "layOnSide": true,
       "topCap": false,
@@ -315,9 +324,9 @@
     {
       "id": "oil_barrel_pile_07",
       "type": "oilBarrel",
-      "x": -7.38,
-      "z": -2.46,
-      "rotationY": 1.75,
+      "x": -5.5821,
+      "z": 7.0313,
+      "rotationY": 0.2484,
       "pileRole": "stack",
       "topCap": true,
       "interiorFire": false,

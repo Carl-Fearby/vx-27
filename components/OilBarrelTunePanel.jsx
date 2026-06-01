@@ -1,6 +1,18 @@
 "use client";
 
 import { OIL_BARREL_TUNING_LIMITS as L } from "@/lib/OilBarrelTuning";
+import {
+  PILE_HUB_POS_MAX,
+  PILE_HUB_POS_MIN,
+  PILE_HUB_POS_NUDGE,
+  PILE_HUB_POS_STEP,
+  PILE_HUB_ROTATION_MAX,
+  PILE_HUB_ROTATION_MIN,
+  PILE_HUB_ROTATION_NUDGE,
+  PILE_HUB_ROTATION_STEP,
+} from "@/lib/OilBarrelPileLayout";
+
+const RAD_TO_DEG = 180 / Math.PI;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -58,9 +70,11 @@ function BarControl({ label, value, min, max, step, nudge, format, onChange }) {
  *   pileSeed?: number,
  *   pileHubX?: number,
  *   pileHubZ?: number,
+ *   pileHubRotationY?: number,
  *   pileStatus?: string,
  *   onPileSeedChange?: (seed: number) => void,
  *   onPileHubChange?: (x: number, z: number) => void,
+ *   onPileHubRotationChange?: (rotationY: number) => void,
  *   onPileGenerate?: () => void,
  *   pileBusy?: boolean,
  *   onPileCheck?: () => void,
@@ -75,9 +89,11 @@ export default function OilBarrelTunePanel({
   pileSeed = 7,
   pileHubX = -7.35,
   pileHubZ = -2.48,
+  pileHubRotationY = 0,
   pileStatus = "",
   onPileSeedChange,
   onPileHubChange,
+  onPileHubRotationChange,
   onPileGenerate,
   pileBusy = false,
   onPileCheck,
@@ -430,37 +446,41 @@ export default function OilBarrelTunePanel({
 
       {onPileGenerate && (
         <>
-          <p className="settingsGroup">Barrel pile (AI-authored)</p>
+          <p className="settingsGroup">Barrel pile placement</p>
           <p className="settingsHint" style={{ marginTop: 0 }}>
-            Layout lives in <code>LEVEL1_OIL_BARREL_PILE_DEFS</code> — edit with AI (see{" "}
-            <code>docs/OIL_BARREL_PILE_AI.md</code>). Not procedural: dumped scatter on the
-            floor, one optional stack. Apply moves hub X/Z; heights snap at spawn.
+            Move the whole open-world pile (including the fire barrel) as a group — sliders
+            update the scene live. Copy pile JSON when happy and paste into level1.json.
           </p>
-          <div className="poseControl">
-            <span className="sliderLabel">Hub X / Z (m)</span>
-            <div className="poseNudgeRow">
-              <input
-                type="number"
-                className="poseNumber"
-                step={0.05}
-                value={parseFloat(pileHubX.toFixed(3))}
-                onChange={(e) => {
-                  const x = parseFloat(e.target.value);
-                  if (!Number.isNaN(x)) onPileHubChange?.(x, pileHubZ);
-                }}
-              />
-              <input
-                type="number"
-                className="poseNumber"
-                step={0.05}
-                value={parseFloat(pileHubZ.toFixed(3))}
-                onChange={(e) => {
-                  const z = parseFloat(e.target.value);
-                  if (!Number.isNaN(z)) onPileHubChange?.(pileHubX, z);
-                }}
-              />
-            </div>
-          </div>
+          <BarControl
+            label="Hub X (m)"
+            value={pileHubX}
+            min={PILE_HUB_POS_MIN}
+            max={PILE_HUB_POS_MAX}
+            step={PILE_HUB_POS_STEP}
+            nudge={PILE_HUB_POS_NUDGE}
+            format={(v) => v.toFixed(3)}
+            onChange={(v) => onPileHubChange?.(v, pileHubZ)}
+          />
+          <BarControl
+            label="Hub Z (m)"
+            value={pileHubZ}
+            min={PILE_HUB_POS_MIN}
+            max={PILE_HUB_POS_MAX}
+            step={PILE_HUB_POS_STEP}
+            nudge={PILE_HUB_POS_NUDGE}
+            format={(v) => v.toFixed(3)}
+            onChange={(v) => onPileHubChange?.(pileHubX, v)}
+          />
+          <BarControl
+            label="Pile rotation Y"
+            value={pileHubRotationY}
+            min={PILE_HUB_ROTATION_MIN}
+            max={PILE_HUB_ROTATION_MAX}
+            step={PILE_HUB_ROTATION_STEP}
+            nudge={PILE_HUB_ROTATION_NUDGE}
+            format={(v) => `${(v * RAD_TO_DEG).toFixed(1)}°`}
+            onChange={(v) => onPileHubRotationChange?.(v)}
+          />
           <div className="tunePanelHeaderActions" style={{ marginTop: "0.35rem" }}>
             <button
               type="button"

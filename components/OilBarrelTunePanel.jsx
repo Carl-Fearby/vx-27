@@ -168,6 +168,50 @@ export default function OilBarrelTunePanel({
         onChange={(v) => onChange("interiorFireLightIntensity", v)}
       />
       <BarControl
+        label="Fire light left X (m)"
+        value={tuning.interiorFireLightLeftX}
+        min={L.interiorFireLightLeftX.min}
+        max={L.interiorFireLightLeftX.max}
+        step={L.interiorFireLightLeftX.step}
+        nudge={L.interiorFireLightLeftX.nudge}
+        format={(v) => v.toFixed(3)}
+        onChange={(v) => onChange("interiorFireLightLeftX", v)}
+      />
+      <BarControl
+        label="Fire light right X (m)"
+        value={tuning.interiorFireLightRightX}
+        min={L.interiorFireLightRightX.min}
+        max={L.interiorFireLightRightX.max}
+        step={L.interiorFireLightRightX.step}
+        nudge={L.interiorFireLightRightX.nudge}
+        format={(v) => v.toFixed(3)}
+        onChange={(v) => onChange("interiorFireLightRightX", v)}
+      />
+      <BarControl
+        label="Fire light left Y (m)"
+        value={tuning.interiorFireLightLeftY}
+        min={L.interiorFireLightLeftY.min}
+        max={L.interiorFireLightLeftY.max}
+        step={L.interiorFireLightLeftY.step}
+        nudge={L.interiorFireLightLeftY.nudge}
+        format={(v) => v.toFixed(3)}
+        onChange={(v) => onChange("interiorFireLightLeftY", v)}
+      />
+      <BarControl
+        label="Fire light right Y (m)"
+        value={tuning.interiorFireLightRightY}
+        min={L.interiorFireLightRightY.min}
+        max={L.interiorFireLightRightY.max}
+        step={L.interiorFireLightRightY.step}
+        nudge={L.interiorFireLightRightY.nudge}
+        format={(v) => v.toFixed(3)}
+        onChange={(v) => onChange("interiorFireLightRightY", v)}
+      />
+      <p className="settingsHint" style={{ marginTop: 0 }}>
+        Two flicker lights (L/R) sit in barrel space on the flame rig. X = left/right, Y = up.
+        Rig centre still follows the flame video; these offsets spread the pair.
+      </p>
+      <BarControl
         label="Video centre offset X (m)"
         value={tuning.interiorVideoCenterOffsetX}
         min={L.interiorVideoCenterOffsetX.min}

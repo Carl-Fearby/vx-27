@@ -76,7 +76,7 @@ import {
   ensureOilBarrelFlameMeshes,
   refreshOilBarrelRenderLayers,
 } from "@/lib/OilBarrel";
-import { OIL_BARREL_FLICKER_OPTS } from "@/lib/OilBarrelFireLight";
+import { initOilBarrelFireLightFlicker } from "@/lib/OilBarrelFireLight";
 import {
   DEFAULT_OIL_BARREL_TUNING,
   loadOilBarrelTuneEnabled,
@@ -1399,7 +1399,7 @@ export default function FpsGame() {
       const levelHitMeshes = collectLevelHitMeshes(level.group, level.targets);
       const syncInteriorLighting = () => {
         oilBarrelFireLightsRef.current = collectOilBarrelFireLights(level.group);
-        initCandleFlicker(oilBarrelFireLightsRef.current, OIL_BARREL_FLICKER_OPTS);
+        initOilBarrelFireLightFlicker(oilBarrelFireLightsRef.current);
         roomCullablesRef.current = buildRoomCullables(
           level.group,
           arena.rooms ?? [],
@@ -2468,6 +2468,7 @@ export default function FpsGame() {
             onStairs: player.isOnStairs(),
             walkBobTuning: resolveWalkBobTuning(walkBobTuningRef.current),
             stairWalkTuning: normalizeStairWalkTuning(stairWalkTuningRef.current),
+            nightness: dayNightCurNightnessRef.current,
           });
         }
 

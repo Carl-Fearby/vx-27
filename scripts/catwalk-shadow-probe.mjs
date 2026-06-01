@@ -88,7 +88,12 @@ level.group.traverse((obj) => {
     obj.getWorldPosition(p);
     occluders.push({ x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), cast: obj.castShadow, layer: obj.layers.mask });
   }
-  if (obj.name === "oil_barrel_fire_light" && obj.isPointLight) {
+  if (
+    (obj.name === "oil_barrel_fire_light" ||
+      obj.name === "oil_barrel_fire_light_l" ||
+      obj.name === "oil_barrel_fire_light_r") &&
+    obj.isPointLight
+  ) {
     const p = new THREE.Vector3();
     obj.getWorldPosition(p);
     fireLights.push({ x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), cast: obj.castShadow, intensity: obj.intensity, layer: obj.layers.mask });

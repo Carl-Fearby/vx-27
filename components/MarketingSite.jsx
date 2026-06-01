@@ -26,7 +26,7 @@ const BRIEFING = [
   },
   {
     label: "Threat",
-    text: "Open drums burn from the inside out. Grenades roll. Pickups tempt you into bad angles. The arena remembers every shortcut you take twice.",
+    text: "Open drums burn from the inside out — twin flames, shifting shadows, heat that punishes curiosity. Dark service rooms swallow sunlight until you find the torch. Grenades roll. The arena remembers every shortcut you take twice.",
   },
 ];
 
@@ -46,8 +46,14 @@ const STORY_BEATS = [
   {
     chapter: "Act III",
     title: "Fire finds the gaps",
-    body: "Oil drums stack where physics gave up. One shot turns a pile into a furnace — interior flame, rolling light, heat that punishes curiosity. Grenades finish what the barrels start. The HUD stays minimal until your health disagrees.",
+    body: "Oil drums stack where physics gave up. One shot turns a pile into a furnace — interior flame, paired lights that never flicker in sync, rolling shadow on corrugated steel. Grenades finish what the barrels start. The HUD stays minimal until your health disagrees.",
     detail: "Hazards compound. Pickups bait you. Survival is a route, not a stat.",
+  },
+  {
+    chapter: "Act IV",
+    title: "What the dark keeps",
+    body: "Perimeter rooms attach like bruises — no skylight, low ambient, walls that drink laser fire and keep the scars. Toggle the weapon light and carve a cone through the gloom. Bullet holes stay where they land; the muzzle flash does not lie anymore.",
+    detail: "F for torch. Attached rooms for ambush. Read the walls — they remember.",
   },
 ];
 
@@ -63,9 +69,9 @@ const COMMS = [
     line: "Barrel pile at grid zero is unstable. Recommend distance. Recommend not recommending.",
   },
   {
-    id: "TX-0427",
-    speaker: "Operator",
-    line: "Targets down. Stamina spent. Still hearing the fire loop in my head. Request extract. Request more ammo.",
+    id: "TX-0431",
+    speaker: "Field log",
+    line: "Service room off north catwalk — zero ambient until torch. Barrel pair throwing two shadows. Recommend not standing between them.",
   },
 ];
 
@@ -79,14 +85,14 @@ const OPS = [
   {
     code: "WPN",
     title: "Iron-sight gunplay",
-    body: "Recoil you can feel, ADS that costs time, a secondary slot for when the first plan fails. Every shot registers on concrete and corrugated steel.",
-    accent: "hitscan + feedback",
+    body: "Recoil you can feel, ADS that costs time, a cone torch for night work and attached rooms. Impacts leave marks on concrete and corrugated steel — aligned with the shot, not floating in front of it.",
+    accent: "hitscan + torch",
   },
   {
     code: "HZD",
     title: "Burning barrels",
-    body: "Stacked oil drums, interior fire, proximity heat. The pile does not stay neat. Neither does your route once something ignites.",
-    accent: "dynamic light",
+    body: "Stacked oil drums, interior fire video, dual flicker lights per barrel with independent shadow play. The pile does not stay neat. Neither does your route once something ignites.",
+    accent: "paired dynamic light",
   },
   {
     code: "NAV",
@@ -234,10 +240,10 @@ export default function MarketingSite() {
       <section id="story" className="mktStory">
         <div className="mktStoryHead">
           <p className="mktKicker">Campaign arc</p>
-          <h2>Three acts. One yard. No respawn lecture.</h2>
+          <h2>Four acts. One yard. No respawn lecture.</h2>
           <p className="mktStoryDeck">
             You will not watch this story — you will walk it. From the first
-            footstep on rusted grate to the last glow of barrel fire under the
+            footstep on rusted grate to the last paired glow of barrel fire under the
             catwalk, every layer of the facility teaches a different kind of fear.
           </p>
         </div>
@@ -315,10 +321,10 @@ export default function MarketingSite() {
           <p className="mktKicker">Field intel</p>
           <h2>Built for the browser. Written for the brave or the bored.</h2>
           <p className="mktIntelBody">
-            Real-time shadows, layered interior lighting, and barrel piles that
-            look dumped by someone in a hurry. The trial runs entirely in your
-            browser — load the page, lock the mouse, and accept that the loading
-            screen music will outlast your first life.
+            Real-time shadows, layered interior lighting — paired barrel flames,
+            weapon torch, moon and sun — and piles that look dumped by someone in a
+            hurry. The trial runs entirely in your browser — load the page, lock the
+            mouse, and accept that the loading screen music will outlast your first life.
           </p>
           <p className="mktIntelBody">
             When the arena goes quiet, the credits roll — a monument to everyone
@@ -326,10 +332,10 @@ export default function MarketingSite() {
             twice as much as he admits. You can read them. You should read them.
           </p>
           <ul className="mktIntelList">
-            <li>Pointer-lock FPS controls — WASD, sprint, crouch, aim</li>
-            <li>Catwalks, stairs, and attached rooms with real collision</li>
-            <li>Oil barrel fire, grenades, health, and stamina pickups</li>
-            <li>Full HUD — compass, radar, ammo, and damage feedback</li>
+            <li>Pointer-lock FPS — WASD, sprint, crouch, aim, torch on F</li>
+            <li>Catwalks, stairs, attached dark rooms with real collision</li>
+            <li>Dual-flame barrels, grenades, health, and stamina pickups</li>
+            <li>Bullet decals, full HUD — compass, radar, ammo, damage feedback</li>
           </ul>
           <Link href="/game" className="mktPlayBtn mktPlayBtnCompact">
             <span className="mktPlayBtnLabel">Play now</span>
@@ -349,8 +355,8 @@ export default function MarketingSite() {
         />
         <h2>The yard is waiting.</h2>
         <p>
-          Fullscreen recommended. Headphones help. The catwalk will not force you
-          to crouch anymore — everything else is still trying to kill you.
+          Fullscreen recommended. Headphones help. Dark rooms want the torch —
+          burning barrels want distance. Everything else is still trying to kill you.
         </p>
         <p className="mktLaunchNarrative">
           Step through the link. Become the trial. See how far the story goes

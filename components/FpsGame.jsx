@@ -76,29 +76,57 @@ import {
   ensureOilBarrelFlameMeshes,
   refreshOilBarrelRenderLayers,
 } from "@/lib/OilBarrel";
-import { preloadVx27ContainerAssets, consumeVx27DoorColliderDirty, refreshVx27ContainerRenderLayers, setVx27ContainerMaterialTuning, updateVx27ContainerDoorAnimations } from "@/lib/Vx27Container";
+import { arenaHasVx27Containers, preloadVx27ContainerAssets, applyVx27ContainerDoorTuning, consumeVx27DoorColliderDirty, readVx27ContainerDoorTuning, readVx27ContainerEdgeRadius, readVx27ContainerExteriorCornerRadius, readVx27ContainerInteriorInsets, readVx27ContainerScale, rebuildVx27ContainerExterior, rebuildVx27ContainerInterior, rebuildVx27ContainerScale, refreshVx27ContainerRenderLayers, setVx27ContainerExteriorCornerRadius, setVx27ContainerMaterialTuning, updateVx27ContainerDoorAnimations } from "@/lib/Vx27Container";
+import { updateVx27ContainerDoorWizard } from "@/lib/Vx27ContainerDoorWizard";
 import {
   collectVx27DoorInteractMeshes,
   getVx27DoorInteractLabel,
   pickVx27DoorUnderCrosshair,
   toggleVx27ContainerDoorLeaf,
 } from "@/lib/Vx27ContainerDoorInteract";
+import { DEFAULT_VX27_CONTAINER_DOOR_TUNING } from "@/lib/Vx27ContainerDoorTuning";
 import {
+  DEFAULT_VX27_CONTAINER_MATERIAL_TUNING,
   loadVx27ContainerMaterialTuning,
   normalizeVx27ContainerMaterialTuning,
+  saveVx27ContainerMaterialTuning,
 } from "@/lib/Vx27ContainerMaterialTuning";
 import {
+  applyVx27ContainerPlacement,
+  buildVx27ContainerPropJson,
+  getVx27ContainerPlacementBounds,
+  loadVx27ContainerInteriorInsets,
+  loadVx27ContainerEdgeRadius,
+  loadVx27ContainerExteriorCornerRadius,
+  loadVx27ContainerTuneEnabled,
   readVx27ContainerPlacement,
+  saveVx27ContainerEdgeRadius,
+  saveVx27ContainerExteriorCornerRadius,
+  saveVx27ContainerInteriorInsets,
+  saveVx27ContainerTuneEnabled,
   syncVx27ContainerCollider,
 } from "@/lib/Vx27ContainerTuning";
+import Vx27ContainerTunePanel from "@/components/Vx27ContainerTunePanel";
 import {
   initOilBarrelFireLightFlicker,
 } from "@/lib/OilBarrelFireLight";
 import {
+  DEFAULT_OIL_BARREL_TUNING,
+  loadOilBarrelTuneEnabled,
   loadOilBarrelTuning,
   normalizeOilBarrelTuning,
+  saveOilBarrelTuneEnabled,
   saveOilBarrelTuning,
 } from "@/lib/OilBarrelTuning";
+import OilBarrelTunePanel from "@/components/OilBarrelTunePanel";
+import {
+  isOilBarrelPileManagedProp,
+  applyOilBarrelPileToArena,
+  checkArenaOilBarrelPile,
+  loadPileWizardPrefs,
+  savePileWizardPrefs,
+} from "@/lib/OilBarrelPileLayout";
+import { rebuildLevelOilBarrels } from "@/lib/LevelProps";
 import {
   spawnLevelCollectibles,
   mountCompassCollectibleMarkers,
@@ -116,7 +144,8 @@ import {
   applyScreenShake,
   triggerScreenShake,
   triggerHurtScreenShake,
-  getGrenadeParams,
+  getGrenadeParams, setGrenadeParams,
+  getGrenadeExplosionVfx, setGrenadeExplosionVfx, resetGrenadeExplosionVfx,
   spawnGrenadeDrop, updateGrenadeDrops, disposeAllGrenadeDrops,
   preloadGrenadeAssets,
   PROJECTILE_FLASHBANG,
@@ -130,8 +159,10 @@ import {
 import { warmupGameGpu, resetGameGpuWarmup } from "@/lib/GpuWarmup";
 import {
   applyTargetHit,
+  applyTargetPose,
   activateTargetAt,
   deactivateTarget,
+  DEFAULT_TARGET_POSE,
   disposeAllTargetHealthBars,
   disposeAllHpOrbs,
   pickRandomSpawnPosition,
@@ -177,8 +208,19 @@ import {
   DEFAULT_HIP_POSE,
   loadBodyLookDownAmount,
   loadBodyLookUpAmount,
+  loadWeaponTuneEnabled,
   loadWeaponTuning,
+  saveWeaponTuneEnabled,
 } from "@/lib/WeaponTuning";
+import WeaponTunePanel from "@/components/WeaponTunePanel";
+import SunTunePanel from "@/components/SunTunePanel";
+import StairTunePanel from "@/components/StairTunePanel";
+import HemisphereTunePanel from "@/components/HemisphereTunePanel";
+import WalkBobTunePanel from "@/components/WalkBobTunePanel";
+import StairWalkTunePanel from "@/components/StairWalkTunePanel";
+import HudBarTunePanel from "@/components/HudBarTunePanel";
+import TargetPoseTunePanel from "@/components/TargetPoseTunePanel";
+import LevelObjectTunePanel from "@/components/LevelObjectTunePanel";
 import {
   shouldDropAmmoCrate,
   loadAmmoDropSpareThreshold,
@@ -195,16 +237,20 @@ import {
   applyHemisphereSettings,
   loadHemiDay,
   loadHemiNight,
+  saveHemiDay,
+  saveHemiNight,
 } from "@/lib/HemisphereTuning";
 import {
   getArenaCatwalkDeckY,
   getArenaFloorDeckY,
   loadStairTuning,
+  saveStairTuning,
 } from "@/lib/StairTuning";
 import {
   applySunLightPosition,
   loadSunAngles,
   loadSunDayMode,
+  saveSunAngles,
   saveSunDayMode,
   sunPositionFromAngles,
 } from "@/lib/SunLightTuning";
@@ -213,17 +259,33 @@ import {
   loadMoonAngles,
   loadMoonIntensity,
   moonPositionFromAngles,
+  saveMoonAngles,
+  saveMoonIntensity,
 } from "@/lib/MoonLightTuning";
 import {
+  DEFAULT_WALK_BOB_SIMPLE,
+  loadWalkBobTuneEnabled,
   loadWalkBobTuning,
+  normalizeWalkBobSimple,
   resolveWalkBobTuning,
+  saveWalkBobTuneEnabled,
+  saveWalkBobTuning,
 } from "@/lib/WalkBobTuning";
 import {
+  DEFAULT_STAIR_WALK_TUNING,
+  loadStairWalkTuneEnabled,
   loadStairWalkTuning,
   normalizeStairWalkTuning,
+  saveStairWalkTuneEnabled,
+  saveStairWalkTuning,
 } from "@/lib/StairWalkTuning";
 import {
+  DEFAULT_HUD_BAR_TUNING,
+  loadHudBarTuneEnabled,
   loadHudBarTuning,
+  normalizeHudBarTuning,
+  saveHudBarTuneEnabled,
+  saveHudBarTuning,
 } from "@/lib/HudBarTuning";
 import ControlsPanel from "@/components/ControlsPanel";
 import {
@@ -298,6 +360,11 @@ const KEYBOARD_EASE_KEY = "fps-keyboard-ease";
 const MOUSE_LOOK_KEY = "fps-mouse-look";
 const MOUSE_EASE_KEY = "fps-mouse-ease";
 const LOOK_MAX_RATE_KEY = "fps-look-max-rate";
+const SUN_TUNE_ENABLED_KEY = "fps-sun-tune-enabled";
+const HEMI_TUNE_ENABLED_KEY = "fps-hemi-tune-enabled";
+const STAIRS_TUNE_ENABLED_KEY = "fps-stairs-tune-enabled";
+const GRENADE_TUNE_ENABLED_KEY = "fps-grenade-tune-enabled";
+const GRENADE_EXPLOSION_TUNE_ENABLED_KEY = "fps-grenade-explosion-tune-enabled";
 const LEGACY_LOOK_SPEED_KEY = "fps-look-speed";
 const LEGACY_LOOK_EASE_KEY = "fps-look-ease";
 const RENDER_SCALE_KEY = "fps-render-scale";
@@ -688,19 +755,90 @@ export default function FpsGame() {
   const [mouseEase, setMouseEase] = useState(DEFAULT_MOUSE_EASE);
   const [maxLookRate, setMaxLookRate] = useState(DEFAULT_MAX_LOOK_RATE);
   const [playerHeight, setPlayerHeight] = useState(DEFAULT_PLAYER_HEIGHT);
+  const [sunAzimuth, setSunAzimuth] = useState(() => loadSunAngles().azimuth);
+  const [sunElevation, setSunElevation] = useState(() => loadSunAngles().elevation);
   const initialMoonAngles = loadMoonAngles();
+  const [moonAzimuth, setMoonAzimuth] = useState(initialMoonAngles.azimuth);
+  const [moonElevation, setMoonElevation] = useState(initialMoonAngles.elevation);
+  const [moonIntensity, setMoonIntensity] = useState(() => loadMoonIntensity());
   const [sunIsDay, setSunIsDay] = useState(() => loadSunDayMode());
   const initialStairTuning = loadStairTuning();
   const initialWalkBobTuning = loadWalkBobTuning();
   const initialStairWalkTuning = loadStairWalkTuning();
+  const [stairX, setStairX] = useState(initialStairTuning.position.x);
+  const [stairY, setStairY] = useState(initialStairTuning.position.y);
+  const [stairZ, setStairZ] = useState(initialStairTuning.position.z);
+  const [stairRotationY, setStairRotationY] = useState(initialStairTuning.rotationY);
+  const [arenaHasStairs, setArenaHasStairs] = useState(false);
   const [levelMeta, setLevelMeta] = useState({
     number: 1,
     id: "level1",
     name: "Level 1",
     objective: "HOLD ZONE",
   });
+  const [stairsTuneEnabled, setStairsTuneEnabled] = useState(false);
+  const [walkBobTuneEnabled, setWalkBobTuneEnabled] = useState(false);
+  const [stairWalkTuneEnabled, setStairWalkTuneEnabled] = useState(false);
+  const [hudBarTuneEnabled, setHudBarTuneEnabled] = useState(false);
   const [hudBarLayout, setHudBarLayout] = useState(() => loadHudBarTuning());
-  const [oilBarrelTuning, setOilBarrelTuning] = useState(() => loadOilBarrelTuning());
+  const [oilBarrelTuneEnabled, setOilBarrelTuneEnabled] = useState(false);
+  const [oilBarrelTuning, setOilBarrelTuning] = useState(() =>
+    loadOilBarrelTuning()
+  );
+  const [vx27ContainerTuneEnabled, setVx27ContainerTuneEnabled] = useState(false);
+  const vx27ContainerTuneEnabledRef = useRef(false);
+  const containerDoorTuningKeyRef = useRef("");
+  const [arenaHasVx27ContainersState, setArenaHasVx27ContainersState] = useState(false);
+  const [containerTuneIndex, setContainerTuneIndex] = useState(0);
+  const containerTuneIndexRef = useRef(0);
+  const [containerPropLabels, setContainerPropLabels] = useState([]);
+  const [containerX, setContainerX] = useState(0);
+  const [containerZ, setContainerZ] = useState(0);
+  const [containerFloorY, setContainerFloorY] = useState(0);
+  const [containerRotationY, setContainerRotationY] = useState(0);
+  const initialContainerInsets = loadVx27ContainerInteriorInsets();
+  const [containerInsetLeft, setContainerInsetLeft] = useState(initialContainerInsets.left);
+  const [containerInsetRight, setContainerInsetRight] = useState(initialContainerInsets.right);
+  const [containerInsetFront, setContainerInsetFront] = useState(initialContainerInsets.front);
+  const [containerInsetBack, setContainerInsetBack] = useState(initialContainerInsets.back);
+  const [containerFloorOffset, setContainerFloorOffset] = useState(
+    initialContainerInsets.floorOffset
+  );
+  const [containerCeilingOffset, setContainerCeilingOffset] = useState(
+    initialContainerInsets.ceilingOffset
+  );
+  const [containerEdgeRadius, setContainerEdgeRadius] = useState(() =>
+    loadVx27ContainerEdgeRadius()
+  );
+  const [containerExteriorCornerRadius, setContainerExteriorCornerRadius] =
+    useState(() => loadVx27ContainerExteriorCornerRadius());
+  const [containerScale, setContainerScale] = useState(1);
+  const [containerMaterialTuning, setContainerMaterialTuning] = useState(() =>
+    loadVx27ContainerMaterialTuning()
+  );
+  const [containerDoorTuning, setContainerDoorTuning] = useState(
+    () => DEFAULT_VX27_CONTAINER_DOOR_TUNING
+  );
+  const [containerDoorWizardEnabled, setContainerDoorWizardEnabled] = useState(false);
+  const containerDoorWizardEnabledRef = useRef(false);
+  const [containerBounds, setContainerBounds] = useState(() =>
+    getVx27ContainerPlacementBounds(null, 0, 4.35)
+  );
+  const pilePrefs = loadPileWizardPrefs();
+  const [pileSeed, setPileSeed] = useState(pilePrefs.seed);
+  const [pileHubX, setPileHubX] = useState(pilePrefs.hub.x);
+  const [pileHubZ, setPileHubZ] = useState(pilePrefs.hub.z);
+  const [pileHubRotationY, setPileHubRotationY] = useState(
+    pilePrefs.hub.rotationY ?? 0
+  );
+  const [pileStatus, setPileStatus] = useState("");
+  const [pileBusy, setPileBusy] = useState(false);
+  const [walkBobTuning, setWalkBobTuning] = useState(initialWalkBobTuning);
+  const [stairWalkTuning, setStairWalkTuning] = useState(initialStairWalkTuning);
+  const [sunTuneEnabled, setSunTuneEnabled] = useState(false);
+  const [hemiTuneEnabled, setHemiTuneEnabled] = useState(false);
+  const [floorDeckY, setFloorDeckY] = useState(0);
+  const [catwalkDeckY, setCatwalkDeckY] = useState(4.13);
   const [pointerLocked, setPointerLocked] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadAssetLabel, setLoadAssetLabel] = useState("Initializing…");
@@ -723,6 +861,7 @@ export default function FpsGame() {
   const [showPlayerCoords, setShowPlayerCoords] = useState(
     () => window.localStorage.getItem(SHOW_PLAYER_COORDS_KEY) === "true"
   );
+  const [hudTuneEnabled, setHudTuneEnabled] = useState(false);
   const [hudCogX, setHudCogX] = useState(4);
   const [hudCogY, setHudCogY] = useState(32);
   const [hudCogSize, setHudCogSize] = useState(8);
@@ -745,18 +884,32 @@ export default function FpsGame() {
   const [radarLeft] = useState(1.5);
   const [radarBottom] = useState(1.5);
   const [radarScale] = useState(11);
+  const [weaponTuneEnabled, setWeaponTuneEnabled] = useState(false);
+  const [targetTuneEnabled, setTargetTuneEnabled] = useState(false);
+  const [targetPose, setTargetPose] = useState(() => ({ ...DEFAULT_TARGET_POSE }));
+  const [targetApplyAll, setTargetApplyAll] = useState(true);
+  const selectedTargetRef = useRef(null);
+  const targetTuneEnabledRef = useRef(false);
   const targetsRef = useRef([]);
   const [hitDebugEnabled, setHitDebugEnabled] = useState(false);
   const hitDebugEnabledRef = useRef(false);
   const [colliderDebugEnabled, setColliderDebugEnabled] = useState(false);
   const colliderDebugEnabledRef = useRef(false);
+  const [containerColliderDebugOnly, setContainerColliderDebugOnly] = useState(false);
+  const containerColliderDebugOnlyRef = useRef(false);
   const [hitzoneOverlayEnabled, setHitzoneOverlayEnabled] = useState(false);
+  const [levelEditEnabled, setLevelEditEnabled] = useState(false);
+  const levelEditEnabledRef = useRef(false);
+  const selectedLevelObjectRef = useRef(null);
+  const [selectedLevelObjectVer, setSelectedLevelObjectVer] = useState(0);
+  const levelObjectsRef = useRef([]);
   const sceneRef = useRef(null);
   const [bindings, setBindings] = useState(() => loadBindings());
   const [rebindAction, setRebindAction] = useState(null);
   const bindingsRef = useRef(loadBindings());
   const settingsOpenRef = useRef(false);
   const controlsOpenRef = useRef(false);
+  const weaponTuneEnabledRef = useRef(false);
   const invertYRef = useRef(false);
   const keyboardLookRef = useRef(DEFAULT_KEYBOARD_LOOK);
   const keyboardEaseRef = useRef(DEFAULT_KEYBOARD_EASE);
@@ -777,21 +930,149 @@ export default function FpsGame() {
   const refitSunShadowRef = useRef(null);
   const refitMoonShadowRef = useRef(null);
   const rebuildStairsRef = useRef(null);
+  const rebuildOilBarrelsRef = useRef(null);
+  const pilePlacementRafRef = useRef(0);
   const vx27ContainersRef = useRef([]);
+  const vx27ContainerCommitRef = useRef(null);
+  const vx27ContainerInteriorCommitRef = useRef(null);
+  const vx27ContainerExteriorCommitRef = useRef(null);
+  const vx27ContainerExteriorCornerCommitRef = useRef(null);
+  const vx27ContainerScaleCommitRef = useRef(null);
+  const vx27ContainerDoorCommitRef = useRef(null);
+  const getPlayerPlacementRef = useRef(null);
   const arenaLiveRef = useRef(null);
-
+  const onContainerMaterialChange = useCallback((key, value) => {
+    setContainerMaterialTuning((prev) => {
+      const next = normalizeVx27ContainerMaterialTuning({ ...prev, [key]: value });
+      saveVx27ContainerMaterialTuning(next);
+      const containerGroup =
+        vx27ContainersRef.current[containerTuneIndexRef.current] ??
+        sceneRef.current ??
+        undefined;
+      setVx27ContainerMaterialTuning(next, containerGroup);
+      return next;
+    });
+  }, []);
   const onOilBarrelTuningChange = useCallback((key, value) => {
     setOilBarrelTuning((prev) => {
       const next = normalizeOilBarrelTuning({ ...prev, [key]: value });
       saveOilBarrelTuning(next);
       applyOilBarrelMaterialTuning(next, sceneRef.current ?? undefined);
-      if (key === "interiorFire" && value === true) {
-        void ensureOilBarrelInteriorTextures().then(() =>
-          ensureOilBarrelInteriorVideo()
-        );
+      if (key === "topCap") {
+        if (value === false) {
+          ensureOilBarrelInteriorTextures().then(() => {
+            rebuildOilBarrelsRef.current?.();
+          });
+        } else {
+          rebuildOilBarrelsRef.current?.();
+        }
+      } else if (key === "interiorFire" && value === true) {
+        ensureOilBarrelInteriorTextures()
+          .then(() => ensureOilBarrelInteriorVideo())
+          .then(() => rebuildOilBarrelsRef.current?.());
       }
       return next;
     });
+  }, []);
+
+  const persistPilePrefs = useCallback((seed, hubX, hubZ, hubRotationY) => {
+    savePileWizardPrefs({
+      seed,
+      hub: { x: hubX, z: hubZ, rotationY: hubRotationY },
+    });
+  }, []);
+
+  const applyPilePlacementToScene = useCallback(
+    (hubX, hubZ, hubRotationY, { persist = true } = {}) => {
+      const arena = arenaLiveRef.current;
+      if (!arena) {
+        setPileStatus("Level not loaded yet.");
+        return null;
+      }
+      const result = applyOilBarrelPileToArena(arena, {
+        hub: { x: hubX, z: hubZ },
+        rotationY: hubRotationY,
+      });
+      rebuildOilBarrelsRef.current?.();
+      if (persist) {
+        persistPilePrefs(pileSeed, hubX, hubZ, hubRotationY);
+      }
+      const check = checkArenaOilBarrelPile(arena);
+      const rotDeg = (hubRotationY * (180 / Math.PI)).toFixed(1);
+      if (!result.ok) {
+        const miss = result.failed.length
+          ? result.failed.join(", ")
+          : "not enough barrels placed";
+        setPileStatus(
+          `Pile at (${hubX.toFixed(2)}, ${hubZ.toFixed(2)}, ${rotDeg}°) — ${miss}.`
+        );
+      } else if (!check.ok) {
+        setPileStatus(
+          `Pile at (${hubX.toFixed(2)}, ${hubZ.toFixed(2)}, ${rotDeg}°) — overlaps detected.`
+        );
+      } else {
+        setPileStatus(
+          `Pile at (${hubX.toFixed(2)}, ${hubZ.toFixed(2)}, ${rotDeg}°) — check OK.`
+        );
+      }
+      return result;
+    },
+    [pileSeed, persistPilePrefs]
+  );
+
+  const schedulePilePlacement = useCallback(
+    (hubX, hubZ, hubRotationY) => {
+      if (pilePlacementRafRef.current) {
+        cancelAnimationFrame(pilePlacementRafRef.current);
+      }
+      pilePlacementRafRef.current = requestAnimationFrame(() => {
+        pilePlacementRafRef.current = 0;
+        applyPilePlacementToScene(hubX, hubZ, hubRotationY);
+      });
+    },
+    [applyPilePlacementToScene]
+  );
+
+  const onPileGenerate = useCallback(() => {
+    if (pileBusy) return;
+    setPileBusy(true);
+    setPileStatus("Applying pile layout…");
+    void (async () => {
+      try {
+        await new Promise((r) => setTimeout(r, 0));
+        applyPilePlacementToScene(pileHubX, pileHubZ, pileHubRotationY);
+      } finally {
+        setPileBusy(false);
+      }
+    })();
+  }, [pileBusy, pileHubX, pileHubZ, pileHubRotationY, applyPilePlacementToScene]);
+
+  const onPileCheck = useCallback(() => {
+    const arena = arenaLiveRef.current;
+    if (!arena) {
+      setPileStatus("Level not loaded yet.");
+      return;
+    }
+    const { ok, count } = checkArenaOilBarrelPile(arena);
+    setPileStatus(
+      ok
+        ? `Check OK — ${count} pile barrel(s), no overlaps.`
+        : `Check failed — ${count} pile barrel(s) intersect.`
+    );
+  }, []);
+
+  const onPileCopyJson = useCallback(async () => {
+    const arena = arenaLiveRef.current;
+    if (!arena) return;
+    const pile = (arena.props ?? []).filter((p) => isOilBarrelPileManagedProp(p));
+    const text = JSON.stringify(pile, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      setPileStatus(`Copied ${pile.length} pile props to clipboard.`);
+    } catch {
+      setPileStatus("Copy failed — see console.");
+      console.log("Oil barrel pile props:", text);
+    }
   }, []);
 
   const stairParamsRef = useRef(initialStairTuning);
@@ -814,8 +1095,15 @@ export default function FpsGame() {
   const oilBarrelFireLightsRef = useRef([]);
   const roomCullablesRef = useRef([]);
   const dayNightToggleRef = useRef(null);
+  const [hemiDay, setHemiDay] = useState(() => ({ ...DEFAULT_HEMI_DAY }));
+  const [hemiNight, setHemiNight] = useState(() => ({ ...DEFAULT_HEMI_NIGHT }));
   const hemiDayRef = useRef({ ...DEFAULT_HEMI_DAY });
   const hemiNightRef = useRef({ ...DEFAULT_HEMI_NIGHT });
+  const [weaponPoseMode, setWeaponPoseMode] = useState("hip");
+  const [hipWeaponPose, setHipWeaponPose] = useState(DEFAULT_HIP_POSE);
+  const [adsWeaponPose, setAdsWeaponPose] = useState(DEFAULT_ADS_POSE);
+  const [bodyLookUpAmount, setBodyLookUpAmount] = useState(0);
+  const [bodyLookDownAmount, setBodyLookDownAmount] = useState(0);
   const [fireMode, setFireMode] = useState("auto");
   const [roundsInMag, setRoundsInMag] = useState(MAGAZINE_SIZE);
   const [spareMags, setSpareMags] = useState(SPARE_MAGAZINES);
@@ -829,6 +1117,24 @@ export default function FpsGame() {
   const grenadeCountRef = useRef(getGrenadeParams().grenadeCount);
   const [flashbangCount, setFlashbangCount] = useState(DEFAULT_FLASHBANG_COUNT);
   const flashbangCountRef = useRef(DEFAULT_FLASHBANG_COUNT);
+  const [grenadeTuneEnabled, setGrenadeTuneEnabled] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.localStorage.getItem(GRENADE_TUNE_ENABLED_KEY) === "true"
+  );
+  const [grenadeParams, setGrenadeParamsState] = useState(() => getGrenadeParams());
+  const [grenadeExplosionTuneEnabled, setGrenadeExplosionTuneEnabled] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.localStorage.getItem(GRENADE_EXPLOSION_TUNE_ENABLED_KEY) === "true"
+  );
+  const [explosionVfx, setExplosionVfxState] = useState(() => getGrenadeExplosionVfx());
+  const patchExplosionVfx = (patch) => {
+    setExplosionVfxState(setGrenadeExplosionVfx(patch));
+  };
+  const [grenadeWidgetTuneEnabled, setGrenadeWidgetTuneEnabled] = useState(
+    () => window.localStorage.getItem("fps-grenade-widget-tune") === "true"
+  );
   const [grenFrameWidthRem, setGrenFrameWidthRem] = useState(12.3);
   const [grenFrameScale, setGrenFrameScale] = useState(1);
   const [grenFrameX, setGrenFrameX] = useState(17);
@@ -869,12 +1175,19 @@ export default function FpsGame() {
     bodyLookUpAmount: DEFAULT_BODY_LOOK_UP_AMOUNT,
     bodyLookDownAmount: DEFAULT_BODY_LOOK_DOWN_AMOUNT,
   });
+  const weaponPoseModeRef = useRef("hip");
   const rebindActionRef = useRef(null);
 
   useEffect(() => {
     const tuning = loadWeaponTuning();
+    setHipWeaponPose(tuning.hip);
+    setAdsWeaponPose(tuning.ads);
+    setBodyLookUpAmount(loadBodyLookUpAmount());
+    setBodyLookDownAmount(loadBodyLookDownAmount());
     const storedHemiDay = loadHemiDay();
     const storedHemiNight = loadHemiNight();
+    setHemiDay(storedHemiDay);
+    setHemiNight(storedHemiNight);
     hemiDayRef.current = storedHemiDay;
     hemiNightRef.current = storedHemiNight;
     weaponTuningRef.current = {
@@ -883,6 +1196,16 @@ export default function FpsGame() {
       bodyLookDownAmount: loadBodyLookDownAmount(),
     };
   }, []);
+
+  weaponTuningRef.current = {
+    hip: hipWeaponPose,
+    ads: adsWeaponPose,
+    bodyLookUpAmount,
+    bodyLookDownAmount,
+  };
+  weaponPoseModeRef.current = weaponPoseMode;
+  walkBobTuningRef.current = walkBobTuning;
+  stairWalkTuningRef.current = stairWalkTuning;
   bindingsRef.current = bindings;
   rebindActionRef.current = rebindAction;
   fireModeRef.current = fireMode;
@@ -893,6 +1216,9 @@ export default function FpsGame() {
   showDevOverlayRef.current = showDevOverlay;
   showPlayerCoordsRef.current = showPlayerCoords;
   showHudRef.current = showHud;
+  containerTuneIndexRef.current = containerTuneIndex;
+  vx27ContainerTuneEnabledRef.current = vx27ContainerTuneEnabled;
+
   scheduleGameplayHudSyncRef.current = () => {
     if (hudSyncPendingRef.current) return;
     hudSyncPendingRef.current = true;
@@ -992,6 +1318,15 @@ export default function FpsGame() {
     const mLook = read(MOUSE_LOOK_KEY, DEFAULT_MOUSE_LOOK);
     const mEase = read(MOUSE_EASE_KEY, mouseEaseFallback);
     const maxRate = read(LOOK_MAX_RATE_KEY, DEFAULT_MAX_LOOK_RATE);
+    const tuneEnabled = loadWeaponTuneEnabled();
+    const sunEnabled = localStorage.getItem(SUN_TUNE_ENABLED_KEY) === "true";
+    const hemiEnabled = localStorage.getItem(HEMI_TUNE_ENABLED_KEY) === "true";
+    const stairsEnabled = localStorage.getItem(STAIRS_TUNE_ENABLED_KEY) === "true";
+    const walkBobEnabled = loadWalkBobTuneEnabled();
+    const stairWalkEnabled = loadStairWalkTuneEnabled();
+    const hudBarEnabled = loadHudBarTuneEnabled();
+    const oilBarrelEnabled = loadOilBarrelTuneEnabled();
+    const vx27ContainerEnabled = loadVx27ContainerTuneEnabled();
     setInvertYLook(storedInvert);
     const storedScale = loadRenderScale();
     setRenderScale(storedScale);
@@ -1006,10 +1341,20 @@ export default function FpsGame() {
     setAmmoDropSpareThreshold(storedAmmoDropThreshold);
     ammoDropSpareThresholdRef.current = storedAmmoDropThreshold;
     loadingMusicTrackIdRef.current = storedLoadingTrack;
+    setWeaponTuneEnabled(tuneEnabled);
+    setSunTuneEnabled(sunEnabled);
+    setHemiTuneEnabled(hemiEnabled);
+    setStairsTuneEnabled(stairsEnabled);
+    setWalkBobTuneEnabled(walkBobEnabled);
+    setStairWalkTuneEnabled(stairWalkEnabled);
+    setHudBarTuneEnabled(hudBarEnabled);
     setHudBarLayout(loadHudBarTuning());
+    setOilBarrelTuneEnabled(oilBarrelEnabled);
+    setVx27ContainerTuneEnabled(vx27ContainerEnabled);
     const barrelTuning = loadOilBarrelTuning();
     setOilBarrelTuning(barrelTuning);
     applyOilBarrelMaterialTuning(barrelTuning, sceneRef.current ?? undefined);
+    setContainerMaterialTuning(loadVx27ContainerMaterialTuning());
     setKeyboardLook(kbLook);
     setKeyboardEase(kbEase);
     setMouseLook(mLook);
@@ -1034,9 +1379,23 @@ export default function FpsGame() {
   mouseEaseRef.current = mouseEase;
   maxLookRateRef.current = maxLookRate;
   playerHeightRef.current = playerHeight;
+  sunAnglesRef.current = { azimuth: sunAzimuth, elevation: sunElevation };
+  sunLightPosRef.current = sunPositionFromAngles(sunAzimuth, sunElevation);
+  moonAnglesRef.current = { azimuth: moonAzimuth, elevation: moonElevation };
+  moonIntensityRef.current = moonIntensity;
+  moonLightPosRef.current = moonPositionFromAngles(moonAzimuth, moonElevation);
   sunIsDayRef.current = sunIsDay;
+  const commitStairParams = (params) => {
+    stairParamsRef.current = params;
+    saveStairTuning(params);
+    rebuildStairsRef.current?.(params);
+    applyDayNightRef.current?.(dayNightCurNightnessRef.current);
+    refitSunShadowRef.current?.();
+    refitMoonShadowRef.current?.();
+  };
   settingsOpenRef.current = settingsOpen;
   controlsOpenRef.current = controlsOpen;
+  weaponTuneEnabledRef.current = weaponTuneEnabled;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1094,7 +1453,7 @@ export default function FpsGame() {
       scene.fog = new THREE.Fog(DAY_CLEAR_COLOR, 45, 95);
       sceneRef.current = scene;
       if (hitDebugEnabledRef.current) setHitDebug(scene, true);
-      if (colliderDebugEnabledRef.current) {
+      if (colliderDebugEnabledRef.current || containerColliderDebugOnlyRef.current) {
         setColliderDebug(scene, true);
       }
 
@@ -1187,11 +1546,25 @@ export default function FpsGame() {
       roomLightsRef.current = roomLights;
       ensureRoomInteriorAmbient(scene);
       syncLightLayersForZone(scene, false, outdoorLights, roomLights);
+      setFloorDeckY(getArenaFloorDeckY());
+      setCatwalkDeckY(getArenaCatwalkDeckY(arena));
       let stairParams = loadStairTuning(arena.stairs, arena);
       stairParamsRef.current = stairParams;
+      setStairX(stairParams.position.x);
+      setStairY(stairParams.position.y);
+      setStairZ(stairParams.position.z);
+      setStairRotationY(stairParams.rotationY);
       const arenaLive = { ...arena, stairs: stairParams };
       arenaLiveRef.current = arenaLive;
+      const pileAnchor = arenaLive.props?.find(
+        (p) => p.id === "oil_barrel_pile_stop_begin"
+      );
+      if (pileAnchor) {
+        setPileHubX(pileAnchor.x);
+        setPileHubZ(pileAnchor.z);
+      }
       level = createLevelFromArena(scene, arenaLive, levelTextures);
+      setArenaHasStairs(Boolean(arena.stairs));
       if (!isActive()) {
         if (level?.group) disposeLevelGroup(level.group);
         levelTextures?.dispose();
@@ -1203,13 +1576,51 @@ export default function FpsGame() {
       setHealthBarOccluders(level.group);
       reportLoad(72, "Level geometry");
       targetsRef.current = level.targets;
+      levelObjectsRef.current = level.pillarMeshes ?? [];
       vx27ContainersRef.current = level.vx27ContainerMeshes ?? [];
-      for (const group of vx27ContainersRef.current) {
-        const propMaterial = group.userData.vx27PropDef?.materialTuning;
+      setArenaHasVx27ContainersState(
+        vx27ContainersRef.current.length > 0 || arenaHasVx27Containers(arena)
+      );
+      setContainerPropLabels(
+        vx27ContainersRef.current.map(
+          (group) => group.userData.vx27PropId ?? "vx27_container"
+        )
+      );
+      setContainerBounds(
+        getVx27ContainerPlacementBounds(
+          level.bounds,
+          level.floorY,
+          level.catwalkDeckY
+        )
+      );
+      if (vx27ContainersRef.current.length > 0) {
+        const firstGroup = vx27ContainersRef.current[0];
+        const propMaterial = firstGroup.userData.vx27PropDef?.materialTuning;
         const materialTuning = propMaterial
           ? normalizeVx27ContainerMaterialTuning(propMaterial)
           : loadVx27ContainerMaterialTuning();
-        setVx27ContainerMaterialTuning(materialTuning, group);
+        setContainerMaterialTuning(materialTuning);
+        setVx27ContainerMaterialTuning(materialTuning, firstGroup);
+
+        const placement = readVx27ContainerPlacement(firstGroup);
+        const insets = readVx27ContainerInteriorInsets(firstGroup);
+        setContainerTuneIndex(0);
+        setContainerX(placement.x);
+        setContainerZ(placement.z);
+        setContainerFloorY(placement.floorY);
+        setContainerRotationY(placement.rotationY);
+        setContainerInsetLeft(insets.left);
+        setContainerInsetRight(insets.right);
+        setContainerInsetFront(insets.front);
+        setContainerInsetBack(insets.back);
+        setContainerFloorOffset(insets.floorOffset);
+        setContainerCeilingOffset(insets.ceilingOffset);
+        setContainerEdgeRadius(readVx27ContainerEdgeRadius(firstGroup));
+        setContainerExteriorCornerRadius(
+          readVx27ContainerExteriorCornerRadius(firstGroup)
+        );
+        setContainerScale(readVx27ContainerScale(firstGroup));
+        setContainerDoorTuning(readVx27ContainerDoorTuning(firstGroup));
       }
       preloadBulletHoleTextures();
       const levelHitMeshes = collectLevelHitMeshes(level.group, level.targets);
@@ -1391,6 +1802,186 @@ export default function FpsGame() {
         invalidateColliderDebugOverlay();
       }
       syncAllColliders();
+      vx27ContainerCommitRef.current = (index, placement) => {
+        const group = vx27ContainersRef.current[index];
+        if (!group) return;
+        applyVx27ContainerPlacement(group, placement);
+        syncVx27ContainerCollider(
+          level.colliders,
+          group.userData.vx27PropId,
+          placement,
+          {
+            ...group.userData.vx27PropDef,
+            interiorInsets: group.userData.vx27InteriorInsets,
+            edgeRadius: group.userData.vx27EdgeRadius,
+            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
+            scale: group.userData.vx27Scale,
+            doorTuning: group.userData.vx27DoorTuning,
+          }
+        );
+        syncAllColliders();
+      };
+      vx27ContainerScaleCommitRef.current = (index, scale) => {
+        const group = vx27ContainersRef.current[index];
+        if (!group) return;
+        rebuildVx27ContainerScale(group, scale);
+        const placement = readVx27ContainerPlacement(group);
+        syncVx27ContainerCollider(
+          level.colliders,
+          group.userData.vx27PropId,
+          placement,
+          {
+            ...group.userData.vx27PropDef,
+            interiorInsets: group.userData.vx27InteriorInsets,
+            edgeRadius: group.userData.vx27EdgeRadius,
+            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
+            scale: group.userData.vx27Scale,
+            doorTuning: group.userData.vx27DoorTuning,
+          }
+        );
+        syncAllColliders();
+      };
+      vx27ContainerInteriorCommitRef.current = (index, insets) => {
+        const group = vx27ContainersRef.current[index];
+        if (!group) return;
+        const normalized = rebuildVx27ContainerInterior(group, insets);
+        saveVx27ContainerInteriorInsets(normalized);
+        const placement = readVx27ContainerPlacement(group);
+        syncVx27ContainerCollider(
+          level.colliders,
+          group.userData.vx27PropId,
+          placement,
+          {
+            ...group.userData.vx27PropDef,
+            interiorInsets: normalized,
+            edgeRadius: group.userData.vx27EdgeRadius,
+            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
+            scale: group.userData.vx27Scale,
+            doorTuning: group.userData.vx27DoorTuning,
+          }
+        );
+        syncAllColliders();
+      };
+      vx27ContainerExteriorCommitRef.current = (index, edgeRadius) => {
+        const group = vx27ContainersRef.current[index];
+        if (!group) return;
+        const normalized = rebuildVx27ContainerExterior(group, edgeRadius);
+        saveVx27ContainerEdgeRadius(normalized);
+        group.userData.vx27EdgeRadius = normalized;
+        const placement = readVx27ContainerPlacement(group);
+        syncVx27ContainerCollider(
+          level.colliders,
+          group.userData.vx27PropId,
+          placement,
+          {
+            ...group.userData.vx27PropDef,
+            interiorInsets: group.userData.vx27InteriorInsets,
+            edgeRadius: normalized,
+            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
+            scale: group.userData.vx27Scale,
+            width: group.userData.vx27Width,
+            height: group.userData.vx27Height,
+            length: group.userData.vx27Length,
+            doorTuning: group.userData.vx27DoorTuning,
+          }
+        );
+        syncAllColliders();
+      };
+      vx27ContainerExteriorCornerCommitRef.current = (index, exteriorCornerRadius) => {
+        const group = vx27ContainersRef.current[index];
+        if (!group) return;
+        const normalized = setVx27ContainerExteriorCornerRadius(group, exteriorCornerRadius);
+        saveVx27ContainerExteriorCornerRadius(normalized);
+        const placement = readVx27ContainerPlacement(group);
+        syncVx27ContainerCollider(
+          level.colliders,
+          group.userData.vx27PropId,
+          placement,
+          {
+            ...group.userData.vx27PropDef,
+            interiorInsets: group.userData.vx27InteriorInsets,
+            edgeRadius: group.userData.vx27EdgeRadius,
+            exteriorCornerRadius: normalized,
+            scale: group.userData.vx27Scale,
+            width: group.userData.vx27Width,
+            height: group.userData.vx27Height,
+            length: group.userData.vx27Length,
+            doorTuning: group.userData.vx27DoorTuning,
+          }
+        );
+        syncAllColliders();
+      };
+      vx27ContainerDoorCommitRef.current = (index, doorPatch) => {
+        const group = vx27ContainersRef.current[index];
+        if (!group) return;
+        const normalized = applyVx27ContainerDoorTuning(group, doorPatch, {
+          animate: true,
+        });
+        const placement = readVx27ContainerPlacement(group);
+        const anim = group.userData.vx27DoorAnim;
+        if (!anim?.active) {
+          syncVx27ContainerCollider(
+            level.colliders,
+            group.userData.vx27PropId,
+            placement,
+            {
+              ...group.userData.vx27PropDef,
+              interiorInsets: group.userData.vx27InteriorInsets,
+              edgeRadius: group.userData.vx27EdgeRadius,
+              exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
+              scale: group.userData.vx27Scale,
+              width: group.userData.vx27Width,
+              height: group.userData.vx27Height,
+              length: group.userData.vx27Length,
+              doorTuning: normalized,
+            }
+          );
+          syncAllColliders();
+        }
+        if (containerDoorWizardEnabledRef.current) {
+          updateVx27ContainerDoorWizard(group, true);
+        }
+      };
+      for (const group of vx27ContainersRef.current) {
+        syncVx27ContainerCollider(
+          level.colliders,
+          group.userData.vx27PropId,
+          readVx27ContainerPlacement(group),
+          {
+            ...group.userData.vx27PropDef,
+            interiorInsets: group.userData.vx27InteriorInsets,
+            edgeRadius: group.userData.vx27EdgeRadius,
+            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
+            scale: group.userData.vx27Scale,
+            width: group.userData.vx27Width,
+            height: group.userData.vx27Height,
+            length: group.userData.vx27Length,
+            doorTuning: group.userData.vx27DoorTuning,
+          }
+        );
+      }
+      syncAllColliders();
+      getPlayerPlacementRef.current = () => {
+        if (!player) return null;
+        return {
+          x: camera.position.x,
+          z: camera.position.z,
+          floorY: player.getFootY(),
+        };
+      };
+      rebuildStairsRef.current = (params) => {
+        if (!level?.rebuildStairs) return;
+        level.rebuildStairs(params);
+        syncAllColliders();
+      };
+      rebuildOilBarrelsRef.current = () => {
+        const arena = arenaLiveRef.current;
+        if (!arena || !level?.group) return;
+        rebuildLevelOilBarrels(level.group, arena);
+        level?.resyncOilBarrelColliders?.();
+        syncInteriorLighting();
+      };
+
       player = createPlayerController(camera, level.bounds, level.floorY, {
         getColliders: () => allColliders,
         getGroundSurfaces: () => level.groundSurfaces,
@@ -1454,6 +2045,18 @@ export default function FpsGame() {
       hitRaycaster.layers.enable(ROOM_INTERIOR_LAYER);
       const screenCenter = new THREE.Vector2(0, 0);
 
+      /** Keep tune-panel open sliders + export JSON aligned with in-game door state. */
+      const syncContainerDoorTuningPanel = (group, preferTarget = false) => {
+        if (!vx27ContainerTuneEnabledRef.current || !group) return;
+        if (group !== vx27ContainersRef.current[containerTuneIndexRef.current]) {
+          return;
+        }
+        const next = readVx27ContainerDoorTuning(group, { preferTarget });
+        const key = `${next.frontLeftOpen}|${next.frontRightOpen}|${next.backLeftOpen}|${next.backRightOpen}`;
+        if (key === containerDoorTuningKeyRef.current) return;
+        containerDoorTuningKeyRef.current = key;
+        setContainerDoorTuning(next);
+      };
 
       const currentWeaponLoad = ++weaponLoadId;
       reportLoad(74, "View weapon (rifle GLTF)");
@@ -1683,6 +2286,9 @@ export default function FpsGame() {
 
       function applyHit(hit, bulletDirection, targetMesh) {
         const mesh = targetMesh ?? hit.object;
+        if (targetTuneEnabledRef.current) {
+          selectedTargetRef.current = mesh;
+        }
         const { killed, zone, damage } = applyTargetHit(mesh, hit.point, bulletDirection);
         if (zone !== "miss") {
           const splatterDamage = Math.max(damage, 4);
@@ -1791,6 +2397,20 @@ export default function FpsGame() {
         weapon.getMuzzleWorld(muzzlePos, muzzleDir, camera);
 
         hitRaycaster.setFromCamera(screenCenter, camera);
+
+        if (levelEditEnabledRef.current && levelObjectsRef.current.length) {
+          const loHits = hitRaycaster.intersectObjects(levelObjectsRef.current, false);
+          if (loHits.length) {
+            const prev = selectedLevelObjectRef.current;
+            if (prev && prev !== loHits[0].object) {
+              prev.material.emissive?.setHex(0x000000);
+            }
+            const selected = loHits[0].object;
+            selected.material.emissive?.setHex(0x222222);
+            selectedLevelObjectRef.current = selected;
+            setSelectedLevelObjectVer((v) => v + 1);
+          }
+        }
 
         const camDir = hitRaycaster.ray.direction.clone();
         spawnBullet(hitRaycaster.ray.origin.clone(), camDir, muzzlePos);
@@ -1959,7 +2579,9 @@ export default function FpsGame() {
         const aimHeld =
           !rebindActionRef.current &&
           isBindingDown(input, bindingsRef.current, "aim");
-        const aimTarget = aimHeld ? 1 : 0;
+        const aimTabActive =
+          weaponTuneEnabledRef.current && weaponPoseModeRef.current === "ads";
+        const aimTarget = aimHeld || aimTabActive ? 1 : 0;
 
         // Death sequence (two phases):
         //   1. FREEZE  — overlay is fully opaque, player is not respawned,
@@ -2270,6 +2892,7 @@ export default function FpsGame() {
             doorTarget.end,
             doorTarget.side
           );
+          syncContainerDoorTuningPanel(doorTarget.group, true);
         }
 
         if (
@@ -2507,11 +3130,15 @@ export default function FpsGame() {
         );
         updateTargetHealthBars(level.targets, dt, camera);
         updateHitDebugMarkers(dt);
-        if (colliderDebugEnabledRef.current) {
+        if (colliderDebugEnabledRef.current || containerColliderDebugOnlyRef.current) {
           const shadowCasters = collectibleEntries
             .filter((e) => !e.collected && e.drop?.mesh)
             .map((e) => e.drop.mesh.userData?.pickupShadowCaster)
             .filter(Boolean);
+          const filterPropId = containerColliderDebugOnlyRef.current
+            ? vx27ContainersRef.current[containerTuneIndexRef.current]?.userData
+                ?.vx27PropId ?? null
+            : null;
           updateColliderDebugOverlay(
             allColliders,
             {
@@ -2524,14 +3151,25 @@ export default function FpsGame() {
             {
               ...player.getMovementDebugSnapshot?.(),
               shadowCasters,
-            }
+            },
+            filterPropId != null ? { propId: filterPropId } : undefined
           );
         }
         updateVx27ContainerDoorAnimations(vx27ContainersRef.current, dt);
+        const tunedContainer =
+          vx27ContainersRef.current[containerTuneIndexRef.current];
+        if (tunedContainer?.userData.vx27DoorAnim?.active) {
+          syncContainerDoorTuningPanel(tunedContainer);
+        }
+        if (containerDoorWizardEnabledRef.current) {
+          const wizardGroup = tunedContainer;
+          if (wizardGroup) updateVx27ContainerDoorWizard(wizardGroup, true);
+        }
         let doorCollidersDirty = false;
         for (const doorGroup of vx27ContainersRef.current) {
           if (!consumeVx27DoorColliderDirty(doorGroup)) continue;
           doorCollidersDirty = true;
+          syncContainerDoorTuningPanel(doorGroup);
           syncVx27ContainerCollider(
             level.colliders,
             doorGroup.userData.vx27PropId,
@@ -2965,6 +3603,13 @@ export default function FpsGame() {
     "--grenade-count-y": `${grenHudCountY}px`,
     "--grenade-count-scale": String(grenHudCountScale),
   };
+  const setStackTuneField = (slot, field, value) => {
+    setWeaponStackTune((prev) => ({
+      ...prev,
+      [slot]: { ...prev[slot], [field]: value },
+    }));
+  };
+
   const handleMusicEnabledChange = (checked) => {
     setMusicEnabled(checked);
     musicEnabledRef.current = checked;
@@ -3601,10 +4246,232 @@ export default function FpsGame() {
 
             <SettingsSection title="Development">
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                Dev-only debug overlays and helpers.
+                Dev tools and tuning panels. Tuning panels open in a bar at the
+                top of the screen — toggle each one below.
+              </p>
+              <p className="settingsGroupLabel">Tuning panels</p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={weaponTuneEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setWeaponTuneEnabled(checked);
+                    weaponTuneEnabledRef.current = checked;
+                    saveWeaponTuneEnabled(checked);
+                    if (!checked) {
+                      weaponPoseModeRef.current = "hip";
+                      setWeaponPoseMode("hip");
+                    }
+                  }}
+                />
+                Weapon tuning
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={sunTuneEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setSunTuneEnabled(checked);
+                    localStorage.setItem(SUN_TUNE_ENABLED_KEY, String(checked));
+                  }}
+                />
+                Sun / Moon tuning
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={hemiTuneEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setHemiTuneEnabled(checked);
+                    localStorage.setItem(HEMI_TUNE_ENABLED_KEY, String(checked));
+                  }}
+                />
+                Sky fill tuning
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={walkBobTuneEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setWalkBobTuneEnabled(checked);
+                    saveWalkBobTuneEnabled(checked);
+                  }}
+                />
+                Walk bob tuning
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={hudBarTuneEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setHudBarTuneEnabled(checked);
+                    saveHudBarTuneEnabled(checked);
+                  }}
+                />
+                HUD bar layout tuning
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={oilBarrelTuneEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setOilBarrelTuneEnabled(checked);
+                    saveOilBarrelTuneEnabled(checked);
+                  }}
+                />
+                Oil barrel material tuning
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={vx27ContainerTuneEnabled}
+                  disabled={!arenaHasVx27ContainersState}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setVx27ContainerTuneEnabled(checked);
+                    saveVx27ContainerTuneEnabled(checked);
+                  }}
+                />
+                VX-27 container placement
+                {!arenaHasVx27ContainersState && (
+                  <span className="settingsHint" style={{ marginLeft: "0.4rem" }}>
+                    (no containers in this arena)
+                  </span>
+                )}
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={stairWalkTuneEnabled}
+                  disabled={!arenaHasStairs}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setStairWalkTuneEnabled(checked);
+                    saveStairWalkTuneEnabled(checked);
+                  }}
+                />
+                Stair walk tuning
+                {!arenaHasStairs && (
+                  <span className="settingsHint" style={{ marginLeft: "0.4rem" }}>
+                    (no stairs in this arena)
+                  </span>
+                )}
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={stairsTuneEnabled}
+                  disabled={!arenaHasStairs}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setStairsTuneEnabled(checked);
+                    localStorage.setItem(
+                      STAIRS_TUNE_ENABLED_KEY,
+                      String(checked)
+                    );
+                  }}
+                />
+                Stairway tuning
+                {!arenaHasStairs && (
+                  <span className="settingsHint" style={{ marginLeft: "0.4rem" }}>
+                    (no stairs in this arena)
+                  </span>
+                )}
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={hudTuneEnabled}
+                  onChange={(e) => setHudTuneEnabled(e.target.checked)}
+                />
+                HUD position tuning
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={grenadeWidgetTuneEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setGrenadeWidgetTuneEnabled(checked);
+                    localStorage.setItem("fps-grenade-widget-tune", String(checked));
+                  }}
+                />
+                Grenade widget UI
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={grenadeTuneEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setGrenadeTuneEnabled(checked);
+                    localStorage.setItem(GRENADE_TUNE_ENABLED_KEY, String(checked));
+                  }}
+                />
+                Grenade physics (throw / blast)
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={grenadeExplosionTuneEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setGrenadeExplosionTuneEnabled(checked);
+                    localStorage.setItem(GRENADE_EXPLOSION_TUNE_ENABLED_KEY, String(checked));
+                  }}
+                />
+                Grenade explosion VFX
+              </label>
+              <p className="settingsHint">
+                Toggle layers and tune shockwave / particle look. Throw grenades while
+                adjusting — changes apply to the next detonation.
               </p>
               <p className="settingsGroupLabel">Debug tools</p>
-<label className="settingRow">
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={levelEditEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setLevelEditEnabled(checked);
+                    levelEditEnabledRef.current = checked;
+                    if (!checked) {
+                      const prev = selectedLevelObjectRef.current;
+                      if (prev) prev.material.emissive?.setHex(0x000000);
+                      selectedLevelObjectRef.current = null;
+                      setSelectedLevelObjectVer((v) => v + 1);
+                    }
+                  }}
+                />
+                Level object editor
+              </label>
+              <p className="settingsHint">
+                Shoot a pillar to select it. Adjust texture offset, rotation, and position
+                with sliders. Copy JSON to paste into your level file.
+              </p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={targetTuneEnabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setTargetTuneEnabled(checked);
+                    targetTuneEnabledRef.current = checked;
+                    if (!checked) selectedTargetRef.current = null;
+                  }}
+                />
+                Target pose tuning
+              </label>
+              <p className="settingsHint">
+                Shoot a target to select it, then adjust its pose with sliders.
+              </p>
+              <label className="settingRow">
                 <input
                   type="checkbox"
                   checked={hitDebugEnabled}
@@ -3648,7 +4515,7 @@ export default function FpsGame() {
                     if (sceneRef.current) {
                       setColliderDebug(
                         sceneRef.current,
-                        checked
+                        checked || containerColliderDebugOnlyRef.current
                       );
                     }
                   }}
@@ -3702,7 +4569,10 @@ export default function FpsGame() {
                     const checked = e.target.checked;
                     setShowDevOverlay(checked);
                     localStorage.setItem("fps-show-dev-overlay", String(checked));
-
+                    if (checked) {
+                      setHudBarTuneEnabled(true);
+                      saveHudBarTuneEnabled(true);
+                    }
                   }}
                 />
                 Show dev overlay (HP demo buttons)
@@ -3748,6 +4618,1317 @@ export default function FpsGame() {
           rebindAction={rebindAction}
           onRebindActionChange={setRebindAction}
         />
+      )}
+      <div className="devTuneStack">
+        {weaponTuneEnabled && (
+          <WeaponTunePanel
+            poseMode={weaponPoseMode}
+            onPoseModeChange={(mode) => {
+              weaponPoseModeRef.current = mode;
+              setWeaponPoseMode(mode);
+            }}
+            onReleasePointer={safeExitPointerLock}
+            hipPose={hipWeaponPose}
+            adsPose={adsWeaponPose}
+            onHipChange={setHipWeaponPose}
+            onAdsChange={setAdsWeaponPose}
+            maxLookRate={maxLookRate}
+            onMaxLookRateChange={(value) => {
+              setMaxLookRate(value);
+              maxLookRateRef.current = value;
+              localStorage.setItem(LOOK_MAX_RATE_KEY, String(value));
+            }}
+            bodyLookUpAmount={bodyLookUpAmount}
+            onBodyLookUpAmountChange={(value) => {
+              setBodyLookUpAmount(value);
+              weaponTuningRef.current = {
+                ...weaponTuningRef.current,
+                bodyLookUpAmount: value,
+              };
+            }}
+            bodyLookDownAmount={bodyLookDownAmount}
+            onBodyLookDownAmountChange={(value) => {
+              setBodyLookDownAmount(value);
+              weaponTuningRef.current = {
+                ...weaponTuningRef.current,
+                bodyLookDownAmount: value,
+              };
+            }}
+            onClose={() => {
+              setWeaponTuneEnabled(false);
+              weaponTuneEnabledRef.current = false;
+              saveWeaponTuneEnabled(false);
+              weaponPoseModeRef.current = "hip";
+              setWeaponPoseMode("hip");
+            }}
+          />
+        )}
+        {sunTuneEnabled && (
+          <SunTunePanel
+            isDay={sunIsDay}
+            onDayNightChange={handleDayNightChange}
+            azimuth={sunAzimuth}
+            elevation={sunElevation}
+            onAzimuthChange={(value) => {
+              setSunAzimuth(value);
+              sunAnglesRef.current.azimuth = value;
+              sunLightPosRef.current = sunPositionFromAngles(
+                value,
+                sunAnglesRef.current.elevation
+              );
+              saveSunAngles(value, sunAnglesRef.current.elevation);
+              refitSunShadowRef.current?.();
+            }}
+            onElevationChange={(value) => {
+              setSunElevation(value);
+              sunAnglesRef.current.elevation = value;
+              sunLightPosRef.current = sunPositionFromAngles(
+                sunAnglesRef.current.azimuth,
+                value
+              );
+              saveSunAngles(sunAnglesRef.current.azimuth, value);
+              refitSunShadowRef.current?.();
+            }}
+            moonAzimuth={moonAzimuth}
+            moonElevation={moonElevation}
+            moonIntensity={moonIntensity}
+            onMoonAzimuthChange={(value) => {
+              setMoonAzimuth(value);
+              moonAnglesRef.current.azimuth = value;
+              moonLightPosRef.current = moonPositionFromAngles(
+                value,
+                moonAnglesRef.current.elevation
+              );
+              saveMoonAngles(value, moonAnglesRef.current.elevation);
+              applyDayNightRef.current?.(dayNightCurNightnessRef.current);
+              refitMoonShadowRef.current?.();
+            }}
+            onMoonElevationChange={(value) => {
+              setMoonElevation(value);
+              moonAnglesRef.current.elevation = value;
+              moonLightPosRef.current = moonPositionFromAngles(
+                moonAnglesRef.current.azimuth,
+                value
+              );
+              saveMoonAngles(moonAnglesRef.current.azimuth, value);
+              applyDayNightRef.current?.(dayNightCurNightnessRef.current);
+              refitMoonShadowRef.current?.();
+            }}
+            onMoonIntensityChange={(value) => {
+              setMoonIntensity(value);
+              moonIntensityRef.current = value;
+              saveMoonIntensity(value);
+              applyDayNightRef.current?.(dayNightCurNightnessRef.current);
+            }}
+            onClose={() => {
+              setSunTuneEnabled(false);
+              localStorage.setItem(SUN_TUNE_ENABLED_KEY, "false");
+            }}
+          />
+        )}
+        {hemiTuneEnabled && (
+          <HemisphereTunePanel
+            isDay={sunIsDay}
+            onDayNightChange={handleDayNightChange}
+            day={hemiDay}
+            night={hemiNight}
+            onDayChange={(next) => {
+              setHemiDay(next);
+              hemiDayRef.current = next;
+              saveHemiDay(next);
+              applyDayNightRef.current?.(dayNightCurNightnessRef.current);
+            }}
+            onNightChange={(next) => {
+              setHemiNight(next);
+              hemiNightRef.current = next;
+              saveHemiNight(next);
+              applyDayNightRef.current?.(dayNightCurNightnessRef.current);
+            }}
+            onResetDay={() => {
+              const next = { ...DEFAULT_HEMI_DAY };
+              setHemiDay(next);
+              hemiDayRef.current = next;
+              saveHemiDay(next);
+              applyDayNightRef.current?.(dayNightCurNightnessRef.current);
+            }}
+            onResetNight={() => {
+              const next = { ...DEFAULT_HEMI_NIGHT };
+              setHemiNight(next);
+              hemiNightRef.current = next;
+              saveHemiNight(next);
+              applyDayNightRef.current?.(dayNightCurNightnessRef.current);
+            }}
+            onClose={() => {
+              setHemiTuneEnabled(false);
+              localStorage.setItem(HEMI_TUNE_ENABLED_KEY, "false");
+            }}
+          />
+        )}
+        {walkBobTuneEnabled && (
+          <WalkBobTunePanel
+            tuning={walkBobTuning}
+            onChange={(key, value) => {
+              setWalkBobTuning((prev) => {
+                const next = normalizeWalkBobSimple({ ...prev, [key]: value });
+                saveWalkBobTuning(next);
+                walkBobTuningRef.current = next;
+                return next;
+              });
+            }}
+            onReset={() => {
+              const next = { ...DEFAULT_WALK_BOB_SIMPLE };
+              saveWalkBobTuning(next);
+              walkBobTuningRef.current = next;
+              setWalkBobTuning(next);
+            }}
+            onClose={() => {
+              setWalkBobTuneEnabled(false);
+              saveWalkBobTuneEnabled(false);
+            }}
+          />
+        )}
+        {hudBarTuneEnabled && (
+          <HudBarTunePanel
+            tuning={hudBarLayout}
+            onChange={(key, value) => {
+              setHudBarLayout((prev) => {
+                const next = normalizeHudBarTuning({ ...prev, [key]: value });
+                saveHudBarTuning(next);
+                return next;
+              });
+            }}
+            onReset={() => {
+              const next = { ...DEFAULT_HUD_BAR_TUNING };
+              saveHudBarTuning(next);
+              setHudBarLayout(next);
+            }}
+            onClose={() => {
+              setHudBarTuneEnabled(false);
+              saveHudBarTuneEnabled(false);
+            }}
+          />
+        )}
+        {arenaHasVx27ContainersState && vx27ContainerTuneEnabled && (
+          <Vx27ContainerTunePanel
+            propLabel={containerPropLabels[containerTuneIndex]}
+            propLabels={containerPropLabels}
+            selectedIndex={containerTuneIndex}
+            onSelectedIndexChange={(index) => {
+              setContainerTuneIndex(index);
+              containerDoorTuningKeyRef.current = "";
+              const group = vx27ContainersRef.current[index];
+              if (!group) return;
+              const placement = readVx27ContainerPlacement(group);
+              const insets = readVx27ContainerInteriorInsets(group);
+              setContainerX(placement.x);
+              setContainerZ(placement.z);
+              setContainerFloorY(placement.floorY);
+              setContainerRotationY(placement.rotationY);
+              setContainerInsetLeft(insets.left);
+              setContainerInsetRight(insets.right);
+              setContainerInsetFront(insets.front);
+              setContainerInsetBack(insets.back);
+              setContainerFloorOffset(insets.floorOffset);
+              setContainerCeilingOffset(insets.ceilingOffset);
+              setContainerEdgeRadius(readVx27ContainerEdgeRadius(group));
+              setContainerExteriorCornerRadius(
+                readVx27ContainerExteriorCornerRadius(group)
+              );
+              setContainerScale(readVx27ContainerScale(group));
+              setContainerDoorTuning(readVx27ContainerDoorTuning(group));
+            }}
+            bounds={containerBounds}
+            floorDeckY={floorDeckY}
+            x={containerX}
+            z={containerZ}
+            floorY={containerFloorY}
+            rotationY={containerRotationY}
+            scale={containerScale}
+            onXChange={(value) => {
+              setContainerX(value);
+              vx27ContainerCommitRef.current?.(containerTuneIndex, {
+                x: value,
+                z: containerZ,
+                floorY: containerFloorY,
+                rotationY: containerRotationY,
+              });
+            }}
+            onZChange={(value) => {
+              setContainerZ(value);
+              vx27ContainerCommitRef.current?.(containerTuneIndex, {
+                x: containerX,
+                z: value,
+                floorY: containerFloorY,
+                rotationY: containerRotationY,
+              });
+            }}
+            onFloorYChange={(value) => {
+              setContainerFloorY(value);
+              vx27ContainerCommitRef.current?.(containerTuneIndex, {
+                x: containerX,
+                z: containerZ,
+                floorY: value,
+                rotationY: containerRotationY,
+              });
+            }}
+            onRotationChange={(value) => {
+              setContainerRotationY(value);
+              vx27ContainerCommitRef.current?.(containerTuneIndex, {
+                x: containerX,
+                z: containerZ,
+                floorY: containerFloorY,
+                rotationY: value,
+              });
+            }}
+            onScaleChange={(value) => {
+              setContainerScale(value);
+              vx27ContainerScaleCommitRef.current?.(containerTuneIndex, value);
+            }}
+            insetLeft={containerInsetLeft}
+            insetRight={containerInsetRight}
+            insetFront={containerInsetFront}
+            insetBack={containerInsetBack}
+            floorOffset={containerFloorOffset}
+            ceilingOffset={containerCeilingOffset}
+            edgeRadius={containerEdgeRadius}
+            exteriorCornerRadius={containerExteriorCornerRadius}
+            onInsetLeftChange={(value) => {
+              setContainerInsetLeft(value);
+              vx27ContainerInteriorCommitRef.current?.(containerTuneIndex, {
+                left: value,
+                right: containerInsetRight,
+                front: containerInsetFront,
+                back: containerInsetBack,
+                floorOffset: containerFloorOffset,
+                ceilingOffset: containerCeilingOffset,
+              });
+            }}
+            onInsetRightChange={(value) => {
+              setContainerInsetRight(value);
+              vx27ContainerInteriorCommitRef.current?.(containerTuneIndex, {
+                left: containerInsetLeft,
+                right: value,
+                front: containerInsetFront,
+                back: containerInsetBack,
+                floorOffset: containerFloorOffset,
+                ceilingOffset: containerCeilingOffset,
+              });
+            }}
+            onInsetFrontChange={(value) => {
+              setContainerInsetFront(value);
+              vx27ContainerInteriorCommitRef.current?.(containerTuneIndex, {
+                left: containerInsetLeft,
+                right: containerInsetRight,
+                front: value,
+                back: containerInsetBack,
+                floorOffset: containerFloorOffset,
+                ceilingOffset: containerCeilingOffset,
+              });
+            }}
+            onInsetBackChange={(value) => {
+              setContainerInsetBack(value);
+              vx27ContainerInteriorCommitRef.current?.(containerTuneIndex, {
+                left: containerInsetLeft,
+                right: containerInsetRight,
+                front: containerInsetFront,
+                back: value,
+                floorOffset: containerFloorOffset,
+                ceilingOffset: containerCeilingOffset,
+              });
+            }}
+            onFloorOffsetChange={(value) => {
+              setContainerFloorOffset(value);
+              vx27ContainerInteriorCommitRef.current?.(containerTuneIndex, {
+                left: containerInsetLeft,
+                right: containerInsetRight,
+                front: containerInsetFront,
+                back: containerInsetBack,
+                floorOffset: value,
+                ceilingOffset: containerCeilingOffset,
+              });
+            }}
+            onCeilingOffsetChange={(value) => {
+              setContainerCeilingOffset(value);
+              vx27ContainerInteriorCommitRef.current?.(containerTuneIndex, {
+                left: containerInsetLeft,
+                right: containerInsetRight,
+                front: containerInsetFront,
+                back: containerInsetBack,
+                floorOffset: containerFloorOffset,
+                ceilingOffset: value,
+              });
+            }}
+            onEdgeRadiusChange={(value) => {
+              setContainerEdgeRadius(value);
+              vx27ContainerExteriorCommitRef.current?.(containerTuneIndex, value);
+            }}
+            onExteriorCornerRadiusChange={(value) => {
+              setContainerExteriorCornerRadius(value);
+              vx27ContainerExteriorCornerCommitRef.current?.(
+                containerTuneIndex,
+                value
+              );
+            }}
+            doorTuning={containerDoorTuning}
+            onDoorChange={(key, value) => {
+              setContainerDoorTuning((prev) => ({ ...prev, [key]: value }));
+              vx27ContainerDoorCommitRef.current?.(containerTuneIndex, {
+                [key]: value,
+              });
+            }}
+            doorWizardEnabled={containerDoorWizardEnabled}
+            onDoorWizardEnabledChange={(checked) => {
+              setContainerDoorWizardEnabled(checked);
+              containerDoorWizardEnabledRef.current = checked;
+              const group = vx27ContainersRef.current[containerTuneIndex];
+              if (group) updateVx27ContainerDoorWizard(group, checked);
+            }}
+            materialTuning={containerMaterialTuning}
+            onMaterialChange={onContainerMaterialChange}
+            onMaterialReset={() => {
+              const next = { ...DEFAULT_VX27_CONTAINER_MATERIAL_TUNING };
+              saveVx27ContainerMaterialTuning(next);
+              setContainerMaterialTuning(next);
+              const group =
+                vx27ContainersRef.current[containerTuneIndex] ?? sceneRef.current;
+              setVx27ContainerMaterialTuning(next, group ?? undefined);
+            }}
+            onSnapToPlayer={() => {
+              const pos = getPlayerPlacementRef.current?.();
+              if (!pos) return;
+              setContainerX(pos.x);
+              setContainerZ(pos.z);
+              setContainerFloorY(pos.floorY);
+              vx27ContainerCommitRef.current?.(containerTuneIndex, {
+                x: pos.x,
+                z: pos.z,
+                floorY: pos.floorY,
+                rotationY: containerRotationY,
+              });
+            }}
+            onCopyJson={async () => {
+              const group = vx27ContainersRef.current[containerTuneIndex];
+              if (!group) return;
+              const placement = readVx27ContainerPlacement(group);
+              const insets = readVx27ContainerInteriorInsets(group);
+              const edgeRadius = readVx27ContainerEdgeRadius(group);
+              const exteriorCornerRadius =
+                readVx27ContainerExteriorCornerRadius(group);
+              const scale = readVx27ContainerScale(group);
+              const doorTuning = readVx27ContainerDoorTuning(group);
+              const json = buildVx27ContainerPropJson(
+                group.userData.vx27PropDef ?? { type: "vx27Container" },
+                placement,
+                insets,
+                containerMaterialTuning,
+                edgeRadius,
+                exteriorCornerRadius,
+                scale,
+                doorTuning
+              );
+              const text = JSON.stringify(json, null, 2);
+              try {
+                await navigator.clipboard.writeText(text);
+              } catch {
+                /* ignore */
+              }
+              console.log("VX-27 container prop:", text);
+            }}
+            showCollidersOnly={containerColliderDebugOnly}
+            onShowCollidersOnlyChange={(checked) => {
+              setContainerColliderDebugOnly(checked);
+              containerColliderDebugOnlyRef.current = checked;
+              if (sceneRef.current) {
+                setColliderDebug(
+                  sceneRef.current,
+                  checked || colliderDebugEnabledRef.current
+                );
+              }
+            }}
+            onClose={() => {
+              setContainerColliderDebugOnly(false);
+              containerColliderDebugOnlyRef.current = false;
+              setContainerDoorWizardEnabled(false);
+              containerDoorWizardEnabledRef.current = false;
+              const wizardGroup = vx27ContainersRef.current[containerTuneIndex];
+              if (wizardGroup) updateVx27ContainerDoorWizard(wizardGroup, false);
+              if (sceneRef.current && !colliderDebugEnabledRef.current) {
+                setColliderDebug(sceneRef.current, false);
+              }
+              setVx27ContainerTuneEnabled(false);
+              saveVx27ContainerTuneEnabled(false);
+            }}
+          />
+        )}
+        {oilBarrelTuneEnabled && (
+          <OilBarrelTunePanel
+            tuning={oilBarrelTuning}
+            onChange={onOilBarrelTuningChange}
+            onReset={() => {
+              const next = { ...DEFAULT_OIL_BARREL_TUNING };
+              saveOilBarrelTuning(next);
+              applyOilBarrelMaterialTuning(next, sceneRef.current ?? undefined);
+              setOilBarrelTuning(next);
+              rebuildOilBarrelsRef.current?.();
+            }}
+            onCopy={async () => {
+              const text = JSON.stringify(oilBarrelTuning, null, 2);
+              try {
+                await navigator.clipboard.writeText(text);
+              } catch {
+                /* ignore */
+              }
+              console.log("Oil barrel tuning:", text);
+            }}
+            onClose={() => {
+              setOilBarrelTuneEnabled(false);
+              saveOilBarrelTuneEnabled(false);
+            }}
+            pileSeed={pileSeed}
+            pileHubX={pileHubX}
+            pileHubZ={pileHubZ}
+            pileHubRotationY={pileHubRotationY}
+            pileStatus={pileStatus}
+            onPileSeedChange={(seed) => {
+              setPileSeed(seed);
+              persistPilePrefs(seed, pileHubX, pileHubZ, pileHubRotationY);
+            }}
+            onPileHubChange={(x, z) => {
+              setPileHubX(x);
+              setPileHubZ(z);
+              schedulePilePlacement(x, z, pileHubRotationY);
+            }}
+            onPileHubRotationChange={(rotationY) => {
+              setPileHubRotationY(rotationY);
+              schedulePilePlacement(pileHubX, pileHubZ, rotationY);
+            }}
+            onPileGenerate={onPileGenerate}
+            pileBusy={pileBusy}
+            onPileCheck={onPileCheck}
+            onPileCopyJson={onPileCopyJson}
+          />
+        )}
+        {arenaHasStairs && stairWalkTuneEnabled && (
+          <StairWalkTunePanel
+            tuning={stairWalkTuning}
+            onChange={(key, value) => {
+              setStairWalkTuning((prev) => {
+                const next = normalizeStairWalkTuning({ ...prev, [key]: value });
+                saveStairWalkTuning(next);
+                stairWalkTuningRef.current = next;
+                return next;
+              });
+            }}
+            onReset={() => {
+              const next = { ...DEFAULT_STAIR_WALK_TUNING };
+              saveStairWalkTuning(next);
+              stairWalkTuningRef.current = next;
+              setStairWalkTuning(next);
+            }}
+            onClose={() => {
+              setStairWalkTuneEnabled(false);
+              saveStairWalkTuneEnabled(false);
+            }}
+          />
+        )}
+        {arenaHasStairs && stairsTuneEnabled && (
+          <StairTunePanel
+            floorDeckY={floorDeckY}
+            catwalkDeckY={catwalkDeckY}
+            x={stairX}
+            y={stairY}
+            z={stairZ}
+            rotationY={stairRotationY}
+            onXChange={(value) => {
+              setStairX(value);
+              commitStairParams({
+                ...stairParamsRef.current,
+                position: { ...stairParamsRef.current.position, x: value },
+              });
+            }}
+            onYChange={(value) => {
+              setStairY(value);
+              commitStairParams({
+                ...stairParamsRef.current,
+                position: { ...stairParamsRef.current.position, y: value },
+              });
+            }}
+            onZChange={(value) => {
+              setStairZ(value);
+              commitStairParams({
+                ...stairParamsRef.current,
+                position: { ...stairParamsRef.current.position, z: value },
+              });
+            }}
+            onRotationChange={(value) => {
+              setStairRotationY(value);
+              commitStairParams({
+                ...stairParamsRef.current,
+                rotationY: value,
+              });
+            }}
+            onClose={() => {
+              setStairsTuneEnabled(false);
+              localStorage.setItem(STAIRS_TUNE_ENABLED_KEY, "false");
+            }}
+          />
+        )}
+        {targetTuneEnabled && (
+          <TargetPoseTunePanel
+            pose={targetPose}
+            onChange={(newPose) => {
+              setTargetPose(newPose);
+              if (targetApplyAll) {
+                for (const t of targetsRef.current) {
+                  applyTargetPose(t, newPose);
+                }
+              } else if (selectedTargetRef.current) {
+                applyTargetPose(selectedTargetRef.current, newPose);
+              }
+            }}
+            applyToAll={targetApplyAll}
+            onApplyToAllChange={setTargetApplyAll}
+            onClose={() => {
+              setTargetTuneEnabled(false);
+              targetTuneEnabledRef.current = false;
+              selectedTargetRef.current = null;
+            }}
+          />
+        )}
+        {levelEditEnabled && selectedLevelObjectRef.current && (
+          <LevelObjectTunePanel
+            key={selectedLevelObjectRef.current.uuid}
+            mesh={selectedLevelObjectRef.current}
+            onCopyAll={() => {
+              const defs = levelObjectsRef.current.map((m) => {
+                const lo = m.userData.levelObject;
+                const def = { ...lo.def, x: parseFloat(m.position.x.toFixed(3)), z: parseFloat(m.position.z.toFixed(3)) };
+                const r = m.rotation.y;
+                const oU = m.material.map?.offset.x ?? 0;
+                const oV = m.material.map?.offset.y ?? 0;
+                if (r) def.rotationY = parseFloat(r.toFixed(4));
+                if (oU) def.textureOffsetU = parseFloat(oU.toFixed(4));
+                if (oV) def.textureOffsetV = parseFloat(oV.toFixed(4));
+                return def;
+              });
+              const text = JSON.stringify(defs, null, 2);
+              navigator.clipboard.writeText(text).catch(() => {});
+              console.log("All pillars:", text);
+            }}
+            onClose={() => {
+              const prev = selectedLevelObjectRef.current;
+              if (prev) prev.material.emissive?.setHex(0x000000);
+              selectedLevelObjectRef.current = null;
+              setSelectedLevelObjectVer((v) => v + 1);
+            }}
+          />
+        )}
+        {hudTuneEnabled && (
+          <div className="hudTunePanel hudTunePanel--inDevStack" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+            <div className="hudTuneHeader">
+              <span>HUD Position</span>
+              <button type="button" className="hudTuneClose" onClick={() => setHudTuneEnabled(false)}>×</button>
+            </div>
+            <div className="hudTuneBody">
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Rounds</span>
+              <label className="hudTuneRow">
+                <span>X</span>
+                <input type="range" min={10} max={50} step={0.5} value={hudRoundsX} onChange={(e) => setHudRoundsX(+e.target.value)} />
+                <span className="hudTuneVal">{hudRoundsX}%</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Y</span>
+                <input type="range" min={0} max={60} step={0.5} value={hudRoundsY} onChange={(e) => setHudRoundsY(+e.target.value)} />
+                <span className="hudTuneVal">{hudRoundsY}%</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Mag</span>
+              <label className="hudTuneRow">
+                <span>X</span>
+                <input type="range" min={30} max={70} step={0.5} value={hudMagX} onChange={(e) => setHudMagX(+e.target.value)} />
+                <span className="hudTuneVal">{hudMagX}%</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Y</span>
+                <input type="range" min={0} max={60} step={0.5} value={hudMagY} onChange={(e) => setHudMagY(+e.target.value)} />
+                <span className="hudTuneVal">{hudMagY}%</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Mags</span>
+              <label className="hudTuneRow">
+                <span>X</span>
+                <input type="range" min={50} max={90} step={0.5} value={hudMagsX} onChange={(e) => setHudMagsX(+e.target.value)} />
+                <span className="hudTuneVal">{hudMagsX}%</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Y</span>
+                <input type="range" min={0} max={60} step={0.5} value={hudMagsY} onChange={(e) => setHudMagsY(+e.target.value)} />
+                <span className="hudTuneVal">{hudMagsY}%</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Fire Mode</span>
+              <label className="hudTuneRow">
+                <span>Y</span>
+                <input type="range" min={0} max={40} step={0.5} value={hudFireModeY} onChange={(e) => setHudFireModeY(+e.target.value)} />
+                <span className="hudTuneVal">{hudFireModeY}%</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Values</span>
+              <label className="hudTuneRow">
+                <span>Size</span>
+                <input type="range" min={2} max={7} step={0.1} value={hudValueFont} onChange={(e) => setHudValueFont(+e.target.value)} />
+                <span className="hudTuneVal">{hudValueFont.toFixed(1)}vw</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Label↕</span>
+                <input type="range" min={-10} max={20} step={1} value={hudLabelY} onChange={(e) => setHudLabelY(+e.target.value)} />
+                <span className="hudTuneVal">{hudLabelY}px</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        )}
+        {grenadeWidgetTuneEnabled && (
+        <div
+          className="hudTunePanel hudTunePanel--inDevStack"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="hudTuneHeader">
+            <span>Grenade Widget UI</span>
+            <button type="button" className="hudTuneClose" onClick={() => {
+              setGrenadeWidgetTuneEnabled(false);
+              localStorage.setItem("fps-grenade-widget-tune", "false");
+            }}>×</button>
+          </div>
+          <div className="hudTuneBody">
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Frame</span>
+              <label className="hudTuneRow">
+                <span>Width</span>
+                <input type="range" min={7} max={18} step={0.1} value={grenFrameWidthRem} onChange={(e) => setGrenFrameWidthRem(+e.target.value)} />
+                <span className="hudTuneVal">{grenFrameWidthRem.toFixed(1)}rem</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Scale</span>
+                <input type="range" min={0.6} max={1.6} step={0.01} value={grenFrameScale} onChange={(e) => setGrenFrameScale(+e.target.value)} />
+                <span className="hudTuneVal">{grenFrameScale.toFixed(2)}×</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>X</span>
+                <input type="range" min={-60} max={60} step={1} value={grenFrameX} onChange={(e) => setGrenFrameX(+e.target.value)} />
+                <span className="hudTuneVal">{grenFrameX}px</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Y</span>
+                <input type="range" min={-60} max={60} step={1} value={grenFrameY} onChange={(e) => setGrenFrameY(+e.target.value)} />
+                <span className="hudTuneVal">{grenFrameY}px</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Key</span>
+              <label className="hudTuneRow">
+                <span>X</span>
+                <input type="range" min={-30} max={30} step={1} value={grenHudKeyX} onChange={(e) => setGrenHudKeyX(+e.target.value)} />
+                <span className="hudTuneVal">{grenHudKeyX}px</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Y</span>
+                <input type="range" min={-30} max={30} step={1} value={grenHudKeyY} onChange={(e) => setGrenHudKeyY(+e.target.value)} />
+                <span className="hudTuneVal">{grenHudKeyY}px</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Size</span>
+                <input type="range" min={0.5} max={2} step={0.01} value={grenHudKeyScale} onChange={(e) => setGrenHudKeyScale(+e.target.value)} />
+                <span className="hudTuneVal">{grenHudKeyScale.toFixed(2)}×</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Icon</span>
+              <label className="hudTuneRow">
+                <span>X</span>
+                <input type="range" min={-30} max={30} step={1} value={grenHudIconX} onChange={(e) => setGrenHudIconX(+e.target.value)} />
+                <span className="hudTuneVal">{grenHudIconX}px</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Y</span>
+                <input type="range" min={-30} max={30} step={1} value={grenHudIconY} onChange={(e) => setGrenHudIconY(+e.target.value)} />
+                <span className="hudTuneVal">{grenHudIconY}px</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Size</span>
+                <input type="range" min={0.5} max={2} step={0.01} value={grenHudIconScale} onChange={(e) => setGrenHudIconScale(+e.target.value)} />
+                <span className="hudTuneVal">{grenHudIconScale.toFixed(2)}×</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Label</span>
+              <label className="hudTuneRow">
+                <span>X</span>
+                <input type="range" min={-30} max={30} step={1} value={grenHudLabelX} onChange={(e) => setGrenHudLabelX(+e.target.value)} />
+                <span className="hudTuneVal">{grenHudLabelX}px</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Y</span>
+                <input type="range" min={-30} max={30} step={1} value={grenHudLabelY} onChange={(e) => setGrenHudLabelY(+e.target.value)} />
+                <span className="hudTuneVal">{grenHudLabelY}px</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Size</span>
+                <input type="range" min={0.5} max={2} step={0.01} value={grenHudLabelScale} onChange={(e) => setGrenHudLabelScale(+e.target.value)} />
+                <span className="hudTuneVal">{grenHudLabelScale.toFixed(2)}×</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Count</span>
+              <label className="hudTuneRow">
+                <span>X</span>
+                <input type="range" min={-30} max={30} step={1} value={grenHudCountX} onChange={(e) => setGrenHudCountX(+e.target.value)} />
+                <span className="hudTuneVal">{grenHudCountX}px</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Y</span>
+                <input type="range" min={-30} max={30} step={1} value={grenHudCountY} onChange={(e) => setGrenHudCountY(+e.target.value)} />
+                <span className="hudTuneVal">{grenHudCountY}px</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Size</span>
+                <input type="range" min={0.5} max={2} step={0.01} value={grenHudCountScale} onChange={(e) => setGrenHudCountScale(+e.target.value)} />
+                <span className="hudTuneVal">{grenHudCountScale.toFixed(2)}×</span>
+              </label>
+            </div>
+            {[1, 2, 3].map((slot) => (
+              <div key={slot} className="hudTuneGroup">
+                <span className="hudTuneGroupLabel">Stack slot {slot}</span>
+                <label className="hudTuneRow">
+                  <span>X</span>
+                  <input
+                    type="range"
+                    min={-120}
+                    max={120}
+                    step={1}
+                    value={weaponStackTune[slot].x}
+                    onChange={(e) =>
+                      setStackTuneField(slot, "x", +e.target.value)
+                    }
+                  />
+                  <span className="hudTuneVal">{weaponStackTune[slot].x}px</span>
+                </label>
+                <label className="hudTuneRow">
+                  <span>Y</span>
+                  <input
+                    type="range"
+                    min={-200}
+                    max={40}
+                    step={1}
+                    value={weaponStackTune[slot].y}
+                    onChange={(e) =>
+                      setStackTuneField(slot, "y", +e.target.value)
+                    }
+                  />
+                  <span className="hudTuneVal">{weaponStackTune[slot].y}px</span>
+                </label>
+                <label className="hudTuneRow">
+                  <span>Size</span>
+                  <input
+                    type="range"
+                    min={0.3}
+                    max={1}
+                    step={0.01}
+                    value={weaponStackTune[slot].scale}
+                    onChange={(e) =>
+                      setStackTuneField(slot, "scale", +e.target.value)
+                    }
+                  />
+                  <span className="hudTuneVal">
+                    {weaponStackTune[slot].scale.toFixed(2)}×
+                  </span>
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+        )}
+        {grenadeTuneEnabled && (
+        <div
+          className="hudTunePanel hudTunePanel--inDevStack hudTunePanel--wide"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="hudTuneHeader">
+            <span>Grenade Physics</span>
+            <button
+              type="button"
+              className="hudTuneClose"
+              onClick={() => {
+                setGrenadeTuneEnabled(false);
+                localStorage.setItem(GRENADE_TUNE_ENABLED_KEY, "false");
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div className="hudTuneBody hudTuneBody--row">
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Throw</span>
+              <label className="hudTuneRow">
+                <span>Speed</span>
+                <input type="range" min={4} max={30} step={0.5}
+                  value={grenadeParams.throwSpeed}
+                  onChange={(e) => { const p = { ...grenadeParams, throwSpeed: +e.target.value }; setGrenadeParams(p); setGrenadeParamsState(p); }} />
+                <span className="hudTuneVal">{grenadeParams.throwSpeed.toFixed(1)}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Loft</span>
+                <input type="range" min={0} max={60} step={1}
+                  value={grenadeParams.loftAngle}
+                  onChange={(e) => { const p = { ...grenadeParams, loftAngle: +e.target.value }; setGrenadeParams(p); setGrenadeParamsState(p); }} />
+                <span className="hudTuneVal">{grenadeParams.loftAngle}°</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Gravity</span>
+                <input type="range" min={4} max={20} step={0.1}
+                  value={grenadeParams.gravity}
+                  onChange={(e) => { const p = { ...grenadeParams, gravity: +e.target.value }; setGrenadeParams(p); setGrenadeParamsState(p); }} />
+                <span className="hudTuneVal">{grenadeParams.gravity.toFixed(1)}</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Bounce</span>
+              <label className="hudTuneRow">
+                <span>Restitution</span>
+                <input type="range" min={0} max={0.9} step={0.01}
+                  value={grenadeParams.bounceRestitution}
+                  onChange={(e) => { const p = { ...grenadeParams, bounceRestitution: +e.target.value }; setGrenadeParams(p); setGrenadeParamsState(p); }} />
+                <span className="hudTuneVal">{grenadeParams.bounceRestitution.toFixed(2)}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Friction</span>
+                <input type="range" min={0} max={1} step={0.01}
+                  value={grenadeParams.bounceFriction}
+                  onChange={(e) => { const p = { ...grenadeParams, bounceFriction: +e.target.value }; setGrenadeParams(p); setGrenadeParamsState(p); }} />
+                <span className="hudTuneVal">{grenadeParams.bounceFriction.toFixed(2)}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Roll stop</span>
+                <input type="range" min={4} max={40} step={1}
+                  value={grenadeParams.groundRollFriction ?? 16}
+                  onChange={(e) => { const p = { ...grenadeParams, groundRollFriction: +e.target.value }; setGrenadeParams(p); setGrenadeParamsState(p); }} />
+                <span className="hudTuneVal">{(grenadeParams.groundRollFriction ?? 16).toFixed(0)}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Fuse</span>
+                <input type="range" min={0.5} max={6} step={0.1}
+                  value={grenadeParams.fuseTime}
+                  onChange={(e) => { const p = { ...grenadeParams, fuseTime: +e.target.value }; setGrenadeParams(p); setGrenadeParamsState(p); }} />
+                <span className="hudTuneVal">{grenadeParams.fuseTime.toFixed(1)}s</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Blast</span>
+              <label className="hudTuneRow">
+                <span>Radius</span>
+                <input type="range" min={1} max={15} step={0.5}
+                  value={grenadeParams.blastRadius}
+                  onChange={(e) => { const p = { ...grenadeParams, blastRadius: +e.target.value }; setGrenadeParams(p); setGrenadeParamsState(p); }} />
+                <span className="hudTuneVal">{grenadeParams.blastRadius.toFixed(1)}m</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Damage</span>
+                <input type="range" min={10} max={300} step={5}
+                  value={grenadeParams.maxDamage}
+                  onChange={(e) => { const p = { ...grenadeParams, maxDamage: +e.target.value }; setGrenadeParams(p); setGrenadeParamsState(p); }} />
+                <span className="hudTuneVal">{grenadeParams.maxDamage}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Falloff</span>
+                <input type="range" min={0.5} max={3} step={0.1}
+                  value={grenadeParams.falloffPower}
+                  onChange={(e) => { const p = { ...grenadeParams, falloffPower: +e.target.value }; setGrenadeParams(p); setGrenadeParamsState(p); }} />
+                <span className="hudTuneVal">{grenadeParams.falloffPower.toFixed(1)}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        )}
+      </div>
+      {grenadeExplosionTuneEnabled && (
+        <div
+          className="hudTunePanel hudTunePanel--bottomDock"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="hudTuneHeader">
+            <span>Grenade Explosion VFX</span>
+            <button
+              type="button"
+              className="hudTuneClose"
+              onClick={() => {
+                setGrenadeExplosionTuneEnabled(false);
+                localStorage.setItem(GRENADE_EXPLOSION_TUNE_ENABLED_KEY, "false");
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div className="hudTuneBody hudTuneBody--row">
+            <div className="hudTuneGroup hudTuneGroup--layers">
+              <span className="hudTuneGroupLabel">Layers</span>
+              <div className="hudTuneLayerGrid">
+              {[
+                ["flash", "Flash light"],
+                ["shockRings", "Shockwave rings"],
+                ["shockDome", "Shockwave dome"],
+                ["sparks", "Sparks"],
+                ["embers", "Embers"],
+                ["debris", "Debris"],
+                ["light", "Explosion light"],
+                ["lightning", "Lightning zaps"],
+              ].map(([key, label]) => (
+                <label key={key} className="settingRow hudTuneLayerRow">
+                  <input
+                    type="checkbox"
+                    checked={!!explosionVfx[key]}
+                    onChange={(e) => patchExplosionVfx({ [key]: e.target.checked })}
+                  />
+                  {label}
+                </label>
+              ))}
+              </div>
+              <button
+                type="button"
+                className="hudTuneReset"
+                onClick={() => setExplosionVfxState(resetGrenadeExplosionVfx())}
+              >
+                Reset VFX defaults
+              </button>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Timing</span>
+              <label className="hudTuneRow">
+                <span>Duration</span>
+                <input
+                  type="range"
+                  min={0.3}
+                  max={3}
+                  step={0.05}
+                  value={explosionVfx.duration}
+                  onChange={(e) => patchExplosionVfx({ duration: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.duration.toFixed(2)}s</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Flash time</span>
+                <input
+                  type="range"
+                  min={0.03}
+                  max={0.3}
+                  step={0.01}
+                  value={explosionVfx.flashDuration}
+                  onChange={(e) => patchExplosionVfx({ flashDuration: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.flashDuration.toFixed(2)}s</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Flash intensity</span>
+                <input
+                  type="range"
+                  min={0.1}
+                  max={1.2}
+                  step={0.05}
+                  value={explosionVfx.flashScaleMul}
+                  onChange={(e) => patchExplosionVfx({ flashScaleMul: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.flashScaleMul.toFixed(2)}</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Shockwave</span>
+              <label className="hudTuneRow">
+                <span>Ring opacity</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={explosionVfx.ringOpacity}
+                  onChange={(e) => patchExplosionVfx({ ringOpacity: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.ringOpacity.toFixed(2)}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Ring scale</span>
+                <input
+                  type="range"
+                  min={0.3}
+                  max={2}
+                  step={0.05}
+                  value={explosionVfx.ringScaleMul}
+                  onChange={(e) => patchExplosionVfx({ ringScaleMul: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.ringScaleMul.toFixed(2)}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Ring duration</span>
+                <input
+                  type="range"
+                  min={0.1}
+                  max={1.2}
+                  step={0.02}
+                  value={explosionVfx.ringDuration}
+                  onChange={(e) => patchExplosionVfx({ ringDuration: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.ringDuration.toFixed(2)}s</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Dome scale</span>
+                <input
+                  type="range"
+                  min={0.2}
+                  max={1.5}
+                  step={0.05}
+                  value={explosionVfx.domeScaleMul}
+                  onChange={(e) => patchExplosionVfx({ domeScaleMul: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.domeScaleMul.toFixed(2)}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Dome opacity</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={explosionVfx.domeOpacity}
+                  onChange={(e) => patchExplosionVfx({ domeOpacity: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.domeOpacity.toFixed(2)}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Dome duration</span>
+                <input
+                  type="range"
+                  min={0.1}
+                  max={1.2}
+                  step={0.02}
+                  value={explosionVfx.domeDuration}
+                  onChange={(e) => patchExplosionVfx({ domeDuration: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.domeDuration.toFixed(2)}s</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Particles</span>
+              <label className="hudTuneRow">
+                <span>Travel spread</span>
+                <input
+                  type="range"
+                  min={0.15}
+                  max={1}
+                  step={0.05}
+                  value={explosionVfx.particleSpread ?? 0.5}
+                  onChange={(e) => patchExplosionVfx({ particleSpread: +e.target.value })}
+                />
+                <span className="hudTuneVal">
+                  {(explosionVfx.particleSpread ?? 0.5).toFixed(2)}
+                </span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Sparks</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={600}
+                  step={10}
+                  value={explosionVfx.sparkCount}
+                  onChange={(e) => patchExplosionVfx({ sparkCount: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.sparkCount}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Spark particle size</span>
+                <input
+                  type="range"
+                  min={0.02}
+                  max={0.25}
+                  step={0.005}
+                  value={explosionVfx.sparkSize}
+                  onChange={(e) => patchExplosionVfx({ sparkSize: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.sparkSize.toFixed(3)}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Embers</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={400}
+                  step={10}
+                  value={explosionVfx.emberCount}
+                  onChange={(e) => patchExplosionVfx({ emberCount: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.emberCount}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Ember particle size</span>
+                <input
+                  type="range"
+                  min={0.02}
+                  max={0.2}
+                  step={0.005}
+                  value={explosionVfx.emberSize}
+                  onChange={(e) => patchExplosionVfx({ emberSize: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.emberSize.toFixed(3)}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Debris</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={250}
+                  step={10}
+                  value={explosionVfx.debrisCount}
+                  onChange={(e) => patchExplosionVfx({ debrisCount: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.debrisCount}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Debris particle size</span>
+                <input
+                  type="range"
+                  min={0.02}
+                  max={0.15}
+                  step={0.005}
+                  value={explosionVfx.debrisSize}
+                  onChange={(e) => patchExplosionVfx({ debrisSize: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.debrisSize.toFixed(3)}</span>
+              </label>
+            </div>
+            <div className="hudTuneGroup">
+              <span className="hudTuneGroupLabel">Light</span>
+              <label className="hudTuneRow">
+                <span>Peak intensity</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={80}
+                  step={1}
+                  value={explosionVfx.lightIntensity}
+                  onChange={(e) => patchExplosionVfx({ lightIntensity: +e.target.value })}
+                />
+                <span className="hudTuneVal">{explosionVfx.lightIntensity}</span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Glow duration</span>
+                <input
+                  type="range"
+                  min={0.05}
+                  max={1.2}
+                  step={0.02}
+                  value={explosionVfx.lightDuration ?? 0.32}
+                  onChange={(e) => patchExplosionVfx({ lightDuration: +e.target.value })}
+                />
+                <span className="hudTuneVal">
+                  {(explosionVfx.lightDuration ?? 0.32).toFixed(2)}s
+                </span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Blue tint</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={explosionVfx.lightBlueMix ?? 0.85}
+                  onChange={(e) => patchExplosionVfx({ lightBlueMix: +e.target.value })}
+                />
+                <span className="hudTuneVal">
+                  {(explosionVfx.lightBlueMix ?? 0.85).toFixed(2)}
+                </span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Lightning width (px)</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={8}
+                  step={0.5}
+                  value={
+                    (explosionVfx.lightningThickness ?? 4) <= 0.25
+                      ? 4
+                      : explosionVfx.lightningThickness ?? 4
+                  }
+                  onChange={(e) =>
+                    patchExplosionVfx({ lightningThickness: +e.target.value })
+                  }
+                />
+                <span className="hudTuneVal">
+                  {(
+                    (explosionVfx.lightningThickness ?? 4) <= 0.25
+                      ? 4
+                      : explosionVfx.lightningThickness ?? 4
+                  ).toFixed(1)}
+                  px
+                </span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Lightning bolts</span>
+                <input
+                  type="range"
+                  min={3}
+                  max={16}
+                  step={1}
+                  value={explosionVfx.lightningBoltCount ?? 10}
+                  onChange={(e) =>
+                    patchExplosionVfx({ lightningBoltCount: +e.target.value })
+                  }
+                />
+                <span className="hudTuneVal">
+                  {explosionVfx.lightningBoltCount ?? 10}
+                </span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Lightning length</span>
+                <input
+                  type="range"
+                  min={0.3}
+                  max={1.5}
+                  step={0.05}
+                  value={explosionVfx.lightningLengthMul ?? 1.0}
+                  onChange={(e) =>
+                    patchExplosionVfx({ lightningLengthMul: +e.target.value })
+                  }
+                />
+                <span className="hudTuneVal">
+                  {(explosionVfx.lightningLengthMul ?? 1.0).toFixed(2)}
+                </span>
+              </label>
+              <label className="hudTuneRow">
+                <span>Lightning duration</span>
+                <input
+                  type="range"
+                  min={0.08}
+                  max={0.8}
+                  step={0.01}
+                  value={explosionVfx.lightningDuration ?? 0.34}
+                  onChange={(e) =>
+                    patchExplosionVfx({ lightningDuration: +e.target.value })
+                  }
+                />
+                <span className="hudTuneVal">
+                  {(explosionVfx.lightningDuration ?? 0.34).toFixed(2)}s
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
       )}
       {showFps && showHud && (
         <div className="topRightHud">

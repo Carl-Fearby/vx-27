@@ -254,7 +254,7 @@ body {
   inset: 0;
 }
 
-/* Dev toggle: hide all in-game HUD for clean captures. */
+/* Dev toggle: hide in-game HUD chrome for clean captures (crosshair stays). */
 .gameHudHidden .hudBottomBar,
 .gameHudHidden .hudStaminaBar,
 .gameHudHidden .hudCompass,
@@ -264,13 +264,17 @@ body {
 .gameHudHidden .hudMissionInfo,
 .gameHudHidden .hudDamageVignette,
 .gameHudHidden .hudSecondWeapon,
-.gameHudHidden .crosshair,
 .gameHudHidden .topRightHud,
 .gameHudHidden .hudPlayerCoords,
 .gameHudHidden .demoBtnGroup,
 .gameHudHidden .pickupOverlayRow {
   visibility: hidden !important;
   pointer-events: none !important;
+}
+
+.gameHudHidden .hudCompassPointer {
+  visibility: hidden !important;
+  opacity: 0 !important;
 }
 
 .hudRestoreChip {

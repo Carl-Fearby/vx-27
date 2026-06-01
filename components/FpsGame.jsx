@@ -4116,7 +4116,7 @@ export default function FpsGame() {
                     localStorage.setItem(SHOW_HUD_KEY, String(checked));
                   }}
                 />
-                Show HUD (ammo, health, radar, crosshair) — press H in-game
+                Show HUD (ammo, health, radar) — press H in-game
               </label>
               <label className="settingRow">
                 <input

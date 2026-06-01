@@ -162,9 +162,16 @@ export default function MarketingSite() {
 
       <header className={`mktNav${navSolid ? " mktNavSolid" : ""}`}>
         <Link href="/" className="mktNavBrand">
-          <Image src="/ui/logo.png" alt="" width={140} height={48} className="mktNavLogo" priority />
+          <Image
+            src="/ui/logo.png"
+            alt="VX-27 home"
+            width={140}
+            height={48}
+            className="mktNavLogo"
+            priority
+          />
         </Link>
-        <nav className="mktNavLinks">
+        <nav className="mktNavLinks" aria-label="Primary">
           <a href="#briefing">Briefing</a>
           <a href="#story">Story</a>
           <a href="#factions">Threats</a>
@@ -181,6 +188,7 @@ export default function MarketingSite() {
         </nav>
       </header>
 
+      <main id="main-content">
       <section className="mktHero">
         <div className="mktHeroBg" aria-hidden>
           <Image
@@ -206,6 +214,7 @@ export default function MarketingSite() {
             </div>
 
             <h1 className="mktHeroTitle">
+              <span className="mktSrOnly">VX-27 — </span>
               <span className="mktHeroTitleLine">Enter the</span>
               <span className="mktHeroTitleLine mktHeroTitleAccent">exclusion zone.</span>
             </h1>
@@ -432,7 +441,7 @@ export default function MarketingSite() {
 
         <div id="contact" className="mktContact">
           <p className="mktKicker">Get in touch</p>
-          <h3>Talk to me directly</h3>
+          <h2>Talk to me directly</h2>
           <p className="mktContactLead">
             I&apos;m {CONTACT.name} — building VX-27 mostly on my own in spare time.
             If you want to collaborate, ask a question, or just say hello, WhatsApp or
@@ -516,6 +525,7 @@ export default function MarketingSite() {
           <span className="mktPlayBtnLabel">Launch VX-27</span>
         </Link>
       </section>
+      </main>
 
       <footer className="mktFooter">
         <p>© VX-27 · {CONTACT.name}</p>
@@ -528,6 +538,7 @@ export default function MarketingSite() {
           <a href={`mailto:${CONTACT.email}`}>Email</a>
           <a href={GITHUB_REPO} target="_blank" rel="noopener noreferrer">GitHub</a>
           <Link href="/credits">Credits</Link>
+          <Link href="/version">Version</Link>
         </div>
       </footer>
     </div>

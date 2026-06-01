@@ -16,7 +16,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "basic-ftp";
@@ -53,6 +53,48 @@ function loadEnvFile(filePath) {
     if (process.env[key] == null || process.env[key] === "") {
       process.env[key] = value;
     }
+  }
+}
+
+/** Refuse deploy if credentials file is tracked or looks like it was staged. */
+function assertDeployEnvSafe() {
+  const tracked = spawnSync(
+    "git",
+    ["ls-files", "--error-unmatch", path.relative(ROOT, ENV_FILE)],
+    { cwd: ROOT, encoding: "utf8" }
+  );
+  if (tracked.status === 0) {
+    console.error(
+      "Refusing deploy: scripts/fasthosts.deploy.env is tracked by git. " +
+        "Run `git rm --cached scripts/fasthosts.deploy.env` and keep credentials local only."
+    );
+    process.exit(1);
+  }
+
+  const staged = spawnSync(
+    "git",
+    ["diff", "--cached", "--name-only", "--", path.relative(ROOT, ENV_FILE)],
+    { cwd: ROOT, encoding: "utf8" }
+  );
+  if (staged.stdout?.trim()) {
+    console.error(
+      "Refusing deploy: scripts/fasthosts.deploy.env is staged for commit. Unstage it first."
+    );
+    process.exit(1);
+  }
+
+  if (!existsSync(ENV_FILE)) return;
+
+  try {
+    const mode = statSync(ENV_FILE).mode & 0o777;
+    if (mode & 0o077) {
+      console.warn(
+        `Warning: ${path.relative(ROOT, ENV_FILE)} is world/group readable (mode ${mode.toString(8)}). ` +
+          "Consider chmod 600."
+      );
+    }
+  } catch {
+    // ignore
   }
 }
 
@@ -215,6 +257,7 @@ async function uploadOutDir() {
   }
 }
 
+assertDeployEnvSafe();
 loadEnvFile(ENV_FILE);
 
 if (probeOnly) {

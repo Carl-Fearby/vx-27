@@ -6,7 +6,9 @@ dist
 *.log
 .env
 .env.*
+.env.local
 scripts/fasthosts.deploy.env
+scripts/*.deploy.env
 
 # Raw source packs (runtime assets live under public/)
 CONSTRUCTION ASSETS/
@@ -15,3 +17,6 @@ CONSTRUCTION ASSETS/
 public/sky/_source/
 # UI PNG sources after lossless WebP conversion (npm run textures:ui)
 public/ui/_source/
+
+# Auto-generated git snapshot for /version (npm run version:history)
+lib/gitCommitHistory.json

@@ -2,7 +2,7 @@ import { spawn } from "child_process";
 import { existsSync, rmSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { execSync } from "child_process";
+import { execSync, spawnSync } from "child_process";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -42,6 +42,11 @@ if (reset) {
     }
   }
 }
+
+spawnSync("node", ["scripts/generate-version-history.mjs"], {
+  cwd: root,
+  stdio: "inherit",
+});
 
 const child = spawn("next", ["dev", ...devArgs], {
   cwd: root,

@@ -36,6 +36,18 @@ body {
   box-sizing: border-box;
 }
 
+.mktSrOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Atmosphere */
 .mktGrid {
   position: fixed;
@@ -1107,6 +1119,268 @@ body {
 
 .mktFooterLinks a:hover {
   color: var(--blue-hot);
+}
+
+/* Version page */
+.mktVersionMain {
+  position: relative;
+  z-index: 10;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: clamp(6rem, 14vh, 8rem) clamp(1.25rem, 4vw, 3rem) 3rem;
+}
+
+.mktVersionMain h1 {
+  margin: 0.35rem 0 0.75rem;
+  font-family: var(--font);
+  font-size: clamp(1.75rem, 4vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mktVersionLead {
+  margin: 0 0 2rem;
+  max-width: 34rem;
+  color: var(--text-dim);
+  line-height: 1.65;
+}
+
+.mktVersionGrid {
+  margin: 0;
+  display: grid;
+  gap: 0;
+  border: 1px solid rgba(94, 170, 255, 0.14);
+  background: var(--panel);
+}
+
+.mktVersionRow {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9rem) 1fr;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid rgba(94, 170, 255, 0.08);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+
+.mktVersionRow:last-child {
+  border-bottom: none;
+}
+
+.mktVersionRow dt {
+  margin: 0;
+  color: rgba(160, 200, 255, 0.55);
+  text-transform: uppercase;
+}
+
+.mktVersionRow dd {
+  margin: 0;
+  color: rgba(230, 240, 255, 0.92);
+  word-break: break-all;
+}
+
+.mktVersionNote {
+  margin: 1.5rem 0 0;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: rgba(180, 210, 255, 0.42);
+}
+
+.mktVersionNote a {
+  color: var(--blue-dim);
+  text-decoration: none;
+}
+
+.mktVersionNote a:hover {
+  color: var(--blue-hot);
+}
+
+.mktVersionHistory {
+  margin-top: 3rem;
+}
+
+.mktVersionHistory h2 {
+  margin: 0.35rem 0 1.5rem;
+  font-family: var(--font);
+  font-size: clamp(1.15rem, 2.5vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mktVersionHistoryList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.mktVersionRelease {
+  padding: 1.1rem 1.15rem;
+  border: 1px solid rgba(94, 170, 255, 0.12);
+  background: rgba(6, 10, 18, 0.55);
+}
+
+.mktVersionReleaseCurrent {
+  border-color: rgba(94, 170, 255, 0.32);
+  background: rgba(8, 18, 32, 0.72);
+  box-shadow: 0 0 24px rgba(94, 170, 255, 0.06);
+}
+
+.mktVersionReleaseHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.45rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: rgba(160, 200, 255, 0.55);
+}
+
+.mktVersionReleaseMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.mktVersionReleaseTag {
+  color: var(--blue-hot);
+  font-weight: 600;
+}
+
+.mktVersionReleaseBadge {
+  padding: 0.12rem 0.4rem;
+  border: 1px solid rgba(94, 170, 255, 0.35);
+  border-radius: 2px;
+  color: rgba(200, 230, 255, 0.88);
+  text-transform: uppercase;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+}
+
+.mktVersionRelease h3 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(230, 240, 255, 0.94);
+}
+
+.mktVersionReleaseCommit {
+  margin: 0 0 0.65rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+}
+
+.mktVersionReleaseCommit code {
+  color: rgba(160, 200, 255, 0.65);
+}
+
+.mktVersionRelease ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.mktVersionRelease li + li {
+  margin-top: 0.35rem;
+}
+
+.mktVersionLeadCompact {
+  margin-bottom: 1.25rem !important;
+  font-size: 0.82rem !important;
+}
+
+.mktVersionLeadCompact code {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: rgba(160, 200, 255, 0.75);
+}
+
+.mktVersionCommits {
+  margin-top: 3rem;
+}
+
+.mktVersionCommits h2 {
+  margin: 0.35rem 0 0.75rem;
+  font-family: var(--font);
+  font-size: clamp(1.15rem, 2.5vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mktVersionCommitList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(94, 170, 255, 0.12);
+  background: rgba(4, 8, 14, 0.65);
+}
+
+.mktVersionCommit {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid rgba(94, 170, 255, 0.07);
+}
+
+.mktVersionCommit:last-child {
+  border-bottom: none;
+}
+
+.mktVersionCommitHead {
+  background: rgba(8, 18, 32, 0.72);
+  border-left: 2px solid rgba(94, 170, 255, 0.45);
+}
+
+.mktVersionCommitWip {
+  opacity: 0.72;
+}
+
+.mktVersionCommitWip p {
+  font-style: italic;
+}
+
+.mktVersionCommitMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+  margin-bottom: 0.25rem;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  color: rgba(160, 200, 255, 0.55);
+}
+
+.mktVersionCommitMeta code {
+  color: var(--blue-hot);
+}
+
+.mktVersionCommitRelease {
+  padding: 0.1rem 0.35rem;
+  border: 1px solid rgba(94, 170, 255, 0.22);
+  border-radius: 2px;
+  color: rgba(200, 230, 255, 0.82);
+  text-transform: uppercase;
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+}
+
+.mktVersionCommit p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.84rem;
+  line-height: 1.45;
 }
 
 /* Responsive */

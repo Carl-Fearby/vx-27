@@ -13,6 +13,7 @@ import {
 import { loadLevelTextureLibrary } from "@/lib/LevelTextures";
 import {
   createSkyDome,
+  setSunOcclusionRoot,
   addRoomLights,
   ensureRoomInteriorAmbient,
   applyDayNightAtmosphere,
@@ -1679,6 +1680,7 @@ export default function FpsGame() {
       assignWorldLayers(level.group);
       disableInteriorCastShadows(level.group);
       setHealthBarOccluders(level.group);
+      setSunOcclusionRoot(level.group);
       reportLoad(72, "Level geometry");
       targetsRef.current = level.targets;
       levelObjectsRef.current = level.pillarMeshes ?? [];
@@ -3662,6 +3664,7 @@ export default function FpsGame() {
       disposeAllBulletHoles();
       disposePreview();
       setHealthBarOccluders(null);
+      setSunOcclusionRoot(null);
       levelTextures?.dispose();
       levelTextures = null;
       if (bulletPool) {

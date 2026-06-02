@@ -19,6 +19,7 @@ import {
   applyDayNightAtmosphere,
   applyDayNightEnvironment,
   applyDayNightEnvironmentNightness,
+  computeSkyNightBlend,
   createOutdoorLights,
   DAY_CLEAR_COLOR,
   enableShadowsOn,
@@ -1711,6 +1712,7 @@ export default function FpsGame() {
       setArenaHasStairs(Boolean(arena.stairs));
       if (!isActive()) {
         if (level?.group) disposeLevelGroup(level.group);
+        resetArenaCeilingDayNightCache();
         levelTextures?.dispose();
         return;
       }
@@ -1835,6 +1837,10 @@ export default function FpsGame() {
 
         applySunLightPosition(sun, animSunPos);
 
+        const sunFactor = THREE.MathUtils.smoothstep(sunElev, -2, 5);
+        const moonFactor = THREE.MathUtils.smoothstep(moonElev, -2, 5);
+        const skyBlend = computeSkyNightBlend(nightness, sunFactor, moonFactor);
+
         applyDayNightEnvironmentNightness(
           sun,
           scene,
@@ -1849,6 +1855,7 @@ export default function FpsGame() {
             moonPosition: animMoonPos,
             nightness,
             levelRoot: level?.group ?? null,
+            skyBlend,
           }
         );
 
@@ -1856,8 +1863,6 @@ export default function FpsGame() {
         // based one. Each light fades naturally as it approaches the horizon
         // and is gone once it dips below — this is also what kills shadows
         // before they'd otherwise render from below the floor.
-        const sunFactor = THREE.MathUtils.smoothstep(sunElev, -2, 5);
-        const moonFactor = THREE.MathUtils.smoothstep(moonElev, -2, 5);
         sun.intensity = sunBaseIntensityRef.current * sunFactor;
         moon.intensity = moonIntensityRef.current * moonFactor;
         // Only one directional shadow map during dawn/dusk — both lights can be
@@ -3643,6 +3648,7 @@ export default function FpsGame() {
       window.addEventListener("resize", onResize);
       if (!isActive()) {
         if (level?.group) disposeLevelGroup(level.group);
+        resetArenaCeilingDayNightCache();
         levelTextures?.dispose();
         return;
       }
@@ -3705,6 +3711,7 @@ export default function FpsGame() {
         },
         initialDayNightNightness: dayNightCurNightnessRef.current,
       });
+      applyDayNightRef.current?.(dayNightCurNightnessRef.current);
       if (!isActive()) return;
       refreshLevelPickupShadows(
         level.pickupsGroup ?? scene,
@@ -3759,6 +3766,7 @@ export default function FpsGame() {
       const targets = level?.targets;
       if (level?.group) {
         disposeLevelGroup(level.group);
+        resetArenaCeilingDayNightCache();
         level = null;
       }
       if (targets) {

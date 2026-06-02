@@ -71,8 +71,10 @@ const PickupFlashLayer = forwardRef(function PickupFlashLayer(_props, ref) {
 
   useImperativeHandle(ref, () => ({
     show(type) {
-      const id = ++idRef.current;
-      setFlashes((prev) => [...prev, { id, type }]);
+      requestAnimationFrame(() => {
+        const id = ++idRef.current;
+        setFlashes((prev) => [...prev, { id, type }]);
+      });
     },
   }));
 

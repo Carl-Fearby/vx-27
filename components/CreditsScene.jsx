@@ -13,6 +13,7 @@ import {
 } from "@/lib/Sound";
 import CreditsRiflePreview from "@/components/CreditsRiflePreview";
 import CreditsAmmoCratePreview from "@/components/CreditsAmmoCratePreview";
+import CreditsVx27ContainerPreview from "@/components/CreditsVx27ContainerPreview";
 import CreditsBigBangFinale from "@/components/CreditsBigBangFinale";
 import CreditsScanlineCanvas from "@/components/CreditsScanlineCanvas";
 import LoadingAudioViz from "@/components/LoadingAudioViz";
@@ -387,6 +388,7 @@ const PROPS_AFTER = {
   "Lighting & Atmosphere": { layout: "moon" },
   "Visual Effects & Combat Feedback": { layout: "bullet-wall" },
   "Environmental Hazards": { layout: "duo", items: ["oil-barrel", "hazard"], caption: "Handle With Care" },
+  "VX-27 Cargo Systems": { layout: "vx27-container", caption: "VX-27 Cargo Module" },
   "Character & Animation": { layout: "solo", item: "stamina", caption: "Walk Power", spin: true },
   Audio: { layout: "duo", items: ["powepack", "grenade"], caption: "Soundtrack Fuel" },
   "User Interface & HUD": { layout: "hud-row", items: ["second-weapon", "radar", "stamina"] },
@@ -409,6 +411,7 @@ const SECTION_LAYOUTS = {
   "Lighting & Atmosphere": { align: "center", cols: 1, flank: "moon", flankSide: "right" },
   "Visual Effects & Combat Feedback": { align: "center", cols: 1 },
   "Environmental Hazards": { align: "center", cols: 1, flank: "oil-barrel", flankSide: "right" },
+  "VX-27 Cargo Systems": { align: "center", cols: 1, flank: "vx27-container", flankSide: "left" },
   "Character & Animation": { align: "center", cols: 1 },
   Audio: { align: "center", cols: 1 },
   "User Interface & HUD": { align: "center", cols: 1 },
@@ -429,6 +432,7 @@ const INTERSTITIAL_CYCLE = [
   "art-hazard",
   "drift-stamina-l",
   "art-vx27",
+  "art-container",
   "drift-powepack-r",
   "art-grenade-tex",
   "drift-radar",
@@ -528,6 +532,13 @@ function CreditsFlankArt({ art, side }) {
       </div>
     );
   }
+  if (art === "vx27-container") {
+    return (
+      <div className={`creditsFlank creditsFlank--${side}`} aria-hidden>
+        <CreditsVx27ContainerPreview variant="flank" />
+      </div>
+    );
+  }
   return (
     <div className={`creditsFlank creditsFlank--${side}`} aria-hidden>
       {art === "bullet-cluster" ? (
@@ -579,6 +590,15 @@ function CreditsInterstitial({ kind }) {
       <div className="creditsInterstitial creditsInterstitial--vx27" aria-hidden>
         <CreditsRiflePreview variant="hero" />
         <p className="creditsPropCaption">VX-27 Rifle</p>
+      </div>
+    );
+  }
+
+  if (kind === "art-container") {
+    return (
+      <div className="creditsInterstitial creditsInterstitial--container" aria-hidden>
+        <CreditsVx27ContainerPreview variant="hero" />
+        <p className="creditsPropCaption">VX-27 Cargo Module</p>
       </div>
     );
   }
@@ -722,6 +742,10 @@ function CreditsAmmoCrate({ variant = "default" }) {
   return <CreditsAmmoCratePreview variant={variant} />;
 }
 
+function CreditsVx27Container({ variant = "default" }) {
+  return <CreditsVx27ContainerPreview variant={variant} />;
+}
+
 function CreditsPropInsert({ layout, items, item, caption, spin, art }) {
   return (
     <div className="creditsPropInsert" aria-hidden>
@@ -765,6 +789,13 @@ function CreditsPropInsert({ layout, items, item, caption, spin, art }) {
         <>
           <CreditsAmmoCrate />
           <p className="creditsPropCaption">Ammo Resupply Unit</p>
+        </>
+      ) : null}
+
+      {layout === "vx27-container" ? (
+        <>
+          <CreditsVx27Container variant="hero" />
+          {caption ? <p className="creditsPropCaption">{caption}</p> : null}
         </>
       ) : null}
 

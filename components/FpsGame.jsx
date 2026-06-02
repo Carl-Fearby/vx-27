@@ -115,6 +115,7 @@ import {
 import Vx27ContainerTunePanel from "@/components/Vx27ContainerTunePanel";
 import {
   initOilBarrelFireLightFlicker,
+  updateOilBarrelFireShadowBudget,
 } from "@/lib/OilBarrelFireLight";
 import {
   DEFAULT_OIL_BARREL_TUNING,
@@ -324,6 +325,11 @@ import {
   FRAME_HITCH_PROFILER_KEY,
   loadFrameHitchProfilerEnabled,
 } from "@/lib/FrameHitchProfiler";
+import {
+  applyFrameShadowUpdates,
+  configureRendererShadowPolicy,
+  requestShadowMapUpdate,
+} from "@/lib/ShadowUpdatePolicy";
 import {
   isBindingDown,
   loadBindings,
@@ -1593,6 +1599,7 @@ export default function FpsGame() {
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFShadowMap;
+      configureRendererShadowPolicy(renderer);
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.0;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -1968,7 +1975,7 @@ export default function FpsGame() {
           collectibleEntries.map((e) => e.drop?.mesh),
           level.group
         );
-        renderer.shadowMap.needsUpdate = true;
+        requestShadowMapUpdate(renderer);
         mountCompassCollectibleMarkers(
           compassMarkersRef.current,
           collectibleEntries
@@ -2582,8 +2589,6 @@ export default function FpsGame() {
       function removeBullet(index) {
         const b = bullets[index];
         scene.remove(b.mesh);
-        b.core.material.dispose();
-        b.glow.material.dispose();
         bullets.splice(index, 1);
       }
 
@@ -3149,8 +3154,8 @@ export default function FpsGame() {
           wasBindingPressed(input, bindingsRef.current, "flashlight")
         ) {
           const nowOn = weapon?.toggleFlashlight();
-          if (nowOn && rendererRef.current?.shadowMap) {
-            rendererRef.current.shadowMap.needsUpdate = true;
+          if (nowOn && rendererRef.current) {
+            requestShadowMapUpdate(rendererRef.current);
           }
         }
 
@@ -3615,6 +3620,25 @@ export default function FpsGame() {
         syncLightLayersForZone(scene, inRoom, outdoorLights, roomLightsRef.current);
         syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, inRoom);
 
+        const barrelFireShadowCount = updateOilBarrelFireShadowBudget(
+          oilBarrelRuntimeIndex.fireLights,
+          camera.position,
+          getOilBarrelTuning()
+        );
+        applyFrameShadowUpdates(renderer, {
+          sunCastsShadow:
+            (sunRef.current?.castShadow && sunRef.current.intensity > 0.001) ||
+            false,
+          moonCastsShadow:
+            (moonRef.current?.castShadow && moonRef.current.intensity > 0.001) ||
+            false,
+          dayNightAnimating:
+            dayNightCurNightnessRef.current !==
+            dayNightTargetNightnessRef.current,
+          flashlightShadow: weapon?.isFlashlightCastingShadow?.() ?? false,
+          barrelFireShadowCount,
+        });
+
         sky?.update(camera);
         resetCameraRenderLayers(camera);
         // Per-room frustum culling — hide rooms (and their lights) that the
@@ -3843,8 +3867,6 @@ export default function FpsGame() {
         for (let i = bullets.length - 1; i >= 0; i--) {
           const b = bullets[i];
           b.mesh.parent?.remove(b.mesh);
-          b.core.material.dispose();
-          b.glow.material.dispose();
         }
         bullets.length = 0;
         bulletPool.dispose();

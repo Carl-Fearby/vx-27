@@ -299,6 +299,17 @@ import {
   resolveDevTuneEnabled,
 } from "@/lib/DevTuneSession";
 import {
+  applyDevSceneVisibility,
+  DEV_SHOW_BARRELS_KEY,
+  DEV_SHOW_CONTAINERS_KEY,
+  DEV_SHOW_ENEMIES_KEY,
+  DEV_SHOW_LENS_FLARE_KEY,
+  DEV_SHOW_PILLARS_KEY,
+  DEV_SHOW_STAIRS_KEY,
+  DEV_SHOW_SUN_DISC_KEY,
+  loadDevSceneShow,
+} from "@/lib/DevSceneVisibility";
+import {
   isBindingDown,
   loadBindings,
   saveBindings,
@@ -384,8 +395,8 @@ const SHOW_FPS_KEY = "fps-show-counter";
 const SHOW_HUD_KEY = "fps-show-hud";
 const SHOW_PLAYER_COORDS_KEY = "fps-show-player-coords";
 const MUSIC_ENABLED_KEY = "fps-music-enabled";
-const DEFAULT_KEYBOARD_LOOK = 10;
-const DEFAULT_KEYBOARD_EASE = 10;
+const DEFAULT_KEYBOARD_LOOK = 5;
+const DEFAULT_KEYBOARD_EASE = 0;
 const DEFAULT_MOUSE_LOOK = 7;
 const DEFAULT_MOUSE_EASE = 1;
 const DEFAULT_MAX_LOOK_RATE = 2.5;
@@ -734,6 +745,7 @@ export default function FpsGame() {
   const showDevOverlayRef = useRef(false);
   const showPlayerCoordsRef = useRef(false);
   const showHudRef = useRef(true);
+  const gameRootRef = useRef(null);
   const compassTapeRef = useRef(null);
   const compassViewportRef = useRef(null);
   const compassMarkersRef = useRef(null);
@@ -869,6 +881,17 @@ export default function FpsGame() {
   const loadingMusicTrackIdRef = useRef(loadStoredLoadingTrackId());
   const levelMusicTrackIdRef = useRef(DEFAULT_LEVEL_TRACK_ID);
   const [showDevOverlay, setShowDevOverlay] = useState(() => window.localStorage.getItem("fps-show-dev-overlay") === "true");
+  const [devShowBarrels, setDevShowBarrels] = useState(() => loadDevSceneShow(DEV_SHOW_BARRELS_KEY));
+  const [devShowEnemies, setDevShowEnemies] = useState(() => loadDevSceneShow(DEV_SHOW_ENEMIES_KEY));
+  const [devShowStairs, setDevShowStairs] = useState(() => loadDevSceneShow(DEV_SHOW_STAIRS_KEY));
+  const [devShowContainers, setDevShowContainers] = useState(() =>
+    loadDevSceneShow(DEV_SHOW_CONTAINERS_KEY)
+  );
+  const [devShowPillars, setDevShowPillars] = useState(() => loadDevSceneShow(DEV_SHOW_PILLARS_KEY));
+  const [devShowLensFlare, setDevShowLensFlare] = useState(() =>
+    loadDevSceneShow(DEV_SHOW_LENS_FLARE_KEY)
+  );
+  const [devShowSunDisc, setDevShowSunDisc] = useState(() => loadDevSceneShow(DEV_SHOW_SUN_DISC_KEY));
   const [showPlayerCoords, setShowPlayerCoords] = useState(
     () => window.localStorage.getItem(SHOW_PLAYER_COORDS_KEY) === "true"
   );
@@ -1129,6 +1152,16 @@ export default function FpsGame() {
   const dayNightTargetNightnessRef = useRef(loadSunDayMode() ? 0 : 1);
   const dayNightCurNightnessRef = useRef(loadSunDayMode() ? 0 : 1);
   const skyRef = useRef(null);
+  const applyDevSceneVisibilityRef = useRef(null);
+  const devSceneShowRef = useRef({
+    showBarrels: true,
+    showEnemies: true,
+    showStairs: true,
+    showContainers: true,
+    showPillars: true,
+    showLensFlare: true,
+    showSunDisc: true,
+  });
   const weaponRef = useRef(null);
   const hemiRef = useRef(null);
   const roomLightsRef = useRef([]);
@@ -1254,6 +1287,15 @@ export default function FpsGame() {
   musicEnabledRef.current = musicEnabled;
   ammoDropSpareThresholdRef.current = ammoDropSpareThreshold;
   showDevOverlayRef.current = showDevOverlay;
+  devSceneShowRef.current = {
+    showBarrels: devShowBarrels,
+    showEnemies: devShowEnemies,
+    showStairs: devShowStairs,
+    showContainers: devShowContainers,
+    showPillars: devShowPillars,
+    showLensFlare: devShowLensFlare,
+    showSunDisc: devShowSunDisc,
+  };
   showPlayerCoordsRef.current = showPlayerCoords;
   showHudRef.current = showHud;
   containerTuneIndexRef.current = containerTuneIndex;
@@ -1316,11 +1358,13 @@ export default function FpsGame() {
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
       if (e.code === "KeyH") {
-        setShowHud((prev) => {
-          const next = !prev;
-          localStorage.setItem(SHOW_HUD_KEY, String(next));
-          return next;
-        });
+        const next = !showHudRef.current;
+        showHudRef.current = next;
+        localStorage.setItem(SHOW_HUD_KEY, String(next));
+        gameRootRef.current?.classList.toggle("gameHudHidden", !next);
+        if (settingsOpenRef.current) {
+          setShowHud(next);
+        }
         return;
       }
       if (e.code === "KeyI") {
@@ -1699,6 +1743,17 @@ export default function FpsGame() {
       ensureOilBarrelFlameMeshes(level.group);
       refreshOilBarrelRenderLayers(level.group);
       refreshVx27ContainerRenderLayers(level.group);
+      applyDevSceneVisibilityRef.current = () => {
+        applyDevSceneVisibility({
+          levelGroup: level?.group,
+          targets: level?.targets,
+          containers: vx27ContainersRef.current,
+          pillars: levelObjectsRef.current,
+          sky: skyRef.current,
+          ...devSceneShowRef.current,
+        });
+      };
+      applyDevSceneVisibilityRef.current();
       syncInteriorLighting();
       syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, false);
       applySunLightPosition(sun, sunLightPosRef.current);
@@ -2959,7 +3014,10 @@ export default function FpsGame() {
           canUseWeapons &&
           wasBindingPressed(input, bindingsRef.current, "flashlight")
         ) {
-          weapon?.toggleFlashlight();
+          const nowOn = weapon?.toggleFlashlight();
+          if (nowOn && rendererRef.current?.shadowMap) {
+            rendererRef.current.shadowMap.needsUpdate = true;
+          }
         }
 
         if (
@@ -3505,6 +3563,7 @@ export default function FpsGame() {
         // and moon discs are still at the origin / fully transparent. Re-run
         // the applier with the current nightness so they snap into place.
         applyDayNightRef.current?.(dayNightCurNightnessRef.current);
+        applyDevSceneVisibilityRef.current?.();
       } catch (err) {
         console.error("Sky dome failed to load:", err);
       }
@@ -3697,7 +3756,10 @@ export default function FpsGame() {
   };
 
   return (
-    <div className={`gameRoot${showHud ? "" : " gameHudHidden"}`}>
+    <div
+      ref={gameRootRef}
+      className={`gameRoot${showHud ? "" : " gameHudHidden"}`}
+    >
       <div
         className={`loadingOverlay${loadDone ? " loadingDone" : ""}`}
         onClick={() => {
@@ -4251,7 +4313,7 @@ export default function FpsGame() {
                 </span>
                 <input
                   type="range"
-                  min="1"
+                  min="0"
                   max="10"
                   step="0.5"
                   value={keyboardEase}
@@ -4505,6 +4567,109 @@ export default function FpsGame() {
                 Toggle layers and tune shockwave / particle look. Throw grenades while
                 adjusting — changes apply to the next detonation.
               </p>
+              <p className="settingsGroupLabel">Scene visibility (perf debug)</p>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Hide meshes to isolate FPS cost. Collision and lights stay active unless
+                noted — sun toggle is the sky disc only, not the directional light.
+              </p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={devShowBarrels}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setDevShowBarrels(checked);
+                    devSceneShowRef.current.showBarrels = checked;
+                    localStorage.setItem(DEV_SHOW_BARRELS_KEY, String(checked));
+                    applyDevSceneVisibilityRef.current?.();
+                  }}
+                />
+                Oil barrels
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={devShowEnemies}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setDevShowEnemies(checked);
+                    devSceneShowRef.current.showEnemies = checked;
+                    localStorage.setItem(DEV_SHOW_ENEMIES_KEY, String(checked));
+                    applyDevSceneVisibilityRef.current?.();
+                  }}
+                />
+                Enemies (targets)
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={devShowStairs}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setDevShowStairs(checked);
+                    devSceneShowRef.current.showStairs = checked;
+                    localStorage.setItem(DEV_SHOW_STAIRS_KEY, String(checked));
+                    applyDevSceneVisibilityRef.current?.();
+                  }}
+                />
+                Stairs
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={devShowContainers}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setDevShowContainers(checked);
+                    devSceneShowRef.current.showContainers = checked;
+                    localStorage.setItem(DEV_SHOW_CONTAINERS_KEY, String(checked));
+                    applyDevSceneVisibilityRef.current?.();
+                  }}
+                />
+                VX-27 containers
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={devShowPillars}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setDevShowPillars(checked);
+                    devSceneShowRef.current.showPillars = checked;
+                    localStorage.setItem(DEV_SHOW_PILLARS_KEY, String(checked));
+                    applyDevSceneVisibilityRef.current?.();
+                  }}
+                />
+                Pillars
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={devShowLensFlare}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setDevShowLensFlare(checked);
+                    devSceneShowRef.current.showLensFlare = checked;
+                    localStorage.setItem(DEV_SHOW_LENS_FLARE_KEY, String(checked));
+                    applyDevSceneVisibilityRef.current?.();
+                  }}
+                />
+                Lens flare (ghosts + sun spikes)
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={devShowSunDisc}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setDevShowSunDisc(checked);
+                    devSceneShowRef.current.showSunDisc = checked;
+                    localStorage.setItem(DEV_SHOW_SUN_DISC_KEY, String(checked));
+                    applyDevSceneVisibilityRef.current?.();
+                  }}
+                />
+                Sun disc (sky sprite, not the light)
+              </label>
               <p className="settingsGroupLabel">Debug tools</p>
               <label className="settingRow">
                 <input
@@ -4656,8 +4821,10 @@ export default function FpsGame() {
                   checked={showHud}
                   onChange={(e) => {
                     const checked = e.target.checked;
+                    showHudRef.current = checked;
                     setShowHud(checked);
                     localStorage.setItem(SHOW_HUD_KEY, String(checked));
+                    gameRootRef.current?.classList.toggle("gameHudHidden", !checked);
                   }}
                 />
                 Show HUD (ammo, health, radar) — press H in-game
@@ -6006,14 +6173,14 @@ export default function FpsGame() {
           </div>
         </div>
       )}
-      {showFps && showHud && (
+      {showFps && (
         <div className="topRightHud">
           <div ref={fpsRef} className="fpsCounter" aria-live="polite">
             — FPS
           </div>
         </div>
       )}
-      {showPlayerCoords && showHud && !settingsOpen && (
+      {showPlayerCoords && !settingsOpen && (
         <div
           ref={playerCoordsHudRef}
           className="hudPlayerCoords"
@@ -6027,13 +6194,17 @@ export default function FpsGame() {
           X —  Z —  foot —
         </div>
       )}
-      {!showHud && loadDone && (
+      {loadDone && (
         <button
           type="button"
           className="hudRestoreChip"
           onClick={() => {
-            setShowHud(true);
+            showHudRef.current = true;
             localStorage.setItem(SHOW_HUD_KEY, "true");
+            gameRootRef.current?.classList.remove("gameHudHidden");
+            if (settingsOpenRef.current) {
+              setShowHud(true);
+            }
           }}
         >
           Show HUD (H)

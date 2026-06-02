@@ -28,5 +28,5 @@ Lighting:
 
 Notes:
 - The endcap alpha has the central opening transparent/black.
-- All maps are PNG.
+- Runtime assets are lossy WebP (see `npm run textures:vx27-container`).
 - PBR maps are generated from the current artwork and are intended as a usable game-art starting point.

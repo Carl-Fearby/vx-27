@@ -105,6 +105,7 @@ import {
   saveVx27ContainerInteriorInsets,
   saveVx27ContainerTuneEnabled,
   syncVx27ContainerCollider,
+  VX27_CONTAINER_TUNE_ENABLED_KEY,
 } from "@/lib/Vx27ContainerTuning";
 import Vx27ContainerTunePanel from "@/components/Vx27ContainerTunePanel";
 import {
@@ -114,6 +115,7 @@ import {
   DEFAULT_OIL_BARREL_TUNING,
   loadOilBarrelTuneEnabled,
   loadOilBarrelTuning,
+  OIL_BARREL_TUNE_ENABLED_KEY,
   normalizeOilBarrelTuning,
   saveOilBarrelTuneEnabled,
   saveOilBarrelTuning,
@@ -208,7 +210,7 @@ import {
   DEFAULT_HIP_POSE,
   loadBodyLookDownAmount,
   loadBodyLookUpAmount,
-  loadWeaponTuneEnabled,
+  WEAPON_TUNE_ENABLED_KEY,
   loadWeaponTuning,
   saveWeaponTuneEnabled,
 } from "@/lib/WeaponTuning";
@@ -270,6 +272,7 @@ import {
   resolveWalkBobTuning,
   saveWalkBobTuneEnabled,
   saveWalkBobTuning,
+  WALK_BOB_TUNE_ENABLED_KEY,
 } from "@/lib/WalkBobTuning";
 import {
   DEFAULT_STAIR_WALK_TUNING,
@@ -278,6 +281,7 @@ import {
   normalizeStairWalkTuning,
   saveStairWalkTuneEnabled,
   saveStairWalkTuning,
+  STAIR_WALK_TUNE_ENABLED_KEY,
 } from "@/lib/StairWalkTuning";
 import {
   DEFAULT_HUD_BAR_TUNING,
@@ -286,8 +290,14 @@ import {
   normalizeHudBarTuning,
   saveHudBarTuneEnabled,
   saveHudBarTuning,
+  HUD_BAR_TUNE_ENABLED_KEY,
 } from "@/lib/HudBarTuning";
 import ControlsPanel from "@/components/ControlsPanel";
+import {
+  DEV_TUNE_BOOT_KEY,
+  isLocalDevHost,
+  resolveDevTuneEnabled,
+} from "@/lib/DevTuneSession";
 import {
   isBindingDown,
   loadBindings,
@@ -365,6 +375,7 @@ const HEMI_TUNE_ENABLED_KEY = "fps-hemi-tune-enabled";
 const STAIRS_TUNE_ENABLED_KEY = "fps-stairs-tune-enabled";
 const GRENADE_TUNE_ENABLED_KEY = "fps-grenade-tune-enabled";
 const GRENADE_EXPLOSION_TUNE_ENABLED_KEY = "fps-grenade-explosion-tune-enabled";
+const HUD_POSITION_TUNE_ENABLED_KEY = "fps-hud-position-tune-enabled";
 const LEGACY_LOOK_SPEED_KEY = "fps-look-speed";
 const LEGACY_LOOK_EASE_KEY = "fps-look-ease";
 const RENDER_SCALE_KEY = "fps-render-scale";
@@ -982,6 +993,35 @@ export default function FpsGame() {
     });
   }, []);
 
+  const applyAllTunePanels = useCallback((enabled) => {
+    const on = enabled ? "true" : "false";
+    saveWeaponTuneEnabled(enabled);
+    localStorage.setItem(SUN_TUNE_ENABLED_KEY, on);
+    localStorage.setItem(HEMI_TUNE_ENABLED_KEY, on);
+    localStorage.setItem(STAIRS_TUNE_ENABLED_KEY, on);
+    saveWalkBobTuneEnabled(enabled);
+    saveStairWalkTuneEnabled(enabled);
+    saveHudBarTuneEnabled(enabled);
+    saveOilBarrelTuneEnabled(enabled);
+    saveVx27ContainerTuneEnabled(enabled);
+    localStorage.setItem(GRENADE_TUNE_ENABLED_KEY, on);
+    localStorage.setItem(GRENADE_EXPLOSION_TUNE_ENABLED_KEY, on);
+    localStorage.setItem("fps-grenade-widget-tune", on);
+    setWeaponTuneEnabled(enabled);
+    weaponTuneEnabledRef.current = enabled;
+    setSunTuneEnabled(enabled);
+    setHemiTuneEnabled(enabled);
+    setStairsTuneEnabled(enabled);
+    setWalkBobTuneEnabled(enabled);
+    setStairWalkTuneEnabled(enabled);
+    setHudBarTuneEnabled(enabled);
+    setOilBarrelTuneEnabled(enabled);
+    setVx27ContainerTuneEnabled(enabled);
+    setGrenadeTuneEnabled(enabled);
+    setGrenadeExplosionTuneEnabled(enabled);
+    setGrenadeWidgetTuneEnabled(enabled);
+  }, []);
+
   const applyPilePlacementToScene = useCallback(
     (hubX, hubZ, hubRotationY, { persist = true } = {}) => {
       const arena = arenaLiveRef.current;
@@ -1318,15 +1358,30 @@ export default function FpsGame() {
     const mLook = read(MOUSE_LOOK_KEY, DEFAULT_MOUSE_LOOK);
     const mEase = read(MOUSE_EASE_KEY, mouseEaseFallback);
     const maxRate = read(LOOK_MAX_RATE_KEY, DEFAULT_MAX_LOOK_RATE);
-    const tuneEnabled = loadWeaponTuneEnabled();
-    const sunEnabled = localStorage.getItem(SUN_TUNE_ENABLED_KEY) === "true";
-    const hemiEnabled = localStorage.getItem(HEMI_TUNE_ENABLED_KEY) === "true";
-    const stairsEnabled = localStorage.getItem(STAIRS_TUNE_ENABLED_KEY) === "true";
-    const walkBobEnabled = loadWalkBobTuneEnabled();
-    const stairWalkEnabled = loadStairWalkTuneEnabled();
-    const hudBarEnabled = loadHudBarTuneEnabled();
-    const oilBarrelEnabled = loadOilBarrelTuneEnabled();
-    const vx27ContainerEnabled = loadVx27ContainerTuneEnabled();
+
+    const persistAllTunePanels = (enabled) => {
+      applyAllTunePanels(enabled);
+    };
+
+    if (isLocalDevHost() && !localStorage.getItem(DEV_TUNE_BOOT_KEY)) {
+      localStorage.setItem(DEV_TUNE_BOOT_KEY, "1");
+      persistAllTunePanels(true);
+    }
+
+    const tuneEnabled = resolveDevTuneEnabled(WEAPON_TUNE_ENABLED_KEY);
+    const sunEnabled = resolveDevTuneEnabled(SUN_TUNE_ENABLED_KEY);
+    const hemiEnabled = resolveDevTuneEnabled(HEMI_TUNE_ENABLED_KEY);
+    const stairsEnabled = resolveDevTuneEnabled(STAIRS_TUNE_ENABLED_KEY);
+    const walkBobEnabled = resolveDevTuneEnabled(WALK_BOB_TUNE_ENABLED_KEY);
+    const stairWalkEnabled = resolveDevTuneEnabled(STAIR_WALK_TUNE_ENABLED_KEY);
+    const hudBarEnabled = resolveDevTuneEnabled(HUD_BAR_TUNE_ENABLED_KEY);
+    const oilBarrelEnabled = resolveDevTuneEnabled(OIL_BARREL_TUNE_ENABLED_KEY);
+    const vx27ContainerEnabled = resolveDevTuneEnabled(VX27_CONTAINER_TUNE_ENABLED_KEY);
+    const grenadeEnabled = resolveDevTuneEnabled(GRENADE_TUNE_ENABLED_KEY);
+    const grenadeExplosionEnabled = resolveDevTuneEnabled(
+      GRENADE_EXPLOSION_TUNE_ENABLED_KEY
+    );
+    const grenadeWidgetEnabled = resolveDevTuneEnabled("fps-grenade-widget-tune");
     setInvertYLook(storedInvert);
     const storedScale = loadRenderScale();
     setRenderScale(storedScale);
@@ -1351,6 +1406,11 @@ export default function FpsGame() {
     setHudBarLayout(loadHudBarTuning());
     setOilBarrelTuneEnabled(oilBarrelEnabled);
     setVx27ContainerTuneEnabled(vx27ContainerEnabled);
+    setGrenadeTuneEnabled(grenadeEnabled);
+    setGrenadeExplosionTuneEnabled(grenadeExplosionEnabled);
+    setGrenadeWidgetTuneEnabled(grenadeWidgetEnabled);
+    setHudTuneEnabled(localStorage.getItem(HUD_POSITION_TUNE_ENABLED_KEY) === "true");
+    weaponTuneEnabledRef.current = tuneEnabled;
     const barrelTuning = loadOilBarrelTuning();
     setOilBarrelTuning(barrelTuning);
     applyOilBarrelMaterialTuning(barrelTuning, sceneRef.current ?? undefined);
@@ -1369,7 +1429,7 @@ export default function FpsGame() {
     mouseLookRef.current = mLook;
     mouseEaseRef.current = mEase;
     maxLookRateRef.current = maxRate;
-  }, []);
+  }, [applyAllTunePanels]);
 
   invertYRef.current = invertYLook;
   renderScaleRef.current = renderScale;
@@ -4250,6 +4310,15 @@ export default function FpsGame() {
                 top of the screen — toggle each one below.
               </p>
               <p className="settingsGroupLabel">Tuning panels</p>
+              <div className="settingsBtnRow" style={{ marginBottom: "0.65rem" }}>
+                <button
+                  type="button"
+                  className="settingsBtn"
+                  onClick={() => applyAllTunePanels(true)}
+                >
+                  Enable all panels
+                </button>
+              </div>
               <label className="settingRow">
                 <input
                   type="checkbox"
@@ -4388,7 +4457,11 @@ export default function FpsGame() {
                 <input
                   type="checkbox"
                   checked={hudTuneEnabled}
-                  onChange={(e) => setHudTuneEnabled(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setHudTuneEnabled(checked);
+                    localStorage.setItem(HUD_POSITION_TUNE_ENABLED_KEY, String(checked));
+                  }}
                 />
                 HUD position tuning
               </label>
@@ -5227,7 +5300,10 @@ export default function FpsGame() {
           <div className="hudTunePanel hudTunePanel--inDevStack" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
             <div className="hudTuneHeader">
               <span>HUD Position</span>
-              <button type="button" className="hudTuneClose" onClick={() => setHudTuneEnabled(false)}>×</button>
+              <button type="button" className="hudTuneClose" onClick={() => {
+                setHudTuneEnabled(false);
+                localStorage.setItem(HUD_POSITION_TUNE_ENABLED_KEY, "false");
+              }}>×</button>
             </div>
             <div className="hudTuneBody">
             <div className="hudTuneGroup">

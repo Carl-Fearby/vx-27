@@ -389,6 +389,16 @@ export default function Vx27ContainerTunePanel({
             onChange={(v) => onDoorChange("bottomOffset", v)}
           />
           <AxisControl
+            label="Door depth (flush to endcap)"
+            value={doorTuning.depthOffset ?? 0}
+            min={DL.depthOffset.min}
+            max={DL.depthOffset.max}
+            sliderStep={DL.depthOffset.step}
+            nudgeStep={DL.depthOffset.nudge}
+            format={(v) => v.toFixed(4)}
+            onChange={(v) => onDoorChange("depthOffset", v)}
+          />
+          <AxisControl
             label="Door side offset (hinge inset)"
             value={doorTuning.sideOffset}
             min={DL.sideOffset.min}

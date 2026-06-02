@@ -27,6 +27,7 @@ import {
   registerOutdoorLightsForDayNight,
   renderSceneWithLayeredLighting,
   resetCameraRenderLayers,
+  resetRendererShadowPipeline,
   resetRoomInteriorAmbient,
   resetViewmodelInteriorAmbient,
   syncLightLayersForZone,
@@ -1547,7 +1548,7 @@ export default function FpsGame() {
       renderer.setPixelRatio(effectivePixelRatio(renderScaleRef.current));
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.type = THREE.PCFShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.0;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -3600,7 +3601,7 @@ export default function FpsGame() {
         collectibleEntries.map((e) => e.drop?.mesh),
         level.group
       );
-      renderer.shadowMap.needsUpdate = true;
+      resetRendererShadowPipeline(renderer);
       if (sunIsDayRef.current) {
         refitSunShadowRef.current?.();
       } else {

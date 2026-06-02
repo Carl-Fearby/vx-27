@@ -34,7 +34,7 @@ Project-specific conventions & gotchas
 - Import alias: `@/*` is mapped to project root (see `jsconfig.json`). Use `@/lib/...` and `@/components/...` consistently.
 - Three.js metadata: many scene objects store data in `object.userData` (e.g. `vx27` prop metadata). When changing propagation, preserve `userData` semantics.
 - Local tuning: Tuning modules provide storage keys and helpers (example: `SunLightTuning.js` exposes `SUN_AZIMUTH_STORAGE_KEY`, `loadSunAngles()`, `saveSunAngles()`). Always use these helpers so you don't break persisted settings.
-- Dev tuning: local dev hosts default tuning panels ON. See `lib/DevTuneSession.js` (`isLocalDevHost()` and `DEV_TUNE_BOOT_KEY`). Tests and quick experiments can be toggled via localStorage keys such as `fps-show-dev-overlay`.
+- Dev tuning: tuning panels default OFF — enable in Settings → Development (or “Enable all panels”). See `lib/DevTuneSession.js` (`resolveDevTuneEnabled`, `DEV_TUNE_BOOT_KEY`). Tests and quick experiments can be toggled via localStorage keys such as `fps-show-dev-overlay`.
 - Large single-file component: `components/FpsGame.jsx` is intentionally large and orchestrates many systems. Prefer small, well-scoped changes in `lib/` or new helper modules. If you must change `FpsGame.jsx`, keep modifications minimal and run the app to validate frame lifecycle behavior.
 
 Integration points

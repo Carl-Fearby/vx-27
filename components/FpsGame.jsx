@@ -1363,9 +1363,9 @@ export default function FpsGame() {
       applyAllTunePanels(enabled);
     };
 
-    if (isLocalDevHost() && !localStorage.getItem(DEV_TUNE_BOOT_KEY)) {
+    if (isLocalDevHost() && localStorage.getItem(DEV_TUNE_BOOT_KEY) !== "1") {
       localStorage.setItem(DEV_TUNE_BOOT_KEY, "1");
-      persistAllTunePanels(true);
+      persistAllTunePanels(false);
     }
 
     const tuneEnabled = resolveDevTuneEnabled(WEAPON_TUNE_ENABLED_KEY);

@@ -768,6 +768,14 @@ body {
   font-family: inherit;
 }
 
+/* Stays visible when HUD is hidden (H) so dev FPS comparisons still work. */
+.fpsCounterFixed {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 15;
+}
+
 .dayNightToggle {
   pointer-events: auto;
   cursor: pointer;

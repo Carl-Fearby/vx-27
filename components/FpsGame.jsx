@@ -28,6 +28,7 @@ import {
   fitMoonDirectionalLightShadow,
   registerOutdoorLightsForDayNight,
   renderSceneWithLayeredLighting,
+  resetLightingZoneCache,
   resetCameraRenderLayers,
   resetRendererShadowPipeline,
   resetRoomInteriorAmbient,
@@ -75,6 +76,7 @@ import {
   OIL_BARREL_FIRE_PROXIMITY_DAMAGE,
   tickOilBarrelFireProximityDamage,
   tickOilBarrelInteriorVideo,
+  buildOilBarrelRuntimeIndex,
   collectOilBarrelFireLights,
   ensureOilBarrelFlameMeshes,
   refreshOilBarrelRenderLayers,
@@ -174,6 +176,7 @@ import {
   pickRandomSpawnPosition,
   resolveAuthoredSpawnPosition,
   renderTargetHealthBarsPass,
+  hasVisibleTargetHealthBars,
   setHealthBarOccluders,
   setHitDebug,
   setHitzoneOverlay,
@@ -204,11 +207,12 @@ import {
 import {
   applyBulletSurfaceHit,
   collectLevelHitMeshes,
-  pickFirstBulletHit,
+  pickClosestBulletHit,
   disposeAllBulletHoles,
   preloadBulletHoleTextures,
   updateBulletHoles,
 } from "@/lib/BulletHoles";
+import { hasLineOfSightToPoint } from "@/lib/LineOfSight";
 import {
   DEFAULT_ADS_POSE,
   DEFAULT_BODY_LOOK_DOWN_AMOUNT,
@@ -1726,6 +1730,9 @@ export default function FpsGame() {
       prebuildRagdollTemplates(level.targets);
       levelObjectsRef.current = level.pillarMeshes ?? [];
       vx27ContainersRef.current = level.vx27ContainerMeshes ?? [];
+      let vx27DoorInteractMeshesCache = collectVx27DoorInteractMeshes(
+        vx27ContainersRef.current
+      );
       setArenaHasVx27ContainersState(
         vx27ContainersRef.current.length > 0 || arenaHasVx27Containers(arena)
       );
@@ -1775,6 +1782,8 @@ export default function FpsGame() {
       const syncInteriorLighting = () => {
         oilBarrelFireLightsRef.current = collectOilBarrelFireLights(level.group);
         initOilBarrelFireLightFlicker(oilBarrelFireLightsRef.current);
+        rebuildFlickerLights();
+        rebuildOilBarrelRuntimeIndex();
         roomCullablesRef.current = buildRoomCullables(
           level.group,
           arena.rooms ?? [],
@@ -1784,6 +1793,17 @@ export default function FpsGame() {
           arena.wallHeight
         );
       };
+      /** @type {THREE.Light[]} Reused each frame — room + barrel fire flicker lights. */
+      const flickerLights = [];
+      let oilBarrelRuntimeIndex = buildOilBarrelRuntimeIndex(level.group);
+      function rebuildFlickerLights() {
+        flickerLights.length = 0;
+        for (const light of roomLightsRef.current) flickerLights.push(light);
+        for (const light of oilBarrelFireLightsRef.current) flickerLights.push(light);
+      }
+      function rebuildOilBarrelRuntimeIndex() {
+        oilBarrelRuntimeIndex = buildOilBarrelRuntimeIndex(level.group);
+      }
       ensureOilBarrelFlameMeshes(level.group);
       refreshOilBarrelRenderLayers(level.group);
       refreshVx27ContainerRenderLayers(level.group);
@@ -2270,10 +2290,17 @@ export default function FpsGame() {
       const BULLET_MAX_RANGE = 55;
       const targetConfig = level.targetConfig;
 
+      const liveTargetsScratch = [];
+      function refreshLiveTargets() {
+        liveTargetsScratch.length = 0;
+        for (const t of level.targets) {
+          if (t.visible && t.userData.health > 0) liveTargetsScratch.push(t);
+        }
+        return liveTargetsScratch;
+      }
+
       function getLiveTargets() {
-        return level.targets.filter(
-          (t) => t.visible && t.userData.health > 0
-        );
+        return refreshLiveTargets();
       }
 
       const flashbangLosRaycaster = new THREE.Raycaster();
@@ -2305,17 +2332,14 @@ export default function FpsGame() {
         const distLen = _flashBlindDir.length();
         if (distLen < 0.08) return true;
 
+        if (!hasLineOfSightToPoint(camera.position, _flashBlindPos, levelHitMeshes)) {
+          return false;
+        }
+
         _flashBlindDir.multiplyScalar(1 / distLen);
         flashbangLosRaycaster.set(camera.position, _flashBlindDir);
         flashbangLosRaycaster.far = distLen + 0.2;
         flashbangLosRaycaster.near = 0.05;
-
-        for (const hit of flashbangLosRaycaster.intersectObjects(
-          levelHitMeshes,
-          false
-        )) {
-          if (hit.distance < distLen - 0.45) return false;
-        }
 
         for (const hit of flashbangLosRaycaster.intersectObjects(
           getLiveTargets(),
@@ -2688,7 +2712,7 @@ export default function FpsGame() {
 
       function updateBullets(bulletDt) {
         if (bullets.length === 0) return;
-        const targets = getLiveTargets();
+        const targets = liveTargetsScratch;
         for (let i = bullets.length - 1; i >= 0; i--) {
           const bullet = bullets[i];
           const stepLen = BULLET_SPEED * bulletDt;
@@ -2704,9 +2728,7 @@ export default function FpsGame() {
             false
           );
 
-          const bestHit = pickFirstBulletHit(
-            targetHits.concat(surfaceHits).sort((a, b) => a.distance - b.distance)
-          );
+          const bestHit = pickClosestBulletHit(targetHits, surfaceHits);
 
           if (bestHit) {
             bullet.mesh.position.copy(bestHit.point);
@@ -2750,13 +2772,16 @@ export default function FpsGame() {
         if (disposed || !gameReady || !level?.group) return;
         if (!level.group.parent) scene.add(level.group);
         rafId = requestAnimationFrame(animate);
+        const hitch = frameHitchProfilerRef.current;
+        hitch?.frameStart(now);
         try {
         flushBloodAfterRagdoll();
         flushPendingRagdolls();
         flushPendingKillBlood();
-        tickOilBarrelInteriorVideo(camera, scene);
+        hitch?.mark("deferrals");
+        tickOilBarrelInteriorVideo(camera, oilBarrelRuntimeIndex);
         sounds.updateOilBarrelFire(
-          level.group,
+          oilBarrelRuntimeIndex.fireLights,
           getOilBarrelTuning().interiorFire !== false
         );
         const rawFrameDt = Math.min((now - lastTime) / 1000, 0.15);
@@ -2795,10 +2820,7 @@ export default function FpsGame() {
 
         // Candle-flicker the warm interior lights. Uses rAF's absolute
         // timestamp so the wobble keeps phase across frame-time hitches.
-        updateCandleFlicker(
-          [...roomLightsRef.current, ...oilBarrelFireLightsRef.current],
-          now * 0.001
-        );
+        updateCandleFlicker(flickerLights, now * 0.001);
 
         const locked = input.isLocked();
         const aimHeld =
@@ -2859,7 +2881,8 @@ export default function FpsGame() {
               level.group,
               camera.position,
               dt,
-              getOilBarrelTuning()
+              getOilBarrelTuning(),
+              levelHitMeshes
             )
           ) {
             const newHp = Math.max(
@@ -2924,7 +2947,7 @@ export default function FpsGame() {
             frozen = true;
           }
         }
-        if (compassTapeRef.current && compassViewportRef.current) {
+        if (showHudRef.current && compassTapeRef.current && compassViewportRef.current) {
           const yawDeg = (player.getYaw() * 180) / Math.PI;
           const bearing = (((-yawDeg % 360) + 360) % 360);
           const viewport = compassViewportRef.current;
@@ -2948,7 +2971,7 @@ export default function FpsGame() {
             );
           }
         }
-        if (radarDotsRef.current && level?.targets) {
+        if (showHudRef.current && radarDotsRef.current && level?.targets) {
           const px = camera.position.x;
           const pz = camera.position.z;
           const yaw = player.getYaw();
@@ -3074,6 +3097,7 @@ export default function FpsGame() {
             rdot.style.opacity = "0.85";
           }
         }
+        hitch?.mark("player");
         camera.updateMatrixWorld(true);
 
         const canInteract =
@@ -3083,12 +3107,12 @@ export default function FpsGame() {
           !settingsOpenRef.current &&
           !controlsOpenRef.current;
         let doorTarget = null;
-        if (canInteract && vx27ContainersRef.current.length > 0) {
+        if (canInteract && vx27DoorInteractMeshesCache.length > 0) {
           hitRaycaster.setFromCamera(screenCenter, camera);
-          const doorMeshes = collectVx27DoorInteractMeshes(
-            vx27ContainersRef.current
+          doorTarget = pickVx27DoorUnderCrosshair(
+            hitRaycaster,
+            vx27DoorInteractMeshesCache
           );
-          doorTarget = pickVx27DoorUnderCrosshair(hitRaycaster, doorMeshes);
         }
         crosshair.classList.toggle("crosshairDoorTarget", Boolean(doorTarget));
         const doorPromptEl = doorInteractPromptRef.current;
@@ -3264,6 +3288,7 @@ export default function FpsGame() {
           applyDayNightRef.current?.(dnCur);
         }
 
+        refreshLiveTargets();
         updateBullets(rawFrameDt);
         updateBloodSplatters(bloodSplatters, dt, scene);
         updateBulletHoles(dt);
@@ -3285,6 +3310,7 @@ export default function FpsGame() {
             floorHoles: level.floorHoles ?? [],
             groundSupport: groundSupportFromLevel(level, 0.05),
             simTime,
+            hitMeshes: levelHitMeshes,
             onBloodSplatter: (splatter) => {
               if (splatter) bloodSplatters.push(splatter);
             },
@@ -3296,13 +3322,24 @@ export default function FpsGame() {
               triggerScreenShake(camera.position, pos);
               if (isFlashbang) return;
               const distToPlayer = camera.position.distanceTo(pos);
-              if (distToPlayer < getGrenadeParams().blastRadius) {
-                const newHp = Math.max(0, playerHealthRef.current - 60);
-                playerHealthRef.current = newHp;
-                setPlayerHealth(newHp);
-                triggerPlayerHurtFeedback(hurtVignetteFlashEndRef);
-                if (newHp <= 0) grenadeSuicideRef.current = true;
+              if (distToPlayer >= getGrenadeParams().blastRadius) return;
+              _flashBlindPos.copy(pos);
+              _flashBlindPos.y += 0.35;
+              if (
+                !hasLineOfSightToPoint(
+                  _flashBlindPos,
+                  camera.position,
+                  levelHitMeshes,
+                  { blockEpsilon: 0.35 }
+                )
+              ) {
+                return;
               }
+              const newHp = Math.max(0, playerHealthRef.current - 60);
+              playerHealthRef.current = newHp;
+              setPlayerHealth(newHp);
+              triggerPlayerHurtFeedback(hurtVignetteFlashEndRef);
+              if (newHp <= 0) grenadeSuicideRef.current = true;
             },
             countdownDuration: sounds.getGrenadeCountdownDuration(),
             onCountdown: (pos, playbackRate) => {
@@ -3356,7 +3393,9 @@ export default function FpsGame() {
             scheduleRespawn(mesh);
           }
         );
-        updateTargetHealthBars(level.targets, dt, camera);
+        if (showHudRef.current) {
+          updateTargetHealthBars(level.targets, dt, camera);
+        }
         updateHitDebugMarkers(dt);
         if (colliderDebugEnabledRef.current || containerColliderDebugOnlyRef.current) {
           const shadowCasters = collectibleEntries
@@ -3521,9 +3560,11 @@ export default function FpsGame() {
 
         if (!frozen) {
           missionTimeRef.current += dt;
-          const secs = Math.floor(missionTimeRef.current);
-          if (secs !== Math.floor(missionTimeRef.current - dt)) {
-            updateMissionTimerHud(missionTimerHudRef.current, secs);
+          if (showHudRef.current) {
+            const secs = Math.floor(missionTimeRef.current);
+            if (secs !== Math.floor(missionTimeRef.current - dt)) {
+              updateMissionTimerHud(missionTimerHudRef.current, secs);
+            }
           }
         }
         let aliveCount = 0;
@@ -3533,25 +3574,31 @@ export default function FpsGame() {
         if (aliveCount !== _lastHostileCount) {
           _lastHostileCount = aliveCount;
           hostileCountRef.current = aliveCount;
-          updateHostileCountHud(hostileCountHudRef.current, aliveCount);
+          if (showHudRef.current) {
+            updateHostileCountHud(hostileCountHudRef.current, aliveCount);
+          }
         }
 
-        updateDamageVignette(
-          damageVignetteRef.current,
-          playerHealthRef.current,
-          loadDoneRef.current && !deathStateRef.current
-        );
-        updateHurtVignette(
-          hurtVignetteRef.current,
-          hurtVignetteFlashEndRef.current
-        );
-        updateWalkPowerHud(
-          walkPowerRef.current,
-          player.getStamina(),
-          player.getStaminaMax(),
-          playerHealthRef.current,
-          loadDoneRef.current && !deathStateRef.current
-        );
+        if (showHudRef.current) {
+          updateDamageVignette(
+            damageVignetteRef.current,
+            playerHealthRef.current,
+            loadDoneRef.current && !deathStateRef.current
+          );
+          updateHurtVignette(
+            hurtVignetteRef.current,
+            hurtVignetteFlashEndRef.current
+          );
+          updateWalkPowerHud(
+            walkPowerRef.current,
+            player.getStamina(),
+            player.getStaminaMax(),
+            playerHealthRef.current,
+            loadDoneRef.current && !deathStateRef.current
+          );
+        }
+
+        hitch?.mark("sim");
 
         input.endFrame();
         sun.target.updateMatrixWorld();
@@ -3592,13 +3639,19 @@ export default function FpsGame() {
           skipRoomPass: visibleRoomCount === 0,
           outdoorShadowLights: outdoorLights,
         });
-        if (level?.targets && showHudRef.current) {
+        if (
+          level?.targets &&
+          showHudRef.current &&
+          hasVisibleTargetHealthBars(level.targets)
+        ) {
           renderTargetHealthBarsPass(renderer, scene, camera, level.targets);
         }
         weapon?.renderViewmodel(renderer, scene, camera);
+        hitch?.mark("render");
         } catch (err) {
           console.error("Frame render failed:", err);
         }
+        hitch?.frameEnd(now);
       }
 
       onCanvasClick = (e) => {
@@ -3727,6 +3780,7 @@ export default function FpsGame() {
       reportLoad(99, "GPU ready");
 
       gameReady = true;
+      frameHitchProfilerRef.current?.markGameplayStart();
       reportLoad(100, "Ready");
       setAssetsReady(true);
       rafId = requestAnimationFrame(animate);
@@ -3767,6 +3821,7 @@ export default function FpsGame() {
       if (level?.group) {
         disposeLevelGroup(level.group);
         resetArenaCeilingDayNightCache();
+        resetLightingZoneCache();
         level = null;
       }
       if (targets) {
@@ -6307,10 +6362,8 @@ export default function FpsGame() {
         </div>
       )}
       {showFps && (
-        <div className="topRightHud">
-          <div ref={fpsRef} className="fpsCounter" aria-live="polite">
-            — FPS
-          </div>
+        <div ref={fpsRef} className="fpsCounter fpsCounterFixed" aria-live="polite">
+          — FPS
         </div>
       )}
       {showPlayerCoords && !settingsOpen && (

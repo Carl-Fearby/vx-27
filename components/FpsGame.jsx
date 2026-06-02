@@ -161,6 +161,7 @@ import {
   invalidateColliderDebugOverlay,
 } from "@/lib/ColliderDebug.js";
 import { warmupGameGpu, resetGameGpuWarmup } from "@/lib/GpuWarmup";
+import { resetArenaCeilingDayNightCache } from "@/lib/ArenaCeilingDayNight";
 import {
   applyTargetHit,
   applyTargetPose,
@@ -178,6 +179,8 @@ import {
   spawnHpOrb,
   startDeathAnimation,
   updateDeathAnimations,
+  flushPendingRagdolls,
+  prebuildRagdollTemplates,
   updateHitDebugMarkers,
   updateHpOrbs,
   preloadHpOrbAssets,
@@ -311,6 +314,11 @@ import {
   DEV_SHOW_SUN_DISC_KEY,
   loadDevSceneShow,
 } from "@/lib/DevSceneVisibility";
+import {
+  createFrameHitchProfiler,
+  FRAME_HITCH_PROFILER_KEY,
+  loadFrameHitchProfilerEnabled,
+} from "@/lib/FrameHitchProfiler";
 import {
   isBindingDown,
   loadBindings,
@@ -594,6 +602,25 @@ function updateDamageVignette(el, hp, visible) {
   el.style.opacity = String(base * flicker);
 }
 
+function formatMissionTimer(totalSecs) {
+  const m = Math.floor(totalSecs / 60);
+  const s = totalSecs % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/** Direct DOM update — avoids re-rendering the whole game tree every second. */
+function updateMissionTimerHud(el, totalSecs) {
+  if (!el) return;
+  const text = formatMissionTimer(totalSecs);
+  if (el.textContent !== text) el.textContent = text;
+}
+
+function updateHostileCountHud(el, count) {
+  if (!el) return;
+  const text = String(count).padStart(2, "0");
+  if (el.textContent !== text) el.textContent = text;
+}
+
 function updateWalkPowerHud(el, stamina, staminaMax, playerHealth, visible) {
   if (!el) return;
   if (!visible || playerHealth <= 0) {
@@ -742,6 +769,8 @@ export default function FpsGame() {
   const crosshairRef = useRef(null);
   const doorInteractPromptRef = useRef(null);
   const fpsRef = useRef(null);
+  const missionTimerHudRef = useRef(null);
+  const hostileCountHudRef = useRef(null);
   const playerCoordsMenuRef = useRef(null);
   const playerCoordsHudRef = useRef(null);
   const showDevOverlayRef = useRef(false);
@@ -894,6 +923,10 @@ export default function FpsGame() {
     loadDevSceneShow(DEV_SHOW_LENS_FLARE_KEY)
   );
   const [devShowSunDisc, setDevShowSunDisc] = useState(() => loadDevSceneShow(DEV_SHOW_SUN_DISC_KEY));
+  const [frameHitchProfiler, setFrameHitchProfiler] = useState(() =>
+    loadFrameHitchProfilerEnabled()
+  );
+  const frameHitchProfilerRef = useRef(null);
   const [showPlayerCoords, setShowPlayerCoords] = useState(
     () => window.localStorage.getItem(SHOW_PLAYER_COORDS_KEY) === "true"
   );
@@ -1235,9 +1268,8 @@ export default function FpsGame() {
   const selectedWeaponSlotRef = useRef(GRENADE_WEAPON_SLOT);
   selectedWeaponSlotRef.current = selectedWeaponSlot;
   const [playerLives, setPlayerLives] = useState(3);
-  const [hostileCount, setHostileCount] = useState(0);
-  const [missionTime, setMissionTime] = useState(0);
   const missionTimeRef = useRef(0);
+  const hostileCountRef = useRef(0);
   const playerHealthRef = useRef(100);
   const playerLivesRef = useRef(3);
   const fireModeRef = useRef("auto");
@@ -1527,6 +1559,9 @@ export default function FpsGame() {
     let grenades = [];
     let grenadeDrops = [];
     let bloodSplatters = [];
+    /** Kill-shot blood — waits for ragdoll, then spawns next frame. */
+    let pendingKillBlood = [];
+    let bloodAfterRagdoll = [];
     let gameReady = false;
     let healthRegenTimer = 0;
     const HEALTH_REGEN_INTERVAL = 10;
@@ -1536,6 +1571,9 @@ export default function FpsGame() {
     let onKeyDown = null;
     let onResize = null;
     const arenaAbort = new AbortController();
+    frameHitchProfilerRef.current = createFrameHitchProfiler({
+      enabled: loadFrameHitchProfilerEnabled(),
+    });
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
@@ -1683,6 +1721,7 @@ export default function FpsGame() {
       setSunOcclusionRoot(level.group);
       reportLoad(72, "Level geometry");
       targetsRef.current = level.targets;
+      prebuildRagdollTemplates(level.targets);
       levelObjectsRef.current = level.pillarMeshes ?? [];
       vx27ContainersRef.current = level.vx27ContainerMeshes ?? [];
       setArenaHasVx27ContainersState(
@@ -1820,9 +1859,23 @@ export default function FpsGame() {
         const sunFactor = THREE.MathUtils.smoothstep(sunElev, -2, 5);
         const moonFactor = THREE.MathUtils.smoothstep(moonElev, -2, 5);
         sun.intensity = sunBaseIntensityRef.current * sunFactor;
-        sun.castShadow = sun.intensity > 0.001;
         moon.intensity = moonIntensityRef.current * moonFactor;
-        moon.castShadow = moon.intensity > 0.001;
+        // Only one directional shadow map during dawn/dusk — both lights can be
+        // above the horizon at once, and dual shadow passes hitch the fade.
+        const sunShadowOn = sun.intensity > 0.001;
+        const moonShadowOn = moon.intensity > 0.001;
+        if (sunShadowOn && moonShadowOn) {
+          if (sun.intensity >= moon.intensity) {
+            sun.castShadow = true;
+            moon.castShadow = false;
+          } else {
+            sun.castShadow = false;
+            moon.castShadow = true;
+          }
+        } else {
+          sun.castShadow = sunShadowOn;
+          moon.castShadow = moonShadowOn;
+        }
 
         // Pin the sky's sun/moon billboards to the same animated positions so
         // the discs visibly track the light sources. Opacity follows each
@@ -2200,6 +2253,8 @@ export default function FpsGame() {
       grenades = [];
       grenadeDrops = [];
       bloodSplatters = [];
+      pendingKillBlood = [];
+      bloodAfterRagdoll = [];
       let grenadeHeld = false;
       let simTime = 0;
       let _lastHostileCount = -1;
@@ -2402,6 +2457,39 @@ export default function FpsGame() {
         }
       }
 
+      function flushBloodAfterRagdoll() {
+        if (!bloodAfterRagdoll.length) return;
+        for (const pending of bloodAfterRagdoll) {
+          const splatter = spawnBloodSplatter(
+            scene,
+            pending.point,
+            pending.dir,
+            pending.damage,
+          );
+          if (splatter) bloodSplatters.push(splatter);
+          if (pending.mesh) {
+            spawnBloodMarkOnTarget(
+              pending.mesh,
+              pending.point,
+              pending.face ?? null,
+              pending.dir,
+              pending.damage,
+            );
+          }
+        }
+        bloodAfterRagdoll.length = 0;
+      }
+
+      function flushPendingKillBlood() {
+        if (!pendingKillBlood.length) return;
+        for (let i = pendingKillBlood.length - 1; i >= 0; i -= 1) {
+          const pending = pendingKillBlood[i];
+          if (!pending.mesh?.userData?.ragdoll) continue;
+          bloodAfterRagdoll.push(pending);
+          pendingKillBlood.splice(i, 1);
+        }
+      }
+
       function applyHit(hit, bulletDirection, targetMesh) {
         const mesh = targetMesh ?? hit.object;
         if (targetTuneEnabledRef.current) {
@@ -2410,20 +2498,30 @@ export default function FpsGame() {
         const { killed, zone, damage } = applyTargetHit(mesh, hit.point, bulletDirection);
         if (zone !== "miss") {
           const splatterDamage = Math.max(damage, 4);
-          const splatter = spawnBloodSplatter(
-            scene,
-            hit.point,
-            bulletDirection,
-            splatterDamage,
-          );
-          if (splatter) bloodSplatters.push(splatter);
-          spawnBloodMarkOnTarget(
-            mesh,
-            hit.point,
-            hit.face,
-            bulletDirection,
-            splatterDamage,
-          );
+          if (killed) {
+            pendingKillBlood.push({
+              mesh,
+              point: hit.point.clone(),
+              dir: bulletDirection?.clone?.() ?? bulletDirection,
+              face: hit.face ?? null,
+              damage: splatterDamage,
+            });
+          } else {
+            const splatter = spawnBloodSplatter(
+              scene,
+              hit.point,
+              bulletDirection,
+              splatterDamage,
+            );
+            if (splatter) bloodSplatters.push(splatter);
+            spawnBloodMarkOnTarget(
+              mesh,
+              hit.point,
+              hit.face,
+              bulletDirection,
+              splatterDamage,
+            );
+          }
         }
         if (killed) {
           const deathPos = mesh.position.clone();
@@ -2502,7 +2600,7 @@ export default function FpsGame() {
           roundsInMagRef.current + MAGAZINE_SIZE,
           MAGAZINE_SIZE * 2
         );
-        syncAmmoToUi();
+        scheduleGameplayHudSyncRef.current();
         sounds.playSupplyPickup();
         return true;
       }
@@ -2511,7 +2609,7 @@ export default function FpsGame() {
         if (roundsInMagRef.current <= 0 && !tryReload(true)) return false;
 
         roundsInMagRef.current -= 1;
-        syncAmmoToUi();
+        scheduleGameplayHudSyncRef.current();
         weapon.getMuzzleWorld(muzzlePos, muzzleDir, camera);
 
         hitRaycaster.setFromCamera(screenCenter, camera);
@@ -2583,12 +2681,12 @@ export default function FpsGame() {
       const _bulletStepVec = new THREE.Vector3();
       const _bulletNextHit = new THREE.Vector3();
 
-      function updateBullets(dt) {
+      function updateBullets(bulletDt) {
         if (bullets.length === 0) return;
         const targets = getLiveTargets();
         for (let i = bullets.length - 1; i >= 0; i--) {
           const bullet = bullets[i];
-          const stepLen = BULLET_SPEED * dt;
+          const stepLen = BULLET_SPEED * bulletDt;
           const prevHit = bullet.hitPos;
           _bulletNextHit.copy(prevHit).addScaledVector(bullet.direction, stepLen);
 
@@ -2648,12 +2746,16 @@ export default function FpsGame() {
         if (!level.group.parent) scene.add(level.group);
         rafId = requestAnimationFrame(animate);
         try {
+        flushBloodAfterRagdoll();
+        flushPendingRagdolls();
+        flushPendingKillBlood();
         tickOilBarrelInteriorVideo(camera, scene);
         sounds.updateOilBarrelFire(
           level.group,
           getOilBarrelTuning().interiorFire !== false
         );
-        const dt = Math.min((now - lastTime) / 1000, 0.05);
+        const rawFrameDt = Math.min((now - lastTime) / 1000, 0.15);
+        const dt = Math.min(rawFrameDt, 0.05);
         lastTime = now;
         if (dt > 0) simTime += dt;
         if (dt > 0) {
@@ -3157,7 +3259,7 @@ export default function FpsGame() {
           applyDayNightRef.current?.(dnCur);
         }
 
-        updateBullets(dt);
+        updateBullets(rawFrameDt);
         updateBloodSplatters(bloodSplatters, dt, scene);
         updateBulletHoles(dt);
 
@@ -3416,7 +3518,7 @@ export default function FpsGame() {
           missionTimeRef.current += dt;
           const secs = Math.floor(missionTimeRef.current);
           if (secs !== Math.floor(missionTimeRef.current - dt)) {
-            setMissionTime(secs);
+            updateMissionTimerHud(missionTimerHudRef.current, secs);
           }
         }
         let aliveCount = 0;
@@ -3425,7 +3527,8 @@ export default function FpsGame() {
         }
         if (aliveCount !== _lastHostileCount) {
           _lastHostileCount = aliveCount;
-          setHostileCount(aliveCount);
+          hostileCountRef.current = aliveCount;
+          updateHostileCountHud(hostileCountHudRef.current, aliveCount);
         }
 
         updateDamageVignette(
@@ -3596,6 +3699,11 @@ export default function FpsGame() {
         levelCollectibleMeshes: collectibleEntries
           .map((e) => e.drop?.mesh)
           .filter(Boolean),
+        outdoorShadowLights: outdoorLights,
+        applyDayNightNightness: (nightness) => {
+          applyDayNightRef.current?.(nightness);
+        },
+        initialDayNightNightness: dayNightCurNightnessRef.current,
       });
       if (!isActive()) return;
       refreshLevelPickupShadows(
@@ -3636,6 +3744,7 @@ export default function FpsGame() {
 
     return () => {
       disposed = true;
+      frameHitchProfilerRef.current?.dispose();
       arenaAbort.abort();
       weaponLoadId += 1;
       cancelAnimationFrame(rafId);
@@ -3691,6 +3800,7 @@ export default function FpsGame() {
       renderer.dispose();
       rendererRef.current = null;
       resetGameGpuWarmup();
+      resetArenaCeilingDayNightCache();
       safeExitPointerLock();
     };
   }, []);
@@ -3779,17 +3889,6 @@ export default function FpsGame() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <div className="loadingHeroStack">
           <img src="/ui/logo.png" alt="VX-27" className="loadingLogo" />
-          {!loadDone && (
-            <LoadingAudioViz
-              musicEnabled={musicEnabled}
-              onMusicEnabledChange={handleMusicEnabledChange}
-              getAnalyser={() => soundsRef.current?.getLoadingAnalyser()}
-              getBeatAnalyser={() => soundsRef.current?.getLoadingBeatAnalyser()}
-              isMusicPreloaded={() => soundsRef.current?.isMusicPreloaded()}
-              isLoadingMusicPlaying={() => soundsRef.current?.isLoadingMusicPlaying()}
-              active={!loadDone}
-            />
-          )}
         </div>
         {assetsReady ? (
           <button
@@ -3811,13 +3910,22 @@ export default function FpsGame() {
           </>
         )}
         {!loadDone ? (
-          <Link
-            href="/credits"
-            className="loadingCreditsLink"
-            onClick={(e) => e.stopPropagation()}
-          >
-            Credits
-          </Link>
+          <div className="loadingTopRight">
+            <LoadingAudioViz
+              className="loadingAudioBarCorner"
+              musicEnabled={musicEnabled}
+              onMusicEnabledChange={handleMusicEnabledChange}
+              showVisualizer={false}
+              active={!loadDone}
+            />
+            <Link
+              href="/credits"
+              className="loadingCreditsLink"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Credits
+            </Link>
+          </div>
         ) : null}
       </div>
       <canvas ref={canvasRef} className="gameCanvas" />
@@ -4086,8 +4194,8 @@ export default function FpsGame() {
           OBJECTIVE: {levelMeta.objective ?? "HOLD ZONE"}
         </div>
         <div className="hudMissionStats">
-          <span className="hudMissionStat">HOSTILES: <strong>{String(hostileCount).padStart(2, "0")}</strong></span>
-          <span className="hudMissionStat">TIMER: <strong>{`${String(Math.floor(missionTime / 60)).padStart(2, "0")}:${String(missionTime % 60).padStart(2, "0")}`}</strong></span>
+          <span className="hudMissionStat">HOSTILES: <strong ref={hostileCountHudRef}>00</strong></span>
+          <span className="hudMissionStat">TIMER: <strong ref={missionTimerHudRef}>00:00</strong></span>
         </div>
       </div>
 
@@ -4675,6 +4783,19 @@ export default function FpsGame() {
                 Sun disc (sky sprite, not the light)
               </label>
               <p className="settingsGroupLabel">Debug tools</p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={frameHitchProfiler}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setFrameHitchProfiler(checked);
+                    localStorage.setItem(FRAME_HITCH_PROFILER_KEY, String(checked));
+                    frameHitchProfilerRef.current?.setEnabled(checked);
+                  }}
+                />
+                Log browser long tasks to console (&gt;50ms; enable with DevTools open)
+              </label>
               <label className="settingRow">
                 <input
                   type="checkbox"

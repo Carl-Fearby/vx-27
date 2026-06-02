@@ -30,13 +30,15 @@ export default function LoadingAudioViz({
   onMusicEnabledChange,
   active = true,
   showToggle = true,
+  showVisualizer = true,
+  className = "",
   resetKey = "loading",
 }) {
   const [vizLive, setVizLive] = useState(false);
   const vizEnabled = showToggle ? musicEnabled : true;
 
   useEffect(() => {
-    if (!active || !vizEnabled) {
+    if (!showVisualizer || !active || !vizEnabled) {
       setVizLive(false);
       return;
     }
@@ -54,6 +56,7 @@ export default function LoadingAudioViz({
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
   }, [
+    showVisualizer,
     active,
     vizEnabled,
     getAnalyser,
@@ -62,7 +65,7 @@ export default function LoadingAudioViz({
   ]);
 
   return (
-    <div className="loadingAudioBar">
+    <div className={`loadingAudioBar${className ? ` ${className}` : ""}`}>
       {showToggle ? (
         <div className="loadingAudioVizHeader">
           <label className="loadingMusicToggle">
@@ -78,23 +81,25 @@ export default function LoadingAudioViz({
           </label>
         </div>
       ) : null}
-      <div className="loadingAudioVizWrap">
-        {vizLive ? (
-          <AudioSpectrumViz
-            getAnalyser={getAnalyser}
-            getBeatAnalyser={getBeatAnalyser}
-            musicEnabled={vizEnabled}
-            active={active}
-            resetKey={resetKey}
-            canvasClassName="loadingAudioViz"
-            synthFallback={false}
-          />
-        ) : vizEnabled ? (
-          <LoadingAudioVizSkeleton />
-        ) : (
-          <div className="loadingAudioVizIdle" aria-hidden="true" />
-        )}
-      </div>
+      {showVisualizer ? (
+        <div className="loadingAudioVizWrap">
+          {vizLive ? (
+            <AudioSpectrumViz
+              getAnalyser={getAnalyser}
+              getBeatAnalyser={getBeatAnalyser}
+              musicEnabled={vizEnabled}
+              active={active}
+              resetKey={resetKey}
+              canvasClassName="loadingAudioViz"
+              synthFallback={false}
+            />
+          ) : vizEnabled ? (
+            <LoadingAudioVizSkeleton />
+          ) : (
+            <div className="loadingAudioVizIdle" aria-hidden="true" />
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

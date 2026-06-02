@@ -9,7 +9,7 @@ import MarketingBrowserBanner, {
 } from "@/components/MarketingBrowserBanner";
 
 const POSTER = "/ui/vx-27poster.webp";
-const GITHUB_REPO = "https://github.com/neofuture/GameEngine2";
+const GITHUB_REPO = "https://github.com/Carl-Fearby/vx-27";
 
 const CONTACT = {
   name: "Carl Fearby",

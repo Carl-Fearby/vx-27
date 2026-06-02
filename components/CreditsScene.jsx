@@ -135,6 +135,9 @@ const SECTIONS = [
       ["GPU Warmup Coordinator", staffAt(18)],
       ["Frame Budget Negotiator", staffAt(19)],
       ["WebP Texture Migration Lead", staffAt(20)],
+      ["Container WebP Batch Converter", staffAt(121)],
+      ["Room Light Culling Engineer", staffAt(122)],
+      ["Shadow Map Churn Therapist", staffAt(123)],
       ["Sky Dome Seamless Stitcher", staffAt(21)],
     ],
   },
@@ -210,6 +213,9 @@ const SECTIONS = [
       ["End-Cap Bullet Passthrough Architect", staffAt(113)],
       ["Interior Liner Decal Specialist", staffAt(114)],
       ["Container Collider Debug Wrangler", staffAt(115)],
+      ["Roof/Floor Cap UV Alignment Specialist", staffAt(124)],
+      ["Door Depth Offset Slider Engineer", staffAt(125)],
+      ["Fire Video Upload Gatekeeper", staffAt(126)],
     ],
   },
   {
@@ -258,6 +264,8 @@ const SECTIONS = [
       ["Pile Hub Placement Wizard", staffAt(116)],
       ["Sliders For Everything Advocate", staffAt(75)],
       ["Live Tweak Enjoyer", staffAt(76)],
+      ["Localhost Tune Panel Restorer", staffAt(127)],
+      ["HUD Position Tune Opt-In Advocate", staffAt(128)],
     ],
   },
   {

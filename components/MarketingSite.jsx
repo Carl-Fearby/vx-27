@@ -122,8 +122,8 @@ const OPS = [
   {
     code: "CRG",
     title: "VX-27 cargo module",
-    body: "Corrugated shell, rounded roof, interior liner, and twin doors you open with E. Shoot the metal — bullet holes stick to doors open or closed, inside and out.",
-    accent: "E interact · decals",
+    body: "Corrugated shell, rounded roof matching the floor, interior liner, and twin doors on E. Thirty-seven PBR maps shipped as WebP — ~96% lighter. Bullet holes stick to doors open or closed.",
+    accent: "WebP · E interact",
   },
   {
     code: "MOV",
@@ -406,19 +406,21 @@ export default function MarketingSite() {
             The trial runs entirely in your browser — load the page, lock the mouse,
             and accept that the loading screen music will outlast your first life.
             Real-time shadows, layered interior lighting, and piles that look dumped
-            by someone in a hurry.
+            by someone in a hurry. v0.1.5 trimmed container texture load by ~96% and
+            tightened the frame budget around room lights and fire video.
           </p>
           <ul className="mktIntelList">
             <li>Pointer-lock FPS — WASD, sprint, crouch, aim, torch on F</li>
             <li>VX-27 cargo container — open doors, fight inside, bullet decals on shell</li>
+            <li>Container PBR maps as WebP (~40 MB saved); roof and floor caps share materials</li>
             <li>Catwalks, stairs, attached dark rooms with real collision</li>
             <li>Dumped barrel pile and burning open-top drum beside the module</li>
             <li>Grenades, health, stamina pickups — full HUD with compass and radar</li>
           </ul>
           <p className="mktIntelBody" style={{ marginTop: "1rem" }}>
-            Settings → Development opens live tuning panels — weapon pose, lighting,
-            barrel pile placement, VX-27 container JSON export, and more. Tweak in-game,
-            copy JSON, bake into the level.
+            Settings → Development opens live tuning panels on localhost — weapon pose,
+            lighting, barrel pile placement, VX-27 container JSON export, door depth, and
+            more. HUD position tuning is opt-in. Tweak in-game, copy JSON, bake into the level.
           </p>
           <Link href="/game" className="mktPlayBtn mktPlayBtnCompact">
             <span className="mktPlayBtnLabel">Play now</span>

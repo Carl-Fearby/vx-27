@@ -199,7 +199,8 @@
       "type": "oilBarrel",
       "x": -4.3,
       "z": -21.95,
-      "note": "NW corner of former service-room footprint — open top, interior fire"
+      "roomId": "service_room",
+      "note": "Dark service room NW corner — open top, interior fire"
     },
     {
       "id": "oil_barrel_pile_stop_begin",

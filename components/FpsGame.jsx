@@ -44,6 +44,9 @@ import {
 } from "@/lib/lighting/LightingLayers";
 import {
   isPointInsideAnyRoom,
+  isPointInsideAnyFloorExtension,
+  findFloorExtensionFootprintAtZ,
+  FLOOR_EXTENSION_WALK_PAD,
   isIndoorLightingZone,
 } from "@/lib/rooms/RoomPlacement";
 import { buildRoomCullables, updateRoomCulling } from "@/lib/rooms/RoomCulling";
@@ -160,7 +163,7 @@ import {
   PROJECTILE_FLASHBANG,
 } from "@/lib/combat/Grenade";
 import { groundSupportFromLevel } from "@/lib/physics/GroundSupport";
-import { warmupGameGpu, resetGameGpuWarmup } from "@/lib/dev/GpuWarmup";
+import { warmupGameGpu, resetGameGpuWarmup, GPU_WARMUP_ENABLED } from "@/lib/dev/GpuWarmup";
 import { resetArenaCeilingDayNightCache } from "@/lib/lighting/ArenaCeilingDayNight";
 import {
   applyTargetHit,
@@ -217,7 +220,7 @@ import {
   loadWeaponTuning,
   saveWeaponTuneEnabled,
 } from "@/lib/weapons/WeaponTuning";
-// Tune panels moved to components/tuning-panels and are not imported by default
+import StairTunePanel from "@/components/tuning-panels/StairTunePanel";
 import {
   shouldDropAmmoCrate,
   loadAmmoDropSpareThreshold,
@@ -311,9 +314,30 @@ import {
   loadFrameHitchProfilerEnabled,
 } from "@/lib/dev/FrameHitchProfiler";
 import {
+  areShadowsDisabled,
+  applyShadowMapTypeToRenderer,
+  disableAllShadows,
+  enableRendererShadowPipeline,
+  loadPlainShadowDepthEnabled,
+  loadShadowMapType,
+  loadShadowsDisabled,
+  setPlainShadowDepthRuntime,
+  setShadowMapTypeRuntime,
+  setShadowsDisabledRuntime,
+  SHADOW_MAP_TYPE_OPTIONS,
+} from "@/lib/dev/ShadowDebug";
+import {
+  resetAndApplyShadowCastHygiene,
+} from "@/lib/lighting/ShadowMaterialHygiene";
+import {
+  applyTextureOverride,
+  areTexturesDisabled,
+  loadTexturesDisabled,
+  setTexturesDisabledRuntime,
+} from "@/lib/dev/TextureDebug";
+import {
   applyFrameShadowUpdates,
   beginShadowStartupWindow,
-  configureRendererShadowPolicy,
   requestShadowMapUpdate,
 } from "@/lib/lighting/ShadowUpdatePolicy";
 import {
@@ -928,6 +952,23 @@ export default function FpsGame() {
     loadFrameHitchProfilerEnabled()
   );
   const frameHitchProfilerRef = useRef(null);
+  const [shadowsDisabled, setShadowsDisabled] = useState(() =>
+    loadShadowsDisabled()
+  );
+  const shadowsDisabledRef = useRef(shadowsDisabled);
+  const applyShadowDebugRef = useRef(null);
+  const [texturesDisabled, setTexturesDisabled] = useState(() =>
+    loadTexturesDisabled()
+  );
+  const texturesDisabledRef = useRef(texturesDisabled);
+  const applyTextureDebugRef = useRef(null);
+  const [shadowMapType, setShadowMapType] = useState(() => loadShadowMapType());
+  const shadowMapTypeRef = useRef(shadowMapType);
+  const [plainShadowDepth, setPlainShadowDepth] = useState(() =>
+    loadPlainShadowDepthEnabled()
+  );
+  const plainShadowDepthRef = useRef(plainShadowDepth);
+  const applyShadowExperimentRef = useRef(null);
   const [showPlayerCoords, setShowPlayerCoords] = useState(
     () => window.localStorage.getItem(SHOW_PLAYER_COORDS_KEY) === "true"
   );
@@ -1549,9 +1590,11 @@ export default function FpsGame() {
       const isActive = () => !disposed;
       renderer.setPixelRatio(effectivePixelRatio(renderScaleRef.current));
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFShadowMap;
-      configureRendererShadowPolicy(renderer);
+      if (areShadowsDisabled()) {
+        renderer.shadowMap.enabled = false;
+      } else {
+        enableRendererShadowPipeline(renderer);
+      }
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.0;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -1560,6 +1603,14 @@ export default function FpsGame() {
       scene = new THREE.Scene();
       scene.fog = new THREE.Fog(DAY_CLEAR_COLOR, 45, 95);
       sceneRef.current = scene;
+      applyTextureDebugRef.current = (disabled) => {
+        setTexturesDisabledRuntime(disabled);
+        texturesDisabledRef.current = disabled;
+        applyTextureOverride(scene, disabled);
+      };
+      if (areTexturesDisabled()) {
+        applyTextureOverride(scene, true);
+      }
 
       const HIP_FOV = 75;
       const ADS_FOV = 52;
@@ -1678,6 +1729,9 @@ export default function FpsGame() {
       enableShadowsOn(level.group);
       assignWorldLayers(level.group);
       disableInteriorCastShadows(level.group);
+      if (areShadowsDisabled()) {
+        disableAllShadows(renderer, scene);
+      }
       setHealthBarOccluders(level.group);
       setSunOcclusionRoot(level.group);
       reportLoad(72, "Level geometry");
@@ -1843,7 +1897,10 @@ export default function FpsGame() {
         // above the horizon at once, and dual shadow passes hitch the fade.
         const sunShadowOn = sun.intensity > 0.001;
         const moonShadowOn = moon.intensity > 0.001;
-        if (sunShadowOn && moonShadowOn) {
+        if (areShadowsDisabled()) {
+          sun.castShadow = false;
+          moon.castShadow = false;
+        } else if (sunShadowOn && moonShadowOn) {
           if (sun.intensity >= moon.intensity) {
             sun.castShadow = true;
             moon.castShadow = false;
@@ -1892,7 +1949,7 @@ export default function FpsGame() {
         );
       };
       refitSunShadowRef.current = () => {
-        if (!level?.group) return;
+        if (areShadowsDisabled() || !level?.group) return;
         applySunLightPosition(sun, sunLightPosRef.current);
         fitDirectionalLightShadow(sun, level.group, {
           arenaSize: arena.size,
@@ -1901,7 +1958,7 @@ export default function FpsGame() {
         sun.target.updateMatrixWorld(true);
       };
       refitMoonShadowRef.current = () => {
-        if (!level?.group || !moon) return;
+        if (areShadowsDisabled() || !level?.group || !moon) return;
         applyMoonLightPosition(moon, moonLightPosRef.current);
         fitMoonDirectionalLightShadow(moon, level.group, {
           arenaSize: arena.size,
@@ -1909,6 +1966,42 @@ export default function FpsGame() {
         moon.updateMatrixWorld(true);
         moon.target.updateMatrixWorld(true);
       };
+      applyShadowDebugRef.current = (disabled) => {
+        setShadowsDisabledRuntime(disabled);
+        shadowsDisabledRef.current = disabled;
+        if (disabled) {
+          disableAllShadows(renderer, scene);
+        } else {
+          enableRendererShadowPipeline(renderer);
+          enableShadowsOn(level.group);
+          if (level.pickupsGroup) enableShadowsOn(level.pickupsGroup);
+          disableInteriorCastShadows(level.group);
+          resetAndApplyShadowCastHygiene(level.group);
+          if (level.pickupsGroup) {
+            resetAndApplyShadowCastHygiene(level.pickupsGroup);
+          }
+          refreshLevelPickupShadows(
+            level.pickupsGroup ?? scene,
+            collectibleEntries.map((e) => e.drop?.mesh),
+            level.group
+          );
+          refitSunShadowRef.current?.();
+          refitMoonShadowRef.current?.();
+          requestShadowMapUpdate(renderer);
+        }
+      };
+      applyShadowExperimentRef.current = () => {
+        if (areShadowsDisabled()) return;
+        applyShadowMapTypeToRenderer(renderer);
+        resetAndApplyShadowCastHygiene(level.group);
+        if (level.pickupsGroup) {
+          resetAndApplyShadowCastHygiene(level.pickupsGroup);
+        }
+        requestShadowMapUpdate(renderer);
+      };
+      if (areShadowsDisabled()) {
+        disableAllShadows(renderer, scene);
+      }
       const mountLevelCollectibles = () => {
         if (disposed || !level) return;
         const spawnedCollectibles = spawnLevelCollectibles(
@@ -1922,7 +2015,11 @@ export default function FpsGame() {
           collectibleEntries.map((e) => e.drop?.mesh),
           level.group
         );
-        requestShadowMapUpdate(renderer);
+        if (areShadowsDisabled()) {
+          disableAllShadows(renderer, scene);
+        } else {
+          requestShadowMapUpdate(renderer);
+        }
         mountCompassCollectibleMarkers(
           compassMarkersRef.current,
           collectibleEntries
@@ -1930,6 +2027,7 @@ export default function FpsGame() {
       };
       applyDayNightRef.current(sunIsDayRef.current);
       mountLevelCollectibles();
+      applyShadowExperimentRef.current?.();
       if (sunIsDayRef.current) {
         refitSunShadowRef.current();
       } else {
@@ -2148,6 +2246,23 @@ export default function FpsGame() {
             level.rooms ?? [],
             arenaHalf,
             level.attachWall ?? attachWall
+          ) ||
+          isPointInsideAnyFloorExtension(
+            x,
+            z,
+            arena.floorExtensions ?? [],
+            level.attachWall ?? attachWall,
+            arenaHalf,
+            arena.wallThickness ?? 0.5,
+            FLOOR_EXTENSION_WALK_PAD
+          ),
+        findFloorExtensionAtZ: (z) =>
+          findFloorExtensionFootprintAtZ(
+            z,
+            arena.floorExtensions ?? [],
+            level.attachWall ?? attachWall,
+            arenaHalf,
+            arena.wallThickness ?? 0.5
           ),
         getBindings: () => bindingsRef.current,
         getInvertYLook: () => invertYRef.current,
@@ -3525,44 +3640,7 @@ export default function FpsGame() {
         input.endFrame();
         sun.target.updateMatrixWorld();
 
-        const inRoom = isIndoorLightingZone(
-          player.getX(),
-          player.getZ(),
-          player.getFootY(),
-          arena.rooms,
-          arenaHalf,
-          attachWall,
-          level.catwalkDeckY,
-          level.doorwayOpenings ?? [],
-          arena.wallThickness ?? 0.5
-        );
-        syncLightLayersForZone(scene, inRoom, outdoorLights, roomLightsRef.current);
-        syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, inRoom);
-
-        const barrelFireShadowCount = updateOilBarrelFireShadowBudget(
-          oilBarrelRuntimeIndex.fireLights,
-          camera.position,
-          getOilBarrelTuning()
-        );
-        applyFrameShadowUpdates(renderer, {
-          sunCastsShadow:
-            (sunRef.current?.castShadow && sunRef.current.intensity > 0.001) ||
-            false,
-          moonCastsShadow:
-            (moonRef.current?.castShadow && moonRef.current.intensity > 0.001) ||
-            false,
-          dayNightAnimating:
-            dayNightCurNightnessRef.current !==
-            dayNightTargetNightnessRef.current,
-          flashlightShadow: weapon?.isFlashlightCastingShadow?.() ?? false,
-          barrelFireShadowCount,
-        });
-
-        sky?.update(camera);
         resetCameraRenderLayers(camera);
-        // Per-room frustum culling — hide rooms (and their lights) that the
-        // camera can't currently see, and tell the renderer to skip the
-        // interior pass on frames where no room is in view.
         const { visibleCount: visibleRoomCount } = updateRoomCulling(
           roomCullablesRef.current,
           camera,
@@ -3577,6 +3655,50 @@ export default function FpsGame() {
           level.doorwayOpenings ?? [],
           arena.wallThickness ?? 0.5
         );
+
+        const inRoomBody = isIndoorLightingZone(
+          player.getX(),
+          player.getZ(),
+          player.getFootY(),
+          arena.rooms,
+          arenaHalf,
+          attachWall,
+          level.catwalkDeckY,
+          level.doorwayOpenings ?? [],
+          arena.wallThickness ?? 0.5
+        );
+        // Keep light layers aligned with the room pass whenever the camera sees
+        // interior geometry — avoids outdoor/room pass mismatch at doorways.
+        const inRoom = inRoomBody || visibleRoomCount > 0;
+        syncLightLayersForZone(scene, inRoom, outdoorLights, roomLightsRef.current);
+        syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, inRoom);
+
+        const barrelFireShadowCount = areShadowsDisabled()
+          ? 0
+          : updateOilBarrelFireShadowBudget(
+              oilBarrelRuntimeIndex.fireLights,
+              camera.position,
+              getOilBarrelTuning()
+            );
+        applyFrameShadowUpdates(renderer, {
+          sunCastsShadow:
+            !areShadowsDisabled() &&
+            ((sunRef.current?.castShadow && sunRef.current.intensity > 0.001) ||
+              false),
+          moonCastsShadow:
+            !areShadowsDisabled() &&
+            ((moonRef.current?.castShadow && moonRef.current.intensity > 0.001) ||
+              false),
+          dayNightAnimating:
+            dayNightCurNightnessRef.current !==
+            dayNightTargetNightnessRef.current,
+          flashlightShadow:
+            !areShadowsDisabled() &&
+            (weapon?.isFlashlightCastingShadow?.() ?? false),
+          barrelFireShadowCount,
+        });
+
+        sky?.update(camera);
         hitch?.mark("scene");
         renderSceneWithLayeredLighting(renderer, scene, camera, {
           skyRoot: sky?.mesh ?? null,
@@ -3688,7 +3810,7 @@ export default function FpsGame() {
       if (!isActive()) return;
       reportLoad(97, "Sound effects");
 
-      reportLoad(98, "GPU warmup");
+      reportLoad(98, GPU_WARMUP_ENABLED ? "GPU warmup" : "GPU warmup skipped");
       await warmupGameGpu({
         renderer,
         scene,
@@ -3709,10 +3831,17 @@ export default function FpsGame() {
         oilBarrelFireLights: oilBarrelFireLightsRef.current,
         doorwayOpenings: level.doorwayOpenings ?? [],
         catwalkDeckY: level.catwalkDeckY,
+        stairPlacement: stairParamsRef.current,
         arenaHalf,
         attachWall,
         arenaRooms: arena.rooms ?? [],
+        roomCullables: roomCullablesRef.current,
         wallThickness: arena.wallThickness ?? 0.5,
+        wallStandoff: arena.wallStandoff ?? 0.5,
+        primeDirectionalShadow: () => {
+          if (sunIsDayRef.current) refitSunShadowRef.current?.();
+          else refitMoonShadowRef.current?.();
+        },
         applyDayNightNightness: (nightness) => {
           applyDayNightRef.current?.(nightness);
         },
@@ -3725,11 +3854,6 @@ export default function FpsGame() {
         collectibleEntries.map((e) => e.drop?.mesh),
         level.group
       );
-      if (sunIsDayRef.current) {
-        refitSunShadowRef.current?.();
-      } else {
-        refitMoonShadowRef.current?.();
-      }
       beginShadowStartupWindow();
       reportLoad(99, "GPU ready");
 
@@ -4489,9 +4613,9 @@ export default function FpsGame() {
 
             <SettingsSection title="Development">
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                Dev tools and runtime debug toggles. Live tuning panel components live in{" "}
-                <code>components/tuning-panels</code> and are not mounted here (bundle/perf).
-                Use the buttons below to persist panel enable flags in localStorage for local dev.
+                Dev tools and runtime debug toggles. Stairway placement is tuned in-game
+                via the panel below when enabled. Other tuning panels live in{" "}
+                <code>components/tuning-panels</code> (not mounted here).
               </p>
               <p className="settingsGroupLabel">Tuning panels</p>
               <div className="settingsBtnRow" style={{ marginBottom: "0.65rem" }}>
@@ -4510,6 +4634,24 @@ export default function FpsGame() {
                   Disable all panels
                 </button>
               </div>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={stairsTuneEnabled}
+                  disabled={!arenaHasStairs}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setStairsTuneEnabled(checked);
+                    localStorage.setItem(STAIRS_TUNE_ENABLED_KEY, String(checked));
+                  }}
+                />
+                Stairway tuning
+                {!arenaHasStairs && (
+                  <span className="settingsHint" style={{ marginLeft: "0.4rem" }}>
+                    (no stairs in this arena)
+                  </span>
+                )}
+              </label>
               <p className="settingsGroupLabel">Scene visibility (perf debug)</p>
               <p className="settingsHint" style={{ marginTop: 0 }}>
                 Hide meshes to isolate FPS cost. Collision and lights stay active unless
@@ -4630,6 +4772,86 @@ export default function FpsGame() {
                 Disable hole decals (dev)
               </label>
               <p className="settingsGroupLabel">Debug tools</p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={shadowsDisabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setShadowsDisabled(checked);
+                    shadowsDisabledRef.current = checked;
+                    setShadowsDisabledRuntime(checked);
+                    applyShadowDebugRef.current?.(checked);
+                  }}
+                />
+                Disable all shadows (debug)
+              </label>
+              <p className="settingsHint" style={{ marginTop: "-0.35rem" }}>
+                Sun/moon, flashlight, barrel fire, mesh cast/receive — off entirely.
+                Toggle then click <strong>Start Game</strong> if the level is already
+                running. Compare stair hitch with this on vs off.
+              </p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={texturesDisabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setTexturesDisabled(checked);
+                    texturesDisabledRef.current = checked;
+                    setTexturesDisabledRuntime(checked);
+                    applyTextureDebugRef.current?.(checked);
+                  }}
+                />
+                Disable all textures (debug)
+              </label>
+              <p className="settingsHint" style={{ marginTop: "-0.35rem" }}>
+                Flat grey Lambert via <code>scene.overrideMaterial</code> — no map
+                sampling (walls, floor, props, sky mesh). Toggle then{" "}
+                <strong>Start Game</strong> if already in-level.
+              </p>
+              <p className="settingsGroupLabel">Shadow experiments</p>
+              <label className="settingRow">
+                <span>Shadow map type</span>
+                <select
+                  value={shadowMapType}
+                  disabled={shadowsDisabled}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setShadowMapType(value);
+                    shadowMapTypeRef.current = value;
+                    setShadowMapTypeRuntime(value);
+                    applyShadowExperimentRef.current?.();
+                  }}
+                  style={{ marginLeft: "0.5rem" }}
+                >
+                  {SHADOW_MAP_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={plainShadowDepth}
+                  disabled={shadowsDisabled}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setPlainShadowDepth(checked);
+                    plainShadowDepthRef.current = checked;
+                    setPlainShadowDepthRuntime(checked);
+                    applyShadowExperimentRef.current?.();
+                  }}
+                />
+                Plain shadow depth (no alpha/map in cast pass)
+              </label>
+              <p className="settingsHint" style={{ marginTop: "-0.35rem" }}>
+                Bisect the stair hitch: textures+shadows together vs plain depth or
+                Basic/VSM map type. Click <strong>Start Game</strong> after changing
+                if already in-level.
+              </p>
               <label className="settingRow">
                 <input
                   type="checkbox"
@@ -4759,6 +4981,50 @@ export default function FpsGame() {
           onRebindActionChange={setRebindAction}
         />
       )}
+      <div className="devTuneStack">
+        {arenaHasStairs && stairsTuneEnabled && (
+          <StairTunePanel
+            floorDeckY={floorDeckY}
+            catwalkDeckY={catwalkDeckY}
+            x={stairX}
+            y={stairY}
+            z={stairZ}
+            rotationY={stairRotationY}
+            onXChange={(value) => {
+              setStairX(value);
+              commitStairParams({
+                ...stairParamsRef.current,
+                position: { ...stairParamsRef.current.position, x: value },
+              });
+            }}
+            onYChange={(value) => {
+              setStairY(value);
+              commitStairParams({
+                ...stairParamsRef.current,
+                position: { ...stairParamsRef.current.position, y: value },
+              });
+            }}
+            onZChange={(value) => {
+              setStairZ(value);
+              commitStairParams({
+                ...stairParamsRef.current,
+                position: { ...stairParamsRef.current.position, z: value },
+              });
+            }}
+            onRotationChange={(value) => {
+              setStairRotationY(value);
+              commitStairParams({
+                ...stairParamsRef.current,
+                rotationY: value,
+              });
+            }}
+            onClose={() => {
+              setStairsTuneEnabled(false);
+              localStorage.setItem(STAIRS_TUNE_ENABLED_KEY, "false");
+            }}
+          />
+        )}
+      </div>
       {showFps && (
         <div ref={fpsRef} className="fpsCounter fpsCounterFixed" aria-live="polite">
           — FPS

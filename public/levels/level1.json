@@ -3,7 +3,8 @@
     "number": 1,
     "id": "level1",
     "name": "Square Arena",
-    "objective": "HOLD ZONE"
+    "objective": "HOLD ZONE",
+    "devNote": "2026-06-03: service_room interior removed (dual-pass experiment rollback). Arena floor extended via floorExtensions to former room footprint; north doorways unchanged."
   },
   "size": 28,
   "wallHeight": 4,
@@ -41,35 +42,15 @@
       "radius": 1.4
     }
   ],
-  "rooms": [
+  "floorExtensions": [
     {
-      "id": "service_room",
       "centerX": 0,
       "width": 11,
       "depth": 9,
-      "height": 3.8,
-      "wallThickness": 0.35,
-      "textures": {
-        "floor": "ground_smooth_concrete_worn",
-        "wall": "wall_blue_cinderblock_worn",
-        "ceiling": "ground_smooth_concrete_worn"
-      },
-      "lights": [
-        {
-          "type": "point",
-          "position": [
-            0,
-            3.2,
-            0
-          ],
-          "color": "#ffaa55",
-          "intensity": 10,
-          "distance": 7,
-          "decay": 2
-        }
-      ]
+      "wallThickness": 0.35
     }
   ],
+  "rooms": [],
   "textures": {
     "floor": "ground_concrete_asphalt_dirty",
     "wall": "wall_poured_concrete_industrial",
@@ -202,8 +183,7 @@
       "type": "oilBarrel",
       "x": -4.3,
       "z": -21.95,
-      "roomId": "service_room",
-      "note": "Dark service room NW corner — open top, interior fire"
+      "note": "NW corner of former service-room footprint — open top, interior fire"
     },
     {
       "id": "oil_barrel_pile_stop_begin",
@@ -311,14 +291,14 @@
   ],
   "collectibles": [
     {
-      "id": "catwalk_ammo_crate",
+      "id": "service_room_ammo_crate",
       "type": "ammo",
-      "x": 8.549,
-      "z": 2.478,
-      "surface": "catwalk",
-      "floorY": 4.35,
+      "x": 2.5,
+      "z": -17.5,
+      "surface": "floor",
+      "floorY": 0,
       "value": 10,
-      "note": "Ammo crate on catwalk — QA spawn at player coords (footY 4.35)"
+      "note": "Ammo crate on extension floor (former service room) — moved off stair/catwalk lip"
     }
   ]
 }

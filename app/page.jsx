@@ -1,6 +1,6 @@
 import MarketingSite from "@/components/MarketingSite";
 import MarketingJsonLd from "@/components/MarketingJsonLd";
-import { buildPageMetadata } from "@/lib/siteSeo";
+import { buildPageMetadata } from "@/lib/site/siteSeo";
 
 export const metadata = buildPageMetadata({
   path: "/",

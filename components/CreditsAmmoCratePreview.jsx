@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { mountCreditsAmmoCratePreview } from "@/lib/CreditsAmmoCratePreview";
-import { preloadCreditsAssetData } from "@/lib/preloadCreditsAssets";
+import { mountCreditsAmmoCratePreview } from "@/lib/credits/CreditsAmmoCratePreview";
+import { preloadCreditsAssetData } from "@/lib/credits/preloadCreditsAssets";
 import {
   creditsPreviewPriorityFromHost,
   useCreditsLazy3d,
-} from "@/lib/useCreditsLazy3d";
+} from "@/lib/credits/useCreditsLazy3d";
 
 export default function CreditsAmmoCratePreview({ variant = "default", className = "" }) {
   const canvasRef = useRef(null);

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Snapshot full git history into lib/gitCommitHistory.json for /version.
+ * Snapshot full git history into lib/version/gitCommitHistory.json for /version.
  * Runs on dev start and prebuild — do not edit the JSON by hand.
  */
 import { execSync } from "node:child_process";
@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const OUT = path.join(ROOT, "lib", "gitCommitHistory.json");
+const OUT = path.join(ROOT, "lib", "version", "gitCommitHistory.json");
 
 function gitShortHead() {
   try {
@@ -51,4 +51,4 @@ const payload = {
 };
 
 writeFileSync(OUT, `${JSON.stringify(payload, null, 2)}\n`);
-console.log(`version history: ${commits.length} commits → lib/gitCommitHistory.json`);
+console.log(`version history: ${commits.length} commits → lib/version/gitCommitHistory.json`);

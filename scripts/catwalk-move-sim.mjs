@@ -1,13 +1,13 @@
 /** Simulate catwalk walk from stuck position. node scripts/catwalk-move-sim.mjs */
 import * as THREE from "three";
 import { readFileSync } from "node:fs";
-import { createPlayerController } from "../lib/PlayerController.js";
-import { buildStairFlight, getStairCeilingCutout } from "../lib/LevelStairs.js";
-import { buildAttachedRoom } from "../lib/LevelRoom.js";
-import { getDefaultStairPlacement, getArenaCatwalkDeckY } from "../lib/StairTuning.js";
-import { getArenaAttachWall, getDoorwaysOnWall } from "../lib/DoorwayWall.js";
-import { pushCollider } from "../lib/Collision.js";
-import { DEFAULT_BINDINGS } from "../lib/KeyBindings.js";
+import { createPlayerController } from "../lib/player/PlayerController.js";
+import { buildStairFlight, getStairCeilingCutout } from "../lib/stairs/LevelStairs.js";
+import { buildAttachedRoom } from "../lib/rooms/LevelRoom.js";
+import { getDefaultStairPlacement, getArenaCatwalkDeckY } from "../lib/stairs/StairTuning.js";
+import { getArenaAttachWall, getDoorwaysOnWall } from "../lib/rooms/DoorwayWall.js";
+import { pushCollider } from "../lib/physics/Collision.js";
+import { DEFAULT_BINDINGS } from "../lib/player/KeyBindings.js";
 
 function deckRectPieces(fullMinX, fullMaxX, fullMinZ, fullMaxZ, hole) {
   if (!hole)
@@ -88,7 +88,7 @@ function buildLevelColliders(raw) {
   const ceilingColliders = [];
 
   const { resolvePillarColliderHalf, resolvePillarShape } = await import(
-    "../lib/PillarGeometry.js"
+    "../lib/level/PillarGeometry.js"
   );
   for (const p of raw.pillars ?? []) {
     const { halfX, halfZ } = resolvePillarColliderHalf(p, raw);

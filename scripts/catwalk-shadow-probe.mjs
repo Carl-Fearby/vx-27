@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { readFileSync } from "node:fs";
-import { createLevelFromArena } from "../lib/Level.js";
-import { getDefaultStairPlacement } from "../lib/StairTuning.js";
-import { getRoomCatwalkDeckPiece } from "../lib/RoomPlacement.js";
+import { createLevelFromArena } from "../lib/level/Level.js";
+import { getDefaultStairPlacement } from "../lib/stairs/StairTuning.js";
+import { getRoomCatwalkDeckPiece } from "../lib/rooms/RoomPlacement.js";
 
 // Minimal DOM stub for target health bar sprites in headless probe.
 if (typeof globalThis.document === "undefined") {

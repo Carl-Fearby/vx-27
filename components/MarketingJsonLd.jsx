@@ -5,7 +5,7 @@ import {
   SITE_NAME,
   SITE_TAGLINE,
   SITE_URL,
-} from "@/lib/siteSeo";
+} from "@/lib/site/siteSeo";
 
 export default function MarketingJsonLd() {
   const poster = absoluteUrl("/ui/vx-27poster.webp");

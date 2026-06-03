@@ -1,8 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import packageJson from "../package.json";
-import { VERSION_HISTORY } from "@/lib/versionHistory";
-import gitCommitHistory from "@/lib/gitCommitHistory.json";
+import { VERSION_HISTORY } from "@/lib/version/versionHistory";
+import gitCommitHistory from "@/lib/version/gitCommitHistory.json";
 
 function formatBuildTime(iso) {
   if (!iso) return "—";

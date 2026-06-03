@@ -1,8 +1,8 @@
 /** node scripts/stair-edge-probe.mjs */
 import * as THREE from "three";
-import { buildStairFlight, getStairCeilingCutout } from "../lib/LevelStairs.js";
-import { getDefaultStairPlacement, getArenaCatwalkDeckY } from "../lib/StairTuning.js";
-import { shouldSkipCollider, rotatedBoxOverlapsCircle } from "../lib/Collision.js";
+import { buildStairFlight, getStairCeilingCutout } from "../lib/stairs/LevelStairs.js";
+import { getDefaultStairPlacement, getArenaCatwalkDeckY } from "../lib/stairs/StairTuning.js";
+import { shouldSkipCollider, rotatedBoxOverlapsCircle } from "../lib/physics/Collision.js";
 
 function deckRectPieces(fullMinX, fullMaxX, fullMinZ, fullMaxZ, hole) {
   if (!hole) return [{ minX: fullMinX, maxX: fullMaxX, minZ: fullMinZ, maxZ: fullMaxZ }];

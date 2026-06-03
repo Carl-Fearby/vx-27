@@ -3,18 +3,18 @@
  */
 import * as THREE from "three";
 import { readFileSync } from "node:fs";
-import { createPlayerController } from "../lib/PlayerController.js";
-import { buildStairFlight, getStairCeilingCutout } from "../lib/LevelStairs.js";
-import { buildAttachedRoom } from "../lib/LevelRoom.js";
-import { getDefaultStairPlacement } from "../lib/StairTuning.js";
-import { getArenaAttachWall, getDoorwaysOnWall } from "../lib/DoorwayWall.js";
+import { createPlayerController } from "../lib/player/PlayerController.js";
+import { buildStairFlight, getStairCeilingCutout } from "../lib/stairs/LevelStairs.js";
+import { buildAttachedRoom } from "../lib/rooms/LevelRoom.js";
+import { getDefaultStairPlacement } from "../lib/stairs/StairTuning.js";
+import { getArenaAttachWall, getDoorwaysOnWall } from "../lib/rooms/DoorwayWall.js";
 import {
   resolvePillarColliderHalf,
   resolvePillarShape,
-} from "../lib/PillarGeometry.js";
-import { sampleStairRampFootYRaw } from "../lib/StairRamp.js";
-import { pointInFloorHole } from "../lib/Collision.js";
-import { DEFAULT_BINDINGS } from "../lib/KeyBindings.js";
+} from "../lib/level/PillarGeometry.js";
+import { sampleStairRampFootYRaw } from "../lib/stairs/StairRamp.js";
+import { pointInFloorHole } from "../lib/physics/Collision.js";
+import { DEFAULT_BINDINGS } from "../lib/player/KeyBindings.js";
 
 const FLOOR_WALL_OVERLAP = 0.08;
 

@@ -4,7 +4,7 @@ import {
   BINDING_ROWS,
   formatBindingValue,
   resetBindings,
-} from "@/lib/KeyBindings";
+} from "@/lib/player/KeyBindings";
 
 export default function ControlsPanel({
   onClose,

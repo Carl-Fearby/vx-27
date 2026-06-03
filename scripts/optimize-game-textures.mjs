@@ -178,7 +178,7 @@ const VX27 = [
   ...opts,
 }));
 
-/** Only maps loaded at runtime by lib/Grenade.js */
+/** Only maps loaded at runtime by lib/combat/Grenade.js */
 const GRENADE_RUNTIME = [
   {
     dir: "grenade",

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prepare a semver release: bump package.json and prepend lib/versionHistory.js.
+ * Prepare a semver release: bump package.json and prepend lib/version/versionHistory.js.
  *
  * Usage:
  *   npm run release:patch
@@ -12,7 +12,7 @@
  *
  * Workflow:
  *   1. npm run release:patch             # edit title + bullets when prompted
- *   2. git add package.json package-lock.json lib/versionHistory.js && git commit …
+ *   2. git add package.json package-lock.json lib/version/versionHistory.js && git commit …
  *   3. npm run release:sync-commit       # stamp the release commit hash
  */
 
@@ -26,7 +26,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PKG_PATH = path.join(ROOT, "package.json");
 const LOCK_PATH = path.join(ROOT, "package-lock.json");
-const HISTORY_PATH = path.join(ROOT, "lib", "versionHistory.js");
+const HISTORY_PATH = path.join(ROOT, "lib", "version", "versionHistory.js");
 const HISTORY_MARKER = "export const VERSION_HISTORY = [";
 
 function usage() {
@@ -139,7 +139,7 @@ function readVersionHistorySource() {
 function prependReleaseEntry(source, entryBlock) {
   const markerIndex = source.indexOf(HISTORY_MARKER);
   if (markerIndex === -1) {
-    throw new Error(`Could not find ${HISTORY_MARKER} in lib/versionHistory.js`);
+    throw new Error(`Could not find ${HISTORY_MARKER} in lib/version/versionHistory.js`);
   }
   const insertAt = markerIndex + HISTORY_MARKER.length;
   return `${source.slice(0, insertAt)}\n${entryBlock}\n${source.slice(insertAt)}`;
@@ -155,7 +155,7 @@ function readTopReleaseVersion(source) {
 function replaceTopReleaseCommit(source, commit) {
   const start = source.indexOf(HISTORY_MARKER);
   if (start === -1) {
-    throw new Error(`Could not find ${HISTORY_MARKER} in lib/versionHistory.js`);
+    throw new Error(`Could not find ${HISTORY_MARKER} in lib/version/versionHistory.js`);
   }
   const block = source.slice(start);
   const updated = block.replace(
@@ -223,7 +223,7 @@ function buildCommitMessage(version, title, changes) {
 function printNextSteps(version, commitMessage) {
   console.log("\nSuggested commit:");
   console.log("---");
-  console.log("git add package.json package-lock.json lib/versionHistory.js");
+  console.log("git add package.json package-lock.json lib/version/versionHistory.js");
   console.log(
     `git commit -m "$(cat <<'EOF'\n${commitMessage}\nEOF\n)"`
   );
@@ -244,9 +244,9 @@ function syncCommit(opts) {
   }
 
   writeFileSync(HISTORY_PATH, next);
-  console.log(`Updated lib/versionHistory.js: v${topVersion} commit → ${head}`);
+  console.log(`Updated lib/version/versionHistory.js: v${topVersion} commit → ${head}`);
   console.log("\nCommit the hash fix:");
-  console.log(`git add lib/versionHistory.js`);
+  console.log(`git add lib/version/versionHistory.js`);
   console.log(`git commit -m "Fix v${topVersion} release commit hash in version history."`);
 }
 
@@ -317,7 +317,7 @@ async function runRelease(opts) {
   writePackageLockVersion(nextVersion);
   writeFileSync(HISTORY_PATH, nextHistory);
 
-  console.log(`\nWrote v${nextVersion} to package.json and lib/versionHistory.js`);
+  console.log(`\nWrote v${nextVersion} to package.json and lib/version/versionHistory.js`);
   printNextSteps(nextVersion, commitMessage);
 }
 

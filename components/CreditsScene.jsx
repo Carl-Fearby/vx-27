@@ -10,21 +10,21 @@ import {
   loadStoredLoadingTrackId,
   MUSIC_TRACK_KEY,
   MUSIC_TRACKS,
-} from "@/lib/Sound";
+} from "@/lib/audio/Sound";
 import CreditsRiflePreview from "@/components/CreditsRiflePreview";
 import CreditsAmmoCratePreview from "@/components/CreditsAmmoCratePreview";
 import CreditsVx27ContainerPreview from "@/components/CreditsVx27ContainerPreview";
 import CreditsBigBangFinale from "@/components/CreditsBigBangFinale";
 import CreditsScanlineCanvas from "@/components/CreditsScanlineCanvas";
 import LoadingAudioViz from "@/components/LoadingAudioViz";
-import { preloadCreditsAssets } from "@/lib/preloadCreditsAssets";
-import { setCreditsPreviewPaused } from "@/lib/creditsPreviewScheduler";
+import { preloadCreditsAssets } from "@/lib/credits/preloadCreditsAssets";
+import { setCreditsPreviewPaused } from "@/lib/credits/creditsPreviewScheduler";
 import {
   GOLD_STAFF,
   PRODUCTION_STAFF,
   PRODUCTION_STAFF_SHUFFLED,
   staffAt,
-} from "@/lib/CreditsStaffNames";
+} from "@/lib/credits/CreditsStaffNames";
 
 const CARL = "Carl Fearby";
 

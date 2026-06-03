@@ -9,8 +9,8 @@ import {
   OIL_BARREL_PILE_ID,
   applyOilBarrelPileToArena,
   checkArenaOilBarrelPile,
-} from "../lib/OilBarrelPileLayout.js";
-import { preloadOilBarrelAssets } from "../lib/OilBarrel.js";
+} from "../lib/oil-barrel/OilBarrelPileLayout.js";
+import { preloadOilBarrelAssets } from "../lib/oil-barrel/OilBarrel.js";
 
 const LEVEL_PATH = new URL(
   "../public/levels/level1.json",

@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
-import pickupPreviewEngine from "@/lib/PickupPreviewEngine";
+import pickupPreviewEngine from "@/lib/pickups/PickupPreviewEngine";
 
 const PICKUP_DISPLAY_MS = 2000;
 const PICKUP_FADE_MS = 550;

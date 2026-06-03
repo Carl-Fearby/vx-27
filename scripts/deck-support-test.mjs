@@ -1,8 +1,8 @@
 /** List ground surfaces supporting a world point. Run: node scripts/deck-support-test.mjs */
 import * as THREE from "three";
 import { readFileSync } from "node:fs";
-import { createLevelFromArena } from "../lib/Level.js";
-import { getDefaultStairPlacement } from "../lib/StairTuning.js";
+import { createLevelFromArena } from "../lib/level/Level.js";
+import { getDefaultStairPlacement } from "../lib/stairs/StairTuning.js";
 
 const raw = JSON.parse(
   readFileSync(new URL("../public/levels/level1.json", import.meta.url), "utf8")

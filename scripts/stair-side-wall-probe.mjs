@@ -3,10 +3,10 @@
  * Run: node scripts/stair-side-wall-probe.mjs
  */
 import * as THREE from "three";
-import { buildStairFlight } from "../lib/LevelStairs.js";
-import { shouldSkipCollider, rotatedBoxOverlapsCircle } from "../lib/Collision.js";
-import { sampleStairRampFootYRaw } from "../lib/StairRamp.js";
-import { getDefaultStairPlacement } from "../lib/StairTuning.js";
+import { buildStairFlight } from "../lib/stairs/LevelStairs.js";
+import { shouldSkipCollider, rotatedBoxOverlapsCircle } from "../lib/physics/Collision.js";
+import { sampleStairRampFootYRaw } from "../lib/stairs/StairRamp.js";
+import { getDefaultStairPlacement } from "../lib/stairs/StairTuning.js";
 
 const PLAYER_RADIUS = 0.35;
 const EYE_HEIGHT = 1.65;

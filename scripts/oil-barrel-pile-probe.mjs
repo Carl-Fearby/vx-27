@@ -3,12 +3,12 @@
  */
 import { readFileSync } from "node:fs";
 import * as THREE from "three";
-import { preloadOilBarrelAssets } from "../lib/OilBarrel.js";
+import { preloadOilBarrelAssets } from "../lib/oil-barrel/OilBarrel.js";
 import {
   OIL_BARREL_PILE_ID,
   pileHasOverlap,
   spawnArenaPileBarrelsFromDefs,
-} from "../lib/OilBarrelPileLayout.js";
+} from "../lib/oil-barrel/OilBarrelPileLayout.js";
 
 const level = JSON.parse(
   readFileSync(new URL("../public/levels/level1.json", import.meta.url), "utf8")

@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { mountCreditsFinalePreview } from "@/lib/CreditsFinalePreview";
-import { preloadCreditsAssetData } from "@/lib/preloadCreditsAssets";
+import { mountCreditsFinalePreview } from "@/lib/credits/CreditsFinalePreview";
+import { preloadCreditsAssetData } from "@/lib/credits/preloadCreditsAssets";
 import {
   creditsPreviewPriorityFromHost,
   useCreditsLazy3d,
-} from "@/lib/useCreditsLazy3d";
+} from "@/lib/credits/useCreditsLazy3d";
 
 const BURST_COUNT = 16;
 

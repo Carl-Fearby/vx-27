@@ -1,4 +1,4 @@
-import { buildPageMetadata } from "@/lib/siteSeo";
+import { buildPageMetadata } from "@/lib/site/siteSeo";
 import "./credits.css";
 
 export const metadata = buildPageMetadata({

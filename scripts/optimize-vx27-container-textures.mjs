@@ -6,7 +6,7 @@
  *   node scripts/optimize-vx27-container-textures.mjs --prune-png
  *   node scripts/optimize-vx27-container-textures.mjs --prune-png --prune-unused
  *
- * Only encodes maps referenced by lib/Vx27Container.js SET_FILES.
+ * Only encodes maps referenced by lib/vx27-container/Vx27Container.js SET_FILES.
  */
 import { execFileSync, spawnSync } from "child_process";
 import fs from "fs";
@@ -35,7 +35,7 @@ const pruneUnused = process.argv.includes("--prune-unused");
 const PANEL_W = 1024;
 const PANEL_H = 512;
 
-/** Maps loaded at runtime (lib/Vx27Container.js SET_FILES). */
+/** Maps loaded at runtime (lib/vx27-container/Vx27Container.js SET_FILES). */
 const RUNTIME = [
   ...["side", "inside_wall", "top_bottom"].flatMap((set) => [
     { set, map: "albedo", w: PANEL_W, h: PANEL_H, q: 74 },

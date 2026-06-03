@@ -1,4 +1,4 @@
-import { absoluteUrl } from "@/lib/siteSeo";
+import { absoluteUrl } from "@/lib/site/siteSeo";
 
 export const dynamic = "force-static";
 

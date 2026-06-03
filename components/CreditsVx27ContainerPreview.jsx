@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { mountCreditsVx27ContainerPreview } from "@/lib/CreditsVx27ContainerPreview";
-import { preloadCreditsAssetData } from "@/lib/preloadCreditsAssets";
+import { mountCreditsVx27ContainerPreview } from "@/lib/credits/CreditsVx27ContainerPreview";
+import { preloadCreditsAssetData } from "@/lib/credits/preloadCreditsAssets";
 import {
   creditsPreviewPriorityFromHost,
   useCreditsLazy3d,
-} from "@/lib/useCreditsLazy3d";
+} from "@/lib/credits/useCreditsLazy3d";
 
 export default function CreditsVx27ContainerPreview({
   variant = "default",

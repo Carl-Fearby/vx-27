@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { mountCreditsRiflePreview } from "@/lib/CreditsRiflePreview";
-import { preloadCreditsAssetData } from "@/lib/preloadCreditsAssets";
+import { mountCreditsRiflePreview } from "@/lib/credits/CreditsRiflePreview";
+import { preloadCreditsAssetData } from "@/lib/credits/preloadCreditsAssets";
 import {
   creditsPreviewPriorityFromHost,
   useCreditsLazy3d,
-} from "@/lib/useCreditsLazy3d";
+} from "@/lib/credits/useCreditsLazy3d";
 
 export default function CreditsRiflePreview({ variant = "hero", className = "" }) {
   const canvasRef = useRef(null);

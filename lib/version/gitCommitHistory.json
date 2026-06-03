@@ -1,0 +1,347 @@
+{
+  "generatedAt": "2026-06-03T00:11:10.897Z",
+  "head": "044a012",
+  "count": 68,
+  "commits": [
+    {
+      "sha": "044a012",
+      "date": "2026-06-02",
+      "subject": "Fix v0.1.12 release commit hash in version history."
+    },
+    {
+      "sha": "c0f0fe6",
+      "date": "2026-06-02",
+      "subject": "Add bullet freeze fix documentation - root cause and solution"
+    },
+    {
+      "sha": "d69bda4",
+      "date": "2026-06-02",
+      "subject": "Fix bullet freeze: dedicate GPU warmup to bullet materials only - Create dedicated warmupBulletMaterialsGpu() function that keeps test bullets in scene - Render all 12 warmup frames through full gameplay pipeline (layeredRenderWithRoom) - Bullets stay in scene during warmup to ensure materials compile in exact gameplay context - Removes generic warm() wrapper that may have been dropping materials too early - Expected: First shot now smooth, no freeze on any bullet - Tested: Blue and green bullets both pre-compiled through full world/room passes"
+    },
+    {
+      "sha": "4405f41",
+      "date": "2026-06-02",
+      "subject": "Add comprehensive bullet FPS optimization summary and deployment guide"
+    },
+    {
+      "sha": "1193121",
+      "date": "2026-06-02",
+      "subject": "Add bullet FPS quick verification checklist for testing"
+    },
+    {
+      "sha": "f3b43b7",
+      "date": "2026-06-02",
+      "subject": "Add bullet FPS optimization verification guide and testing documentation"
+    },
+    {
+      "sha": "30dadfd",
+      "date": "2026-06-02",
+      "subject": "Bullet FPS optimization: shared pool materials, stronger GPU warmup - Removed per-shot material creation in bullet pool (was creating glow material each shot) - Consolidated to two shared materials (normal + radioactive) reused across all bolts - Removed per-shot material disposal in removeBullet() - materials live for pool lifetime - Strengthened laser warmup from 5 to 10 frames for both blue and green bolts - Fixed warmup cleanup to properly handle material reuse without leaks - Impacts: First 3-4 shots now render at full FPS instead of hitching on shader/GPU setup"
+    },
+    {
+      "sha": "c8359d6",
+      "date": "2026-06-02",
+      "subject": "Fix v0.1.11 release commit hash in version history."
+    },
+    {
+      "sha": "6246009",
+      "date": "2026-06-02",
+      "subject": "Release v0.1.11: Play loop perf, wall occlusion, and SKY_LAYER rendering."
+    },
+    {
+      "sha": "3fe139b",
+      "date": "2026-06-02",
+      "subject": "Fix v0.1.10 release commit hash in version history."
+    },
+    {
+      "sha": "dbe86d7",
+      "date": "2026-06-02",
+      "subject": "Release v0.1.10: Sky crossfade, ragdoll z-fight, pickup preview warmup."
+    },
+    {
+      "sha": "9f26fae",
+      "date": "2026-06-02",
+      "subject": "Fix v0.1.9 release commit hash in version history."
+    },
+    {
+      "sha": "a4e3d37",
+      "date": "2026-06-02",
+      "subject": "Release v0.1.9: GPU warmup, kill perf, and Three.js 0.184."
+    },
+    {
+      "sha": "c6e32b9",
+      "date": "2026-06-02",
+      "subject": "Upgrade three.js from 0.182.0 to 0.183.0."
+    },
+    {
+      "sha": "e864c24",
+      "date": "2026-06-02",
+      "subject": "Fix v0.1.8 release commit hash in version history."
+    },
+    {
+      "sha": "e380a1b",
+      "date": "2026-06-02",
+      "subject": "Release v0.1.8: Sun lens flare occlusion and two-pass sky render."
+    },
+    {
+      "sha": "615cce4",
+      "date": "2026-06-02",
+      "subject": "Fix v0.1.7 release commit hash in version history."
+    },
+    {
+      "sha": "54b168b",
+      "date": "2026-06-02",
+      "subject": "Release v0.1.7: Three.js 0.182 upgrade and shadow pipeline fix."
+    },
+    {
+      "sha": "2f61655",
+      "date": "2026-06-02",
+      "subject": "Revert three.js to 0.176.0 and harden layered sky rendering."
+    },
+    {
+      "sha": "78351df",
+      "date": "2026-06-02",
+      "subject": "Upgrade three.js from 0.176.0 to 0.184.0."
+    },
+    {
+      "sha": "3f536b9",
+      "date": "2026-06-02",
+      "subject": "Improve perf debugging, input defaults, and Safari audio reliability."
+    },
+    {
+      "sha": "f846bd1",
+      "date": "2026-06-02",
+      "subject": "Fix v0.1.6 release commit hash in version history."
+    },
+    {
+      "sha": "6ab74d5",
+      "date": "2026-06-02",
+      "subject": "Release v0.1.6: credits cargo preview, release tooling, tuning defaults."
+    },
+    {
+      "sha": "f83996e",
+      "date": "2026-06-02",
+      "subject": "Add AGENTS.md: agent guide for repository"
+    },
+    {
+      "sha": "4ddbdb6",
+      "date": "2026-06-02",
+      "subject": "Final touches to the container"
+    },
+    {
+      "sha": "a62eace",
+      "date": "2026-06-02",
+      "subject": "Update marketing and credits for v0.1.5 container work."
+    },
+    {
+      "sha": "d881a13",
+      "date": "2026-06-02",
+      "subject": "Fix v0.1.5 release commit hash in version history."
+    },
+    {
+      "sha": "3c7bdef",
+      "date": "2026-06-02",
+      "subject": "Release v0.1.5: container WebP textures and FPS optimizations."
+    },
+    {
+      "sha": "13ad718",
+      "date": "2026-06-02",
+      "subject": "Release v0.1.4: container polish, marketing, credits."
+    },
+    {
+      "sha": "7dcea67",
+      "date": "2026-06-02",
+      "subject": "Revert \"Remove dev tuning wizards from main (preserved on dev branch).\""
+    },
+    {
+      "sha": "78f4f7c",
+      "date": "2026-06-02",
+      "subject": "Remove dev tuning wizards from main (preserved on dev branch)."
+    },
+    {
+      "sha": "57de6b7",
+      "date": "2026-06-02",
+      "subject": "VX-27 doors/decals, barrel pile by container, tune panel sync."
+    },
+    {
+      "sha": "f286a50",
+      "date": "2026-06-02",
+      "subject": "Release v0.1.3: VX-27 cargo container, door interact, HUD ammo polish."
+    },
+    {
+      "sha": "1363d4f",
+      "date": "2026-06-01",
+      "subject": "Release v0.1.2: HUD hide keeps crosshair, fix compass pointer leak."
+    },
+    {
+      "sha": "4256f37",
+      "date": "2026-06-01",
+      "subject": "Release v0.1.1: catwalk shadows, H HUD toggle, HTTPS dev."
+    },
+    {
+      "sha": "fb108e2",
+      "date": "2026-06-01",
+      "subject": "Add version page, marketing SEO, favicons, and deploy hardening."
+    },
+    {
+      "sha": "fda8e26",
+      "date": "2026-06-01",
+      "subject": "chore: remove GameEngine2.zip from the repository."
+    },
+    {
+      "sha": "610316f",
+      "date": "2026-06-01",
+      "subject": "Improve barrel fire lighting, shrink sky/UI assets, and polish site defaults."
+    },
+    {
+      "sha": "54f92a3",
+      "date": "2026-06-01",
+      "subject": "Add weapon flashlight, fix room bullet decals, and dual barrel fire lights."
+    },
+    {
+      "sha": "f873b18",
+      "date": "2026-06-01",
+      "subject": "Fix attached-room floor z-fighting and catwalk exterior wall visibility."
+    },
+    {
+      "sha": "95a21f2",
+      "date": "2026-06-01",
+      "subject": "Split marketing site from game route and fix attached-room catwalk layering."
+    },
+    {
+      "sha": "541e37d",
+      "date": "2026-05-31",
+      "subject": "Fix catwalk forced crouch and oil barrel flame UV stretch."
+    },
+    {
+      "sha": "963f3e9",
+      "date": "2026-05-31",
+      "subject": "Credits polish, AI-authored barrel pile, and gapless fire loop."
+    },
+    {
+      "sha": "651d20f",
+      "date": "2026-05-30",
+      "subject": "STOP POINT: oil barrel no-fire pile (8 props + 2 seeds)."
+    },
+    {
+      "sha": "af228b3",
+      "date": "2026-05-30",
+      "subject": "Align oil barrel rim with wall texture and compress WebP assets."
+    },
+    {
+      "sha": "6367060",
+      "date": "2026-05-30",
+      "subject": "Add oil barrel interior, WebP texture pack, and related level fixes."
+    },
+    {
+      "sha": "09f961f",
+      "date": "2026-05-30",
+      "subject": "Add textured oil barrel prop with live material tuning."
+    },
+    {
+      "sha": "3a34bbc",
+      "date": "2026-05-30",
+      "subject": "Fix catwalk movement bob, deck collisions, and pickup shadows."
+    },
+    {
+      "sha": "ac6c549",
+      "date": "2026-05-30",
+      "subject": "Fix catwalk/stair movement, collectibles, and add collider debug overlay."
+    },
+    {
+      "sha": "a7a28fb",
+      "date": "2026-05-29",
+      "subject": "Fix catwalk and stair walk support; add compass HUD and collectibles."
+    },
+    {
+      "sha": "e4b9565",
+      "date": "2026-05-29",
+      "subject": "Enhance credits finale, soundtrack player, and 3D crate previews."
+    },
+    {
+      "sha": "f9ffaa4",
+      "date": "2026-05-29",
+      "subject": "Fix stair climb, rear walk-through, and portal snap."
+    },
+    {
+      "sha": "b24bb70",
+      "date": "2026-05-29",
+      "subject": "Fix walk-through behind stairs at floor level."
+    },
+    {
+      "sha": "127d180",
+      "date": "2026-05-29",
+      "subject": "Add cinematic credits page and improve stair under-slope blocking."
+    },
+    {
+      "sha": "c2854df",
+      "date": "2026-05-29",
+      "subject": "Add flashbangs, stair fixes, and loading-screen music guard."
+    },
+    {
+      "sha": "2b47cd4",
+      "date": "2026-05-28",
+      "subject": "Fix stair walking and add stair walk tuning wizard."
+    },
+    {
+      "sha": "da24d71",
+      "date": "2026-05-28",
+      "subject": "Add combat VFX, level meta, doorway fixes, and lighting cleanup."
+    },
+    {
+      "sha": "05f6fb0",
+      "date": "2026-05-28",
+      "subject": "Add audio, loading flow, stamina HUD, and dev stability fixes."
+    },
+    {
+      "sha": "7061070",
+      "date": "2026-05-27",
+      "subject": "wip"
+    },
+    {
+      "sha": "36fb137",
+      "date": "2026-05-27",
+      "subject": "WIP"
+    },
+    {
+      "sha": "4ffc327",
+      "date": "2026-05-27",
+      "subject": "Add grenade system with lathe-tuned model, drops, self-damage, and reward balancing"
+    },
+    {
+      "sha": "e32f998",
+      "date": "2026-05-26",
+      "subject": "Add ammo crate with end caps, death drops, 3D pickup overlay, and loading cooldown"
+    },
+    {
+      "sha": "1074651",
+      "date": "2026-05-26",
+      "subject": "Fix compass direction and add enemy dots, update HUD ammo/health colors"
+    },
+    {
+      "sha": "ac8ba1d",
+      "date": "2026-05-25",
+      "subject": "HUD overhaul: health bar, compass, fire mode, weapon raise, arch doorway"
+    },
+    {
+      "sha": "6912a33",
+      "date": "2026-05-24",
+      "subject": "Block stand-up and jump when overhead clearance is missing"
+    },
+    {
+      "sha": "d0662f3",
+      "date": "2026-05-24",
+      "subject": "Candle flicker, walkable wall tops, day/night keybind, input reset on unlock"
+    },
+    {
+      "sha": "266306c",
+      "date": "2026-05-24",
+      "subject": "Initial"
+    },
+    {
+      "sha": "6e44a38",
+      "date": "2026-05-23",
+      "subject": "Initial commit: Next.js FPS arena prototype."
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { detectChromeBrowser } from "@/lib/isChromeBrowser";
+import { detectChromeBrowser } from "@/lib/site/isChromeBrowser";
 
 export function useNonChromeBrowser() {
   const [isNonChrome, setIsNonChrome] = useState(false);

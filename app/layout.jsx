@@ -1,5 +1,5 @@
 import { Orbitron } from "next/font/google";
-import { SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/siteSeo";
+import { SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site/siteSeo";
 import "./marketing.css";
 
 const orbitron = Orbitron({

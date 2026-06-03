@@ -1694,7 +1694,13 @@ export default function FpsGame() {
       registerOutdoorLightsForDayNight(outdoorLights);
       const attachWall = getArenaAttachWall(arena);
       const arenaHalf = arena.size / 2;
-      const roomLights = addRoomLights(scene, arena.rooms, arenaHalf, attachWall);
+      const roomLights = addRoomLights(
+        scene,
+        arena.rooms,
+        arenaHalf,
+        attachWall,
+        arena.floorExtensions ?? []
+      );
       // Give the warm interior point lights a candle-like flicker so the
       // off-arena room feels alive instead of locked to a flat brightness.
       initCandleFlicker(roomLights);
@@ -1798,7 +1804,8 @@ export default function FpsGame() {
           [...roomLightsRef.current, ...oilBarrelFireLightsRef.current],
           arenaHalf,
           attachWall,
-          arena.wallHeight
+          arena.wallHeight,
+          arena.floorExtensions ?? []
         );
       };
       /** @type {THREE.Light[]} Reused each frame — room + barrel fire flicker lights. */
@@ -3665,13 +3672,13 @@ export default function FpsGame() {
           attachWall,
           level.catwalkDeckY,
           level.doorwayOpenings ?? [],
-          arena.wallThickness ?? 0.5
+          arena.wallThickness ?? 0.5,
+          arena.floorExtensions ?? []
         );
-        // Keep light layers aligned with the room pass whenever the camera sees
-        // interior geometry — avoids outdoor/room pass mismatch at doorways.
-        const inRoom = inRoomBody || visibleRoomCount > 0;
-        syncLightLayersForZone(scene, inRoom, outdoorLights, roomLightsRef.current);
-        syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, inRoom);
+        // Viewmodel / fire-light layers follow the player's zone only — not camera
+        // frustum (service room bbox is huge; visibleRoomCount>0 outdoors broke the gun).
+        syncLightLayersForZone(scene, inRoomBody, outdoorLights, roomLightsRef.current);
+        syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, inRoomBody);
 
         const barrelFireShadowCount = areShadowsDisabled()
           ? 0

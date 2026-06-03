@@ -44,10 +44,26 @@
   ],
   "floorExtensions": [
     {
+      "id": "service_room",
       "centerX": 0,
       "width": 11,
       "depth": 9,
-      "wallThickness": 0.35
+      "wallThickness": 0.35,
+      "textures": {
+        "floor": "ground_smooth_concrete_worn",
+        "wall": "wall_blue_cinderblock_worn",
+        "ceiling": "ground_smooth_concrete_worn"
+      },
+      "lights": [
+        {
+          "type": "point",
+          "position": [0, 3.2, 0],
+          "color": "#ffaa55",
+          "intensity": 10,
+          "distance": 7,
+          "decay": 2
+        }
+      ]
     }
   ],
   "rooms": [],

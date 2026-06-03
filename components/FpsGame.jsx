@@ -48,7 +48,6 @@ import {
   findFloorExtensionFootprintAtZ,
   FLOOR_EXTENSION_WALK_PAD,
   isIndoorLightingZone,
-  resolveViewmodelIndoorLightingZone,
 } from "@/lib/rooms/RoomPlacement";
 import { buildRoomCullables, updateRoomCulling } from "@/lib/rooms/RoomCulling";
 import {
@@ -3676,28 +3675,16 @@ export default function FpsGame() {
           arena.wallThickness ?? 0.5,
           arena.floorExtensions ?? []
         );
-        // Viewmodel + barrel-fire: body-in-room, or near the shell while room pass is
-        // on — not raw frustum (service-room bbox from open arena broke outdoor gun).
-        const inRoomViewmodel = resolveViewmodelIndoorLightingZone(
-          inRoomBody,
-          visibleRoomCount,
-          player.getX(),
-          player.getZ(),
-          arena.rooms,
-          arena.floorExtensions ?? [],
-          arenaHalf,
-          attachWall,
-          arena.wallThickness ?? 0.5
-        );
+        // Viewmodel + barrel-fire: player zone only (geometry pass is unified world+room).
         syncLightLayersForZone(
           scene,
-          inRoomViewmodel,
+          inRoomBody,
           outdoorLights,
           roomLightsRef.current
         );
         syncOilBarrelFireLightLayers(
           oilBarrelFireLightsRef.current,
-          inRoomViewmodel
+          inRoomBody
         );
 
         const barrelFireShadowCount = areShadowsDisabled()
@@ -3730,7 +3717,6 @@ export default function FpsGame() {
         renderSceneWithLayeredLighting(renderer, scene, camera, {
           skyRoot: sky?.mesh ?? null,
           skipRoomPass: visibleRoomCount === 0,
-          outdoorShadowLights: outdoorLights,
         });
         if (
           level?.targets &&

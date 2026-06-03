@@ -48,6 +48,7 @@ import {
   findFloorExtensionFootprintAtZ,
   FLOOR_EXTENSION_WALK_PAD,
   isIndoorLightingZone,
+  resolveViewmodelIndoorLightingZone,
 } from "@/lib/rooms/RoomPlacement";
 import { buildRoomCullables, updateRoomCulling } from "@/lib/rooms/RoomCulling";
 import {
@@ -3675,10 +3676,29 @@ export default function FpsGame() {
           arena.wallThickness ?? 0.5,
           arena.floorExtensions ?? []
         );
-        // Viewmodel / fire-light layers follow the player's zone only — not camera
-        // frustum (service room bbox is huge; visibleRoomCount>0 outdoors broke the gun).
-        syncLightLayersForZone(scene, inRoomBody, outdoorLights, roomLightsRef.current);
-        syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, inRoomBody);
+        // Viewmodel + barrel-fire: body-in-room, or near the shell while room pass is
+        // on — not raw frustum (service-room bbox from open arena broke outdoor gun).
+        const inRoomViewmodel = resolveViewmodelIndoorLightingZone(
+          inRoomBody,
+          visibleRoomCount,
+          player.getX(),
+          player.getZ(),
+          arena.rooms,
+          arena.floorExtensions ?? [],
+          arenaHalf,
+          attachWall,
+          arena.wallThickness ?? 0.5
+        );
+        syncLightLayersForZone(
+          scene,
+          inRoomViewmodel,
+          outdoorLights,
+          roomLightsRef.current
+        );
+        syncOilBarrelFireLightLayers(
+          oilBarrelFireLightsRef.current,
+          inRoomViewmodel
+        );
 
         const barrelFireShadowCount = areShadowsDisabled()
           ? 0

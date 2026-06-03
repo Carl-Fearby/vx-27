@@ -158,7 +158,7 @@ import {
   updateColliderDebugOverlay,
   invalidateColliderDebugOverlay,
 } from "@/lib/ColliderDebug.js";
-import { warmupGameGpu, resetGameGpuWarmup } from "@/lib/GpuWarmup";
+import { warmupGameGpu, resetGameGpuWarmup, GPU_WARMUP_ENABLED } from "@/lib/GpuWarmup";
 import {
   applyTargetHit,
   applyTargetPose,
@@ -3578,7 +3578,7 @@ export default function FpsGame() {
       if (!isActive()) return;
       reportLoad(97, "Sound effects");
 
-      reportLoad(98, "GPU warmup");
+      reportLoad(98, GPU_WARMUP_ENABLED ? "GPU warmup" : "GPU warmup skipped");
       await warmupGameGpu({
         renderer,
         scene,

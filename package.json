@@ -1,7 +1,7 @@
 {
   "name": "game-engine2-fps",
   "private": true,
-  "version": "0.1.12",
+  "version": "0.1.13",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:http": "node scripts/dev.mjs --http",
@@ -30,7 +30,8 @@
     "deploy:fasthosts:probe": "node scripts/deploy-fasthosts.mjs --probe"
   },
   "devDependencies": {
-    "basic-ftp": "^5.3.1"
+    "basic-ftp": "^5.3.1",
+    "playwright": "^1.60.0"
   },
   "dependencies": {
     "next": "^15.3.2",

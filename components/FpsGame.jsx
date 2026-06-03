@@ -30,7 +30,6 @@ import {
   renderSceneWithLayeredLighting,
   resetLightingZoneCache,
   resetCameraRenderLayers,
-  resetRendererShadowPipeline,
   resetRoomInteriorAmbient,
   resetViewmodelInteriorAmbient,
   syncLightLayersForZone,
@@ -43,7 +42,10 @@ import {
   VIEWMODEL_LAYER,
   WORLD_LAYER,
 } from "@/lib/lighting/LightingLayers";
-import { isPointInsideAnyRoom, isPlayerInsideRoomForLighting } from "@/lib/rooms/RoomPlacement";
+import {
+  isPointInsideAnyRoom,
+  isIndoorLightingZone,
+} from "@/lib/rooms/RoomPlacement";
 import { buildRoomCullables, updateRoomCulling } from "@/lib/rooms/RoomCulling";
 import {
   initCandleFlicker,
@@ -152,26 +154,18 @@ import {
   applyScreenShake,
   triggerScreenShake,
   triggerHurtScreenShake,
-  getGrenadeParams, setGrenadeParams,
-  getGrenadeExplosionVfx, setGrenadeExplosionVfx, resetGrenadeExplosionVfx,
+  getGrenadeParams,
   spawnGrenadeDrop, updateGrenadeDrops, disposeAllGrenadeDrops,
   preloadGrenadeAssets,
   PROJECTILE_FLASHBANG,
 } from "@/lib/combat/Grenade";
 import { groundSupportFromLevel } from "@/lib/physics/GroundSupport";
-import {
-  setColliderDebug,
-  updateColliderDebugOverlay,
-  invalidateColliderDebugOverlay,
-} from "@/lib/dev/ColliderDebug";
 import { warmupGameGpu, resetGameGpuWarmup } from "@/lib/dev/GpuWarmup";
 import { resetArenaCeilingDayNightCache } from "@/lib/lighting/ArenaCeilingDayNight";
 import {
   applyTargetHit,
-  applyTargetPose,
   activateTargetAt,
   deactivateTarget,
-  DEFAULT_TARGET_POSE,
   disposeAllTargetHealthBars,
   disposeAllHpOrbs,
   pickRandomSpawnPosition,
@@ -179,14 +173,11 @@ import {
   renderTargetHealthBarsPass,
   hasVisibleTargetHealthBars,
   setHealthBarOccluders,
-  setHitDebug,
-  setHitzoneOverlay,
   spawnHpOrb,
   startDeathAnimation,
   updateDeathAnimations,
   flushPendingRagdolls,
   prebuildRagdollTemplates,
-  updateHitDebugMarkers,
   updateHpOrbs,
   preloadHpOrbAssets,
   updateLiveTargetsFloorHoles,
@@ -321,6 +312,7 @@ import {
 } from "@/lib/dev/FrameHitchProfiler";
 import {
   applyFrameShadowUpdates,
+  beginShadowStartupWindow,
   configureRendererShadowPolicy,
   requestShadowMapUpdate,
 } from "@/lib/lighting/ShadowUpdatePolicy";
@@ -399,9 +391,6 @@ const LOOK_MAX_RATE_KEY = "fps-look-max-rate";
 const SUN_TUNE_ENABLED_KEY = "fps-sun-tune-enabled";
 const HEMI_TUNE_ENABLED_KEY = "fps-hemi-tune-enabled";
 const STAIRS_TUNE_ENABLED_KEY = "fps-stairs-tune-enabled";
-const GRENADE_TUNE_ENABLED_KEY = "fps-grenade-tune-enabled";
-const GRENADE_EXPLOSION_TUNE_ENABLED_KEY = "fps-grenade-explosion-tune-enabled";
-const HUD_POSITION_TUNE_ENABLED_KEY = "fps-hud-position-tune-enabled";
 const LEGACY_LOOK_SPEED_KEY = "fps-look-speed";
 const LEGACY_LOOK_EASE_KEY = "fps-look-ease";
 const RENDER_SCALE_KEY = "fps-render-scale";
@@ -942,7 +931,6 @@ export default function FpsGame() {
   const [showPlayerCoords, setShowPlayerCoords] = useState(
     () => window.localStorage.getItem(SHOW_PLAYER_COORDS_KEY) === "true"
   );
-  const [hudTuneEnabled, setHudTuneEnabled] = useState(false);
   const [hudCogX, setHudCogX] = useState(4);
   const [hudCogY, setHudCogY] = useState(32);
   const [hudCogSize, setHudCogSize] = useState(8);
@@ -966,19 +954,6 @@ export default function FpsGame() {
   const [radarBottom] = useState(1.5);
   const [radarScale] = useState(11);
   const [weaponTuneEnabled, setWeaponTuneEnabled] = useState(false);
-  const [targetTuneEnabled, setTargetTuneEnabled] = useState(false);
-  const [targetPose, setTargetPose] = useState(() => ({ ...DEFAULT_TARGET_POSE }));
-  const [targetApplyAll, setTargetApplyAll] = useState(true);
-  const selectedTargetRef = useRef(null);
-  const targetTuneEnabledRef = useRef(false);
-  const targetsRef = useRef([]);
-  const [hitDebugEnabled, setHitDebugEnabled] = useState(false);
-  const hitDebugEnabledRef = useRef(false);
-  const [colliderDebugEnabled, setColliderDebugEnabled] = useState(false);
-  const colliderDebugEnabledRef = useRef(false);
-  const [containerColliderDebugOnly, setContainerColliderDebugOnly] = useState(false);
-  const containerColliderDebugOnlyRef = useRef(false);
-  const [hitzoneOverlayEnabled, setHitzoneOverlayEnabled] = useState(false);
   const [levelEditEnabled, setLevelEditEnabled] = useState(false);
   const levelEditEnabledRef = useRef(false);
   const selectedLevelObjectRef = useRef(null);
@@ -1074,9 +1049,6 @@ export default function FpsGame() {
     saveHudBarTuneEnabled(enabled);
     saveOilBarrelTuneEnabled(enabled);
     saveVx27ContainerTuneEnabled(enabled);
-    localStorage.setItem(GRENADE_TUNE_ENABLED_KEY, on);
-    localStorage.setItem(GRENADE_EXPLOSION_TUNE_ENABLED_KEY, on);
-    localStorage.setItem("fps-grenade-widget-tune", on);
     setWeaponTuneEnabled(enabled);
     weaponTuneEnabledRef.current = enabled;
     setSunTuneEnabled(enabled);
@@ -1087,9 +1059,6 @@ export default function FpsGame() {
     setHudBarTuneEnabled(enabled);
     setOilBarrelTuneEnabled(enabled);
     setVx27ContainerTuneEnabled(enabled);
-    setGrenadeTuneEnabled(enabled);
-    setGrenadeExplosionTuneEnabled(enabled);
-    setGrenadeWidgetTuneEnabled(enabled);
   }, []);
 
   const applyPilePlacementToScene = useCallback(
@@ -1237,24 +1206,6 @@ export default function FpsGame() {
   const grenadeCountRef = useRef(getGrenadeParams().grenadeCount);
   const [flashbangCount, setFlashbangCount] = useState(DEFAULT_FLASHBANG_COUNT);
   const flashbangCountRef = useRef(DEFAULT_FLASHBANG_COUNT);
-  const [grenadeTuneEnabled, setGrenadeTuneEnabled] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.localStorage.getItem(GRENADE_TUNE_ENABLED_KEY) === "true"
-  );
-  const [grenadeParams, setGrenadeParamsState] = useState(() => getGrenadeParams());
-  const [grenadeExplosionTuneEnabled, setGrenadeExplosionTuneEnabled] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.localStorage.getItem(GRENADE_EXPLOSION_TUNE_ENABLED_KEY) === "true"
-  );
-  const [explosionVfx, setExplosionVfxState] = useState(() => getGrenadeExplosionVfx());
-  const patchExplosionVfx = (patch) => {
-    setExplosionVfxState(setGrenadeExplosionVfx(patch));
-  };
-  const [grenadeWidgetTuneEnabled, setGrenadeWidgetTuneEnabled] = useState(
-    () => window.localStorage.getItem("fps-grenade-widget-tune") === "true"
-  );
   const [grenFrameWidthRem, setGrenFrameWidthRem] = useState(12.3);
   const [grenFrameScale, setGrenFrameScale] = useState(1);
   const [grenFrameX, setGrenFrameX] = useState(17);
@@ -1467,11 +1418,6 @@ export default function FpsGame() {
     const hudBarEnabled = resolveDevTuneEnabled(HUD_BAR_TUNE_ENABLED_KEY);
     const oilBarrelEnabled = resolveDevTuneEnabled(OIL_BARREL_TUNE_ENABLED_KEY);
     const vx27ContainerEnabled = resolveDevTuneEnabled(VX27_CONTAINER_TUNE_ENABLED_KEY);
-    const grenadeEnabled = resolveDevTuneEnabled(GRENADE_TUNE_ENABLED_KEY);
-    const grenadeExplosionEnabled = resolveDevTuneEnabled(
-      GRENADE_EXPLOSION_TUNE_ENABLED_KEY
-    );
-    const grenadeWidgetEnabled = resolveDevTuneEnabled("fps-grenade-widget-tune");
     setInvertYLook(storedInvert);
     const storedScale = loadRenderScale();
     setRenderScale(storedScale);
@@ -1496,9 +1442,6 @@ export default function FpsGame() {
     setHudBarLayout(loadHudBarTuning());
     setOilBarrelTuneEnabled(oilBarrelEnabled);
     setVx27ContainerTuneEnabled(vx27ContainerEnabled);
-    setGrenadeTuneEnabled(grenadeEnabled);
-    setGrenadeExplosionTuneEnabled(grenadeExplosionEnabled);
-    setGrenadeWidgetTuneEnabled(grenadeWidgetEnabled);
     // Dev: disable hole decals toggle
     try {
       const storedDisableHoleDecals = localStorage.getItem(DEV_DISABLE_HOLE_DECALS_KEY) === "true";
@@ -1508,7 +1451,6 @@ export default function FpsGame() {
     } catch {
       // ignore
     }
-    setHudTuneEnabled(localStorage.getItem(HUD_POSITION_TUNE_ENABLED_KEY) === "true");
     weaponTuneEnabledRef.current = tuneEnabled;
     const barrelTuning = loadOilBarrelTuning();
     setOilBarrelTuning(barrelTuning);
@@ -1618,10 +1560,6 @@ export default function FpsGame() {
       scene = new THREE.Scene();
       scene.fog = new THREE.Fog(DAY_CLEAR_COLOR, 45, 95);
       sceneRef.current = scene;
-      if (hitDebugEnabledRef.current) setHitDebug(scene, true);
-      if (colliderDebugEnabledRef.current || containerColliderDebugOnlyRef.current) {
-        setColliderDebug(scene, true);
-      }
 
       const HIP_FOV = 75;
       const ADS_FOV = 52;
@@ -1743,7 +1681,6 @@ export default function FpsGame() {
       setHealthBarOccluders(level.group);
       setSunOcclusionRoot(level.group);
       reportLoad(72, "Level geometry");
-      targetsRef.current = level.targets;
       prebuildRagdollTemplates(level.targets);
       levelObjectsRef.current = level.pillarMeshes ?? [];
       vx27ContainersRef.current = level.vx27ContainerMeshes ?? [];
@@ -2012,7 +1949,6 @@ export default function FpsGame() {
           ...level.stairColliders,
           ...level.ceilingColliders
         );
-        invalidateColliderDebugOverlay();
       }
       syncAllColliders();
       vx27ContainerCommitRef.current = (index, placement) => {
@@ -2538,9 +2474,6 @@ export default function FpsGame() {
 
       function applyHit(hit, bulletDirection, targetMesh) {
         const mesh = targetMesh ?? hit.object;
-        if (targetTuneEnabledRef.current) {
-          selectedTargetRef.current = mesh;
-        }
         const { killed, zone, damage } = applyTargetHit(mesh, hit.point, bulletDirection);
         if (zone !== "miss") {
           const splatterDamage = Math.max(damage, 4);
@@ -3411,32 +3344,6 @@ export default function FpsGame() {
         if (showHudRef.current) {
           updateTargetHealthBars(level.targets, dt, camera);
         }
-        updateHitDebugMarkers(dt);
-        if (colliderDebugEnabledRef.current || containerColliderDebugOnlyRef.current) {
-          const shadowCasters = collectibleEntries
-            .filter((e) => !e.collected && e.drop?.mesh)
-            .map((e) => e.drop.mesh.userData?.pickupShadowCaster)
-            .filter(Boolean);
-          const filterPropId = containerColliderDebugOnlyRef.current
-            ? vx27ContainersRef.current[containerTuneIndexRef.current]?.userData
-                ?.vx27PropId ?? null
-            : null;
-          updateColliderDebugOverlay(
-            allColliders,
-            {
-              x: player.getX(),
-              y: player.getY(),
-              z: player.getZ(),
-              radius: 0.35,
-              height: player.getY() - player.getFootY(),
-            },
-            {
-              ...player.getMovementDebugSnapshot?.(),
-              shadowCasters,
-            },
-            filterPropId != null ? { propId: filterPropId } : undefined
-          );
-        }
         updateVx27ContainerDoorAnimations(vx27ContainersRef.current, dt);
         const tunedContainer =
           vx27ContainersRef.current[containerTuneIndexRef.current];
@@ -3618,14 +3525,16 @@ export default function FpsGame() {
         input.endFrame();
         sun.target.updateMatrixWorld();
 
-        const inRoom = isPlayerInsideRoomForLighting(
-          camera.position.x,
-          camera.position.z,
+        const inRoom = isIndoorLightingZone(
+          player.getX(),
+          player.getZ(),
           player.getFootY(),
           arena.rooms,
           arenaHalf,
           attachWall,
-          level.catwalkDeckY
+          level.catwalkDeckY,
+          level.doorwayOpenings ?? [],
+          arena.wallThickness ?? 0.5
         );
         syncLightLayersForZone(scene, inRoom, outdoorLights, roomLightsRef.current);
         syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, inRoom);
@@ -3668,6 +3577,7 @@ export default function FpsGame() {
           level.doorwayOpenings ?? [],
           arena.wallThickness ?? 0.5
         );
+        hitch?.mark("scene");
         renderSceneWithLayeredLighting(renderer, scene, camera, {
           skyRoot: sky?.mesh ?? null,
           skipRoomPass: visibleRoomCount === 0,
@@ -3678,10 +3588,11 @@ export default function FpsGame() {
           showHudRef.current &&
           hasVisibleTargetHealthBars(level.targets)
         ) {
+          hitch?.mark("healthBars");
           renderTargetHealthBarsPass(renderer, scene, camera, level.targets);
         }
+        hitch?.mark("viewmodel");
         weapon?.renderViewmodel(renderer, scene, camera);
-        hitch?.mark("render");
         } catch (err) {
           console.error("Frame render failed:", err);
         }
@@ -3792,7 +3703,16 @@ export default function FpsGame() {
         levelCollectibleMeshes: collectibleEntries
           .map((e) => e.drop?.mesh)
           .filter(Boolean),
+        outdoorLights,
         outdoorShadowLights: outdoorLights,
+        roomLights: roomLightsRef.current,
+        oilBarrelFireLights: oilBarrelFireLightsRef.current,
+        doorwayOpenings: level.doorwayOpenings ?? [],
+        catwalkDeckY: level.catwalkDeckY,
+        arenaHalf,
+        attachWall,
+        arenaRooms: arena.rooms ?? [],
+        wallThickness: arena.wallThickness ?? 0.5,
         applyDayNightNightness: (nightness) => {
           applyDayNightRef.current?.(nightness);
         },
@@ -3805,12 +3725,12 @@ export default function FpsGame() {
         collectibleEntries.map((e) => e.drop?.mesh),
         level.group
       );
-      resetRendererShadowPipeline(renderer);
       if (sunIsDayRef.current) {
         refitSunShadowRef.current?.();
       } else {
         refitMoonShadowRef.current?.();
       }
+      beginShadowStartupWindow();
       reportLoad(99, "GPU ready");
 
       gameReady = true;
@@ -3930,12 +3850,6 @@ export default function FpsGame() {
     "--grenade-count-x": `${grenHudCountX}px`,
     "--grenade-count-y": `${grenHudCountY}px`,
     "--grenade-count-scale": String(grenHudCountScale),
-  };
-  const setStackTuneField = (slot, field, value) => {
-    setWeaponStackTune((prev) => ({
-      ...prev,
-      [slot]: { ...prev[slot], [field]: value },
-    }));
   };
 
   const handleMusicEnabledChange = (checked) => {
@@ -4575,8 +4489,9 @@ export default function FpsGame() {
 
             <SettingsSection title="Development">
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                Dev tools and tuning panels. Tuning panels open in a bar at the
-                top of the screen — toggle each one below.
+                Dev tools and runtime debug toggles. Live tuning panel components live in{" "}
+                <code>components/tuning-panels</code> and are not mounted here (bundle/perf).
+                Use the buttons below to persist panel enable flags in localStorage for local dev.
               </p>
               <p className="settingsGroupLabel">Tuning panels</p>
               <div className="settingsBtnRow" style={{ marginBottom: "0.65rem" }}>
@@ -4587,193 +4502,14 @@ export default function FpsGame() {
                 >
                   Enable all panels
                 </button>
+                <button
+                  type="button"
+                  className="settingsBtn"
+                  onClick={() => applyAllTunePanels(false)}
+                >
+                  Disable all panels
+                </button>
               </div>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={weaponTuneEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setWeaponTuneEnabled(checked);
-                    weaponTuneEnabledRef.current = checked;
-                    saveWeaponTuneEnabled(checked);
-                    if (!checked) {
-                      weaponPoseModeRef.current = "hip";
-                      setWeaponPoseMode("hip");
-                    }
-                  }}
-                />
-                Weapon tuning
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={sunTuneEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setSunTuneEnabled(checked);
-                    localStorage.setItem(SUN_TUNE_ENABLED_KEY, String(checked));
-                  }}
-                />
-                Sun / Moon tuning
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={hemiTuneEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setHemiTuneEnabled(checked);
-                    localStorage.setItem(HEMI_TUNE_ENABLED_KEY, String(checked));
-                  }}
-                />
-                Sky fill tuning
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={walkBobTuneEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setWalkBobTuneEnabled(checked);
-                    saveWalkBobTuneEnabled(checked);
-                  }}
-                />
-                Walk bob tuning
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={hudBarTuneEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setHudBarTuneEnabled(checked);
-                    saveHudBarTuneEnabled(checked);
-                  }}
-                />
-                HUD bar layout tuning
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={oilBarrelTuneEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setOilBarrelTuneEnabled(checked);
-                    saveOilBarrelTuneEnabled(checked);
-                  }}
-                />
-                Oil barrel material tuning
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={vx27ContainerTuneEnabled}
-                  disabled={!arenaHasVx27ContainersState}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setVx27ContainerTuneEnabled(checked);
-                    saveVx27ContainerTuneEnabled(checked);
-                  }}
-                />
-                VX-27 container placement
-                {!arenaHasVx27ContainersState && (
-                  <span className="settingsHint" style={{ marginLeft: "0.4rem" }}>
-                    (no containers in this arena)
-                  </span>
-                )}
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={stairWalkTuneEnabled}
-                  disabled={!arenaHasStairs}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setStairWalkTuneEnabled(checked);
-                    saveStairWalkTuneEnabled(checked);
-                  }}
-                />
-                Stair walk tuning
-                {!arenaHasStairs && (
-                  <span className="settingsHint" style={{ marginLeft: "0.4rem" }}>
-                    (no stairs in this arena)
-                  </span>
-                )}
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={stairsTuneEnabled}
-                  disabled={!arenaHasStairs}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setStairsTuneEnabled(checked);
-                    localStorage.setItem(
-                      STAIRS_TUNE_ENABLED_KEY,
-                      String(checked)
-                    );
-                  }}
-                />
-                Stairway tuning
-                {!arenaHasStairs && (
-                  <span className="settingsHint" style={{ marginLeft: "0.4rem" }}>
-                    (no stairs in this arena)
-                  </span>
-                )}
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={hudTuneEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setHudTuneEnabled(checked);
-                    localStorage.setItem(HUD_POSITION_TUNE_ENABLED_KEY, String(checked));
-                  }}
-                />
-                HUD position tuning
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={grenadeWidgetTuneEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setGrenadeWidgetTuneEnabled(checked);
-                    localStorage.setItem("fps-grenade-widget-tune", String(checked));
-                  }}
-                />
-                Grenade widget UI
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={grenadeTuneEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setGrenadeTuneEnabled(checked);
-                    localStorage.setItem(GRENADE_TUNE_ENABLED_KEY, String(checked));
-                  }}
-                />
-                Grenade physics (throw / blast)
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={grenadeExplosionTuneEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setGrenadeExplosionTuneEnabled(checked);
-                    localStorage.setItem(GRENADE_EXPLOSION_TUNE_ENABLED_KEY, String(checked));
-                  }}
-                />
-                Grenade explosion VFX
-              </label>
-              <p className="settingsHint">
-                Toggle layers and tune shockwave / particle look. Throw grenades while
-                adjusting — changes apply to the next detonation.
-              </p>
               <p className="settingsGroupLabel">Scene visibility (perf debug)</p>
               <p className="settingsHint" style={{ marginTop: 0 }}>
                 Hide meshes to isolate FPS cost. Collision and lights stay active unless
@@ -4929,78 +4665,6 @@ export default function FpsGame() {
                 Shoot a pillar to select it. Adjust texture offset, rotation, and position
                 with sliders. Copy JSON to paste into your level file.
               </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={targetTuneEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setTargetTuneEnabled(checked);
-                    targetTuneEnabledRef.current = checked;
-                    if (!checked) selectedTargetRef.current = null;
-                  }}
-                />
-                Target pose tuning
-              </label>
-              <p className="settingsHint">
-                Shoot a target to select it, then adjust its pose with sliders.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={hitDebugEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setHitDebugEnabled(checked);
-                    hitDebugEnabledRef.current = checked;
-                    if (sceneRef.current) setHitDebug(sceneRef.current, checked);
-                  }}
-                />
-                Hit debug markers
-              </label>
-              <p className="settingsHint">
-                Shows colored dots where shots register. Zone color = hit, white = miss (gap).
-                Green dot + yellow line = precision raycast result.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={hitzoneOverlayEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setHitzoneOverlayEnabled(checked);
-                    setHitzoneOverlay(targetsRef.current, checked);
-                  }}
-                />
-                Hitzone wireframe overlay
-              </label>
-              <p className="settingsHint">
-                Cyan wireframe = hull (broad-phase capture). Colored wireframe = actual body
-                geometry (what precision raycast tests). Gaps between them are misses.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={colliderDebugEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setColliderDebugEnabled(checked);
-                    colliderDebugEnabledRef.current = checked;
-                    if (sceneRef.current) {
-                      setColliderDebug(
-                        sceneRef.current,
-                        checked || containerColliderDebugOnlyRef.current
-                      );
-                    }
-                  }}
-                />
-                Collider wireframe overlay
-              </label>
-              <p className="settingsHint">
-                Bright red = colliders blocking you right now. Red floor rectangle =
-                invisible walk clamp. Lighter red = deck pieces. Magenta = ammo
-                shadow caster. Green = player capsule. Auto-on with player coords HUD.
-              </p>
               <p className="settingsGroupLabel">Player position</p>
               <p className="settingsHint">
                 Live readout while settings are open. Stand at a blocked spot and copy
@@ -5094,380 +4758,6 @@ export default function FpsGame() {
           rebindAction={rebindAction}
           onRebindActionChange={setRebindAction}
         />
-      )}
-      <div className="devTuneStack">{/* tuning panels moved to components/tuning-panels — not rendered by default to avoid runtime overhead */}</div>
-      {grenadeExplosionTuneEnabled && (
-        <div
-          className="hudTunePanel hudTunePanel--bottomDock"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="hudTuneHeader">
-            <span>Grenade Explosion VFX</span>
-            <button
-              type="button"
-              className="hudTuneClose"
-              onClick={() => {
-                setGrenadeExplosionTuneEnabled(false);
-                localStorage.setItem(GRENADE_EXPLOSION_TUNE_ENABLED_KEY, "false");
-              }}
-            >
-              ×
-            </button>
-          </div>
-          <div className="hudTuneBody hudTuneBody--row">
-            <div className="hudTuneGroup hudTuneGroup--layers">
-              <span className="hudTuneGroupLabel">Layers</span>
-              <div className="hudTuneLayerGrid">
-              {[
-                ["flash", "Flash light"],
-                ["shockRings", "Shockwave rings"],
-                ["shockDome", "Shockwave dome"],
-                ["sparks", "Sparks"],
-                ["embers", "Embers"],
-                ["debris", "Debris"],
-                ["light", "Explosion light"],
-                ["lightning", "Lightning zaps"],
-              ].map(([key, label]) => (
-                <label key={key} className="settingRow hudTuneLayerRow">
-                  <input
-                    type="checkbox"
-                    checked={!!explosionVfx[key]}
-                    onChange={(e) => patchExplosionVfx({ [key]: e.target.checked })}
-                  />
-                  {label}
-                </label>
-              ))}
-              </div>
-              <button
-                type="button"
-                className="hudTuneReset"
-                onClick={() => setExplosionVfxState(resetGrenadeExplosionVfx())}
-              >
-                Reset VFX defaults
-              </button>
-            </div>
-            <div className="hudTuneGroup">
-              <span className="hudTuneGroupLabel">Timing</span>
-              <label className="hudTuneRow">
-                <span>Duration</span>
-                <input
-                  type="range"
-                  min={0.3}
-                  max={3}
-                  step={0.05}
-                  value={explosionVfx.duration}
-                  onChange={(e) => patchExplosionVfx({ duration: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.duration.toFixed(2)}s</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Flash time</span>
-                <input
-                  type="range"
-                  min={0.03}
-                  max={0.3}
-                  step={0.01}
-                  value={explosionVfx.flashDuration}
-                  onChange={(e) => patchExplosionVfx({ flashDuration: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.flashDuration.toFixed(2)}s</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Flash intensity</span>
-                <input
-                  type="range"
-                  min={0.1}
-                  max={1.2}
-                  step={0.05}
-                  value={explosionVfx.flashScaleMul}
-                  onChange={(e) => patchExplosionVfx({ flashScaleMul: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.flashScaleMul.toFixed(2)}</span>
-              </label>
-            </div>
-            <div className="hudTuneGroup">
-              <span className="hudTuneGroupLabel">Shockwave</span>
-              <label className="hudTuneRow">
-                <span>Ring opacity</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={explosionVfx.ringOpacity}
-                  onChange={(e) => patchExplosionVfx({ ringOpacity: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.ringOpacity.toFixed(2)}</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Ring scale</span>
-                <input
-                  type="range"
-                  min={0.3}
-                  max={2}
-                  step={0.05}
-                  value={explosionVfx.ringScaleMul}
-                  onChange={(e) => patchExplosionVfx({ ringScaleMul: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.ringScaleMul.toFixed(2)}</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Ring duration</span>
-                <input
-                  type="range"
-                  min={0.1}
-                  max={1.2}
-                  step={0.02}
-                  value={explosionVfx.ringDuration}
-                  onChange={(e) => patchExplosionVfx({ ringDuration: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.ringDuration.toFixed(2)}s</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Dome scale</span>
-                <input
-                  type="range"
-                  min={0.2}
-                  max={1.5}
-                  step={0.05}
-                  value={explosionVfx.domeScaleMul}
-                  onChange={(e) => patchExplosionVfx({ domeScaleMul: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.domeScaleMul.toFixed(2)}</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Dome opacity</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={explosionVfx.domeOpacity}
-                  onChange={(e) => patchExplosionVfx({ domeOpacity: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.domeOpacity.toFixed(2)}</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Dome duration</span>
-                <input
-                  type="range"
-                  min={0.1}
-                  max={1.2}
-                  step={0.02}
-                  value={explosionVfx.domeDuration}
-                  onChange={(e) => patchExplosionVfx({ domeDuration: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.domeDuration.toFixed(2)}s</span>
-              </label>
-            </div>
-            <div className="hudTuneGroup">
-              <span className="hudTuneGroupLabel">Particles</span>
-              <label className="hudTuneRow">
-                <span>Travel spread</span>
-                <input
-                  type="range"
-                  min={0.15}
-                  max={1}
-                  step={0.05}
-                  value={explosionVfx.particleSpread ?? 0.5}
-                  onChange={(e) => patchExplosionVfx({ particleSpread: +e.target.value })}
-                />
-                <span className="hudTuneVal">
-                  {(explosionVfx.particleSpread ?? 0.5).toFixed(2)}
-                </span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Sparks</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={600}
-                  step={10}
-                  value={explosionVfx.sparkCount}
-                  onChange={(e) => patchExplosionVfx({ sparkCount: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.sparkCount}</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Spark particle size</span>
-                <input
-                  type="range"
-                  min={0.02}
-                  max={0.25}
-                  step={0.005}
-                  value={explosionVfx.sparkSize}
-                  onChange={(e) => patchExplosionVfx({ sparkSize: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.sparkSize.toFixed(3)}</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Embers</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={400}
-                  step={10}
-                  value={explosionVfx.emberCount}
-                  onChange={(e) => patchExplosionVfx({ emberCount: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.emberCount}</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Ember particle size</span>
-                <input
-                  type="range"
-                  min={0.02}
-                  max={0.2}
-                  step={0.005}
-                  value={explosionVfx.emberSize}
-                  onChange={(e) => patchExplosionVfx({ emberSize: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.emberSize.toFixed(3)}</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Debris</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={250}
-                  step={10}
-                  value={explosionVfx.debrisCount}
-                  onChange={(e) => patchExplosionVfx({ debrisCount: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.debrisCount}</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Debris particle size</span>
-                <input
-                  type="range"
-                  min={0.02}
-                  max={0.15}
-                  step={0.005}
-                  value={explosionVfx.debrisSize}
-                  onChange={(e) => patchExplosionVfx({ debrisSize: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.debrisSize.toFixed(3)}</span>
-              </label>
-            </div>
-            <div className="hudTuneGroup">
-              <span className="hudTuneGroupLabel">Light</span>
-              <label className="hudTuneRow">
-                <span>Peak intensity</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={80}
-                  step={1}
-                  value={explosionVfx.lightIntensity}
-                  onChange={(e) => patchExplosionVfx({ lightIntensity: +e.target.value })}
-                />
-                <span className="hudTuneVal">{explosionVfx.lightIntensity}</span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Glow duration</span>
-                <input
-                  type="range"
-                  min={0.05}
-                  max={1.2}
-                  step={0.02}
-                  value={explosionVfx.lightDuration ?? 0.32}
-                  onChange={(e) => patchExplosionVfx({ lightDuration: +e.target.value })}
-                />
-                <span className="hudTuneVal">
-                  {(explosionVfx.lightDuration ?? 0.32).toFixed(2)}s
-                </span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Blue tint</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={explosionVfx.lightBlueMix ?? 0.85}
-                  onChange={(e) => patchExplosionVfx({ lightBlueMix: +e.target.value })}
-                />
-                <span className="hudTuneVal">
-                  {(explosionVfx.lightBlueMix ?? 0.85).toFixed(2)}
-                </span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Lightning width (px)</span>
-                <input
-                  type="range"
-                  min={1}
-                  max={8}
-                  step={0.5}
-                  value={
-                    (explosionVfx.lightningThickness ?? 4) <= 0.25
-                      ? 4
-                      : explosionVfx.lightningThickness ?? 4
-                  }
-                  onChange={(e) =>
-                    patchExplosionVfx({ lightningThickness: +e.target.value })
-                  }
-                />
-                <span className="hudTuneVal">
-                  {(
-                    (explosionVfx.lightningThickness ?? 4) <= 0.25
-                      ? 4
-                      : explosionVfx.lightningThickness ?? 4
-                  ).toFixed(1)}
-                  px
-                </span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Lightning bolts</span>
-                <input
-                  type="range"
-                  min={3}
-                  max={16}
-                  step={1}
-                  value={explosionVfx.lightningBoltCount ?? 10}
-                  onChange={(e) =>
-                    patchExplosionVfx({ lightningBoltCount: +e.target.value })
-                  }
-                />
-                <span className="hudTuneVal">
-                  {explosionVfx.lightningBoltCount ?? 10}
-                </span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Lightning length</span>
-                <input
-                  type="range"
-                  min={0.3}
-                  max={1.5}
-                  step={0.05}
-                  value={explosionVfx.lightningLengthMul ?? 1.0}
-                  onChange={(e) =>
-                    patchExplosionVfx({ lightningLengthMul: +e.target.value })
-                  }
-                />
-                <span className="hudTuneVal">
-                  {(explosionVfx.lightningLengthMul ?? 1.0).toFixed(2)}
-                </span>
-              </label>
-              <label className="hudTuneRow">
-                <span>Lightning duration</span>
-                <input
-                  type="range"
-                  min={0.08}
-                  max={0.8}
-                  step={0.01}
-                  value={explosionVfx.lightningDuration ?? 0.34}
-                  onChange={(e) =>
-                    patchExplosionVfx({ lightningDuration: +e.target.value })
-                  }
-                />
-                <span className="hudTuneVal">
-                  {(explosionVfx.lightningDuration ?? 0.34).toFixed(2)}s
-                </span>
-              </label>
-            </div>
-          </div>
-        </div>
       )}
       {showFps && (
         <div ref={fpsRef} className="fpsCounter fpsCounterFixed" aria-live="polite">

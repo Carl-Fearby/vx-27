@@ -23,7 +23,7 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
-  { label: "BUILD", value: `v${BUILD_VERSION} · GPU preload live` },
+  { label: "BUILD", value: `v${BUILD_VERSION} · death vocals live` },
   { label: "ZONE", value: "Exclusion sector · sealed" },
   { label: "THREAT", value: "Remnant · contractors · drones" },
   { label: "RENDER", value: "WebGL · Three.js · load-screen bake" },
@@ -32,19 +32,19 @@ const TELEMETRY = [
 
 const WHATS_NEW = [
   {
-    tag: "Load",
-    title: "GPU preload on the loading screen",
-    text: "Shaders, textures, door transitions, stairs, and spawn poses compile before you click Start Game — fewer first-step hitches after days of fighting the zone.",
+    tag: "Hazard",
+    title: "Floor holes that actually kill you",
+    text: "Step over a pit and you're committed — no walking out sideways. Fall with a look-up swirl, then the death screen once you've dropped far enough.",
   },
   {
-    tag: "Combat",
-    title: "Hitscan rifle, instant feedback",
-    text: "Muzzle flash and impact effects without traveling bolt meshes — cleaner gunplay and less GPU churn in firefights.",
+    tag: "Audio",
+    title: "Death vocals for you and them",
+    text: "Three random combat death cries for the player, a separate hole-fall scream, and positional enemy death sounds on rifle and grenade kills.",
   },
   {
-    tag: "Zones",
-    title: "Service room & doorway lighting",
-    text: "Room pass and viewmodel lighting stay aligned through door mouths — gun stays lit outdoors, interiors read correctly inside.",
+    tag: "Zone",
+    title: "Service room corner fires",
+    text: "Four open-top oil barrels with interior flame in the dark service room — NW mirror expanded to every corner.",
   },
 ];
 
@@ -609,7 +609,7 @@ export default function MarketingSite() {
           You were sent to recover a weapon. You found something worse.
         </p>
         <p className="mktLaunchBuildNote">
-          Now live · v{BUILD_VERSION} · load-screen GPU preload
+          Now live · v{BUILD_VERSION} · hole falls &amp; death vocals
         </p>
         <Link href="/game" className="mktPlayBtn mktPlayBtnLaunch">
           <span className="mktPlayBtnLabel">Launch VX-27</span>

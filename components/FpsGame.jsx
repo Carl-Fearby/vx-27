@@ -475,9 +475,8 @@ function loadMusicEnabled() {
 }
 /** Seconds for the day/night toggle to crossfade from one state to the other. */
 const DAY_NIGHT_FADE_DURATION = 10;
-/** Meters below `floorY` at which a falling player is considered dead and
- *  respawned. Generous enough that any normal walking surface inaccuracy
- *  can't trigger it — only a real fall through a hole reaches this depth. */
+/** Meters below `floorY` (feet) at which a falling player is considered dead.
+ *  Matches hole-fall remove depth so the tumble finishes before the overlay. */
 const DEATH_FALL_DROP = 12;
 /** Minimum time the death overlay stays fully opaque before the player
  *  can click to respawn. Prevents accidentally clicking through it. */
@@ -820,6 +819,8 @@ export default function FpsGame() {
    *  until they click to respawn. Input/physics/weapon are gated on this. */
   const deathStateRef = useRef(null);
   const grenadeSuicideRef = useRef(false);
+  /** One-shot hole-fall cry — reset when no longer in a committed hole fall. */
+  const holeFallCryPlayedRef = useRef(false);
   /** Callback set by the game loop to trigger a respawn from outside the
    *  effect (e.g. the overlay's onClick handler). */
   const respawnCallbackRef = useRef(null);
@@ -2595,6 +2596,18 @@ export default function FpsGame() {
         }
       }
 
+      function playTargetDeathSound(mesh, hitPoint, hitZone) {
+        const pos = hitPoint?.clone?.() ?? mesh.position.clone();
+        if (!hitPoint) {
+          const h = mesh.userData?.height ?? 1.8;
+          pos.y += h * 0.55;
+        }
+        sounds.playEnemyDeath(scene, pos, {
+          headshot: hitZone === "head",
+          blast: hitZone === "grenade",
+        });
+      }
+
       function applyHit(hit, bulletDirection, targetMesh) {
         const mesh = targetMesh ?? hit.object;
         const { killed, zone, damage } = applyTargetHit(mesh, hit.point, bulletDirection);
@@ -2627,6 +2640,7 @@ export default function FpsGame() {
         }
         if (killed) {
           const deathPos = mesh.position.clone();
+          playTargetDeathSound(mesh, hit.point, zone);
           scheduleKillDrops(deathPos, zone);
           startDeathAnimation(mesh, bulletDirection, {
             scene,
@@ -2899,6 +2913,15 @@ export default function FpsGame() {
         if (!frozen) {
           player.update(input, dt);
 
+          if (player.isFallingThroughHole?.()) {
+            if (!holeFallCryPlayedRef.current) {
+              holeFallCryPlayedRef.current = true;
+              sounds.playHoleFallDeath();
+            }
+          } else {
+            holeFallCryPlayedRef.current = false;
+          }
+
           if (
             playerHealthRef.current > 0 &&
             tickOilBarrelFireProximityDamage(
@@ -2918,14 +2941,12 @@ export default function FpsGame() {
             triggerPlayerHurtFeedback(hurtVignetteFlashEndRef);
           }
 
-          // Death-fall: dropped through a floor hole. Only trigger a new
-          // death sequence when one isn't already in progress (otherwise
-          // the fade-phase player could re-trigger themselves before they
-          // climb out of the hole). The respawn is held until the freeze
-          // phase ends — the player can't be "in the world" while frozen.
+          // Death-fall: dropped through a floor hole — trigger after the fall
+          // animation (foot crosses kill depth), not on hole entry. Hole entry
+          // only commits movement lock + tumble in PlayerController.
           if (
             !deathStateRef.current &&
-            player.getY() < level.floorY - DEATH_FALL_DROP
+            player.getFootY() < level.floorY - DEATH_FALL_DROP
           ) {
             const reason = "You fell to your death";
             playerLivesRef.current = Math.max(0, playerLivesRef.current - 1);
@@ -2957,6 +2978,7 @@ export default function FpsGame() {
             setPlayerLives(playerLivesRef.current);
             playerHealthRef.current = 0;
             setPlayerHealth(0);
+            sounds.playPlayerDeath();
             deathStateRef.current = {
               reason,
               respawned: false,
@@ -3323,6 +3345,7 @@ export default function FpsGame() {
           getLiveTargets,
           applyGrenadeHit,
           (mesh, blastDir, opts) => {
+            playTargetDeathSound(mesh, opts?.hitPoint, opts?.hitZone);
             startDeathAnimation(mesh, blastDir, opts);
           },
           {

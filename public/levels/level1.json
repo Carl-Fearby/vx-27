@@ -203,6 +203,36 @@
       "note": "Dark service room NW corner — open top, interior fire"
     },
     {
+      "id": "oil_barrel_service_ne",
+      "type": "oilBarrel",
+      "x": 4.3,
+      "z": -21.95,
+      "roomId": "service_room",
+      "topCap": false,
+      "interiorFire": true,
+      "note": "Dark service room NE back corner — open top, interior fire (mirrors NW)"
+    },
+    {
+      "id": "oil_barrel_service_sw",
+      "type": "oilBarrel",
+      "x": -4.3,
+      "z": -15.35,
+      "roomId": "service_room",
+      "topCap": false,
+      "interiorFire": true,
+      "note": "Dark service room SW front corner — open top, interior fire"
+    },
+    {
+      "id": "oil_barrel_service_se",
+      "type": "oilBarrel",
+      "x": 4.3,
+      "z": -15.35,
+      "roomId": "service_room",
+      "topCap": false,
+      "interiorFire": true,
+      "note": "Dark service room SE front corner — open top, interior fire"
+    },
+    {
       "id": "oil_barrel_pile_stop_begin",
       "type": "oilBarrel",
       "x": -5.6,

@@ -148,6 +148,7 @@ const SECTIONS = [
     credits: [
       ["Lead Gameplay Programmer", staffAt(22)],
       ["Player Controller Engineer", staffAt(23)],
+      ["Floor Hole Fall Choreographer", staffAt(129)],
       ["Collision Detection Specialist", staffAt(24)],
       ["Weapon Systems Programmer", staffAt(25)],
       ["Grenade Trajectory Mathematician", staffAt(26)],
@@ -239,6 +240,9 @@ const SECTIONS = [
       ["Lead Composer", staffAt(60)],
       ["Foley Artist", GOLD_STAFF[10]],
       ["Gunshot Recording Engineer", staffAt(61)],
+      ["Combat Death Vocal Curator", staffAt(130)],
+      ["Hole Fall Scream Coordinator", staffAt(131)],
+      ["Enemy Last-Gasp Spatial Mixer", staffAt(132)],
       ["Volume Slider Guardian", staffAt(62)],
       ["Oil Barrel Fire Loop Composer", staffAt(63)],
     ],

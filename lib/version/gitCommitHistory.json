@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-04T00:49:17.585Z",
-  "head": "2bf9b6c",
-  "count": 85,
+  "generatedAt": "2026-06-04T01:18:12.583Z",
+  "head": "55abbc2",
+  "count": 87,
   "commits": [
+    {
+      "sha": "55abbc2",
+      "date": "2026-06-04",
+      "subject": "Release v0.1.17: Enemy hit audio and demo day/night cycle."
+    },
+    {
+      "sha": "7253f21",
+      "date": "2026-06-04",
+      "subject": "Refresh git version history after v0.1.16 deploy build."
+    },
     {
       "sha": "2bf9b6c",
       "date": "2026-06-04",

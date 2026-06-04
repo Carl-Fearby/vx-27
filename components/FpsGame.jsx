@@ -10,7 +10,7 @@ import {
   isArenaLoadAbortError,
   loadArenaConfig,
 } from "@/lib/level/loadArena";
-import { loadLevelTextureLibrary } from "@/lib/level/LevelTextures";
+import { loadLevelTextureLibrary, initLevelTexturesOnGpu } from "@/lib/level/LevelTextures";
 import {
   createSkyDome,
   setSunOcclusionRoot,
@@ -48,6 +48,7 @@ import {
   findFloorExtensionFootprintAtZ,
   FLOOR_EXTENSION_WALK_PAD,
   isIndoorLightingZone,
+  resolveViewmodelIndoorLightingZone,
 } from "@/lib/rooms/RoomPlacement";
 import { buildRoomCullables, updateRoomCulling } from "@/lib/rooms/RoomCulling";
 import {
@@ -65,7 +66,7 @@ import {
 import LoadingAudioViz from "@/components/LoadingAudioViz";
 import PickupFlashLayer from "@/components/PickupFlashLayer";
 import { warmupPickupPreviewEngine } from "@/lib/pickups/PickupPreviewEngine";
-import { createBulletPool, getLaserPalette, loadViewWeapon } from "@/lib/weapons/ViewWeapon";
+import { getLaserPalette, loadViewWeapon } from "@/lib/weapons/ViewWeapon";
 import {
   spawnAmmoDrop, updateAmmoDrops,
   disposeAllAmmoDrops,
@@ -163,7 +164,12 @@ import {
   PROJECTILE_FLASHBANG,
 } from "@/lib/combat/Grenade";
 import { groundSupportFromLevel } from "@/lib/physics/GroundSupport";
-import { warmupGameGpu, resetGameGpuWarmup, GPU_WARMUP_ENABLED } from "@/lib/dev/GpuWarmup";
+import {
+  preloadGameGpu,
+  settleGpuSpawnAfterLoad,
+  resetGameGpuPreload,
+  GPU_PRELOAD_ENABLED,
+} from "@/lib/dev/GpuPreload";
 import { resetArenaCeilingDayNightCache } from "@/lib/lighting/ArenaCeilingDayNight";
 import {
   applyTargetHit,
@@ -1555,8 +1561,6 @@ export default function FpsGame() {
     let weapon = null;
     let weaponLoadId = 0;
     let flashTimeout = null;
-    let bulletPool = null;
-    let bullets = [];
     let hpOrbs = [];
     let ammoDrops = [];
     let collectibleEntries = [];
@@ -1664,6 +1668,7 @@ export default function FpsGame() {
         collectArenaTextureIds(arena)
       );
       if (!isActive()) return;
+      initLevelTexturesOnGpu(renderer, levelTextures);
       reportLoad(45, "Level textures");
 
       reportLoad(48, "Grenade pickup model");
@@ -2346,8 +2351,6 @@ export default function FpsGame() {
           console.error("Rifle model failed to load:", err);
           return null;
         });
-      bulletPool = createBulletPool();
-      bullets = [];
       hpOrbs = [];
       ammoDrops = [];
       grenades = [];
@@ -2359,9 +2362,6 @@ export default function FpsGame() {
       let simTime = 0;
       let _lastHostileCount = -1;
       let _radarFrameSkip = 0;
-      const muzzlePos = new THREE.Vector3();
-      const muzzleDir = new THREE.Vector3();
-      const BULLET_SPEED = 75;
       const BULLET_MAX_RANGE = 55;
       const targetConfig = level.targetConfig;
 
@@ -2651,24 +2651,6 @@ export default function FpsGame() {
         return { killed, health: ud.health, ratio };
       }
 
-      function removeBullet(index) {
-        const b = bullets[index];
-        scene.remove(b.mesh);
-        bullets.splice(index, 1);
-      }
-
-      function spawnBullet(origin, direction, visualOrigin) {
-        const radioactive = playerHealthRef.current > 100;
-        const bullet = bulletPool.spawn(scene, visualOrigin ?? origin, direction, {
-          radioactive,
-        });
-        bullet.hitOrigin = origin.clone();
-        bullet.hitPos = origin.clone();
-        bullet.traveled = 0;
-        bullet.radioactive = radioactive;
-        bullets.push(bullet);
-      }
-
       function flashMuzzle() {
         if (!weapon) return;
         const palette = getLaserPalette(playerHealthRef.current > 100);
@@ -2709,7 +2691,6 @@ export default function FpsGame() {
 
         roundsInMagRef.current -= 1;
         scheduleGameplayHudSyncRef.current();
-        weapon.getMuzzleWorld(muzzlePos, muzzleDir, camera);
 
         hitRaycaster.setFromCamera(screenCenter, camera);
 
@@ -2728,13 +2709,37 @@ export default function FpsGame() {
         }
 
         const camDir = hitRaycaster.ray.direction.clone();
-        spawnBullet(hitRaycaster.ray.origin.clone(), camDir, muzzlePos);
+        const radioactive = playerHealthRef.current > 100;
         flashMuzzle();
         sounds.play("laser_shot", { volume: 0.65 });
         const ads = weapon.getAimBlend?.() ?? 0;
         const scale = 1 - ads * 0.45;
         player.addAimRecoil(scale);
         weapon.applyFireKick(ads);
+
+        refreshLiveTargets();
+        shootRaycaster.set(hitRaycaster.ray.origin, camDir);
+        shootRaycaster.far = BULLET_MAX_RANGE;
+        const targetHits = shootRaycaster.intersectObjects(
+          liveTargetsScratch,
+          true
+        );
+        const surfaceHits = shootRaycaster.intersectObjects(
+          levelHitMeshes,
+          false
+        );
+        const bestHit = pickClosestBulletHit(targetHits, surfaceHits);
+        if (bestHit) {
+          let targetNode = bestHit.object;
+          while (targetNode && !targetNode.userData?.isTarget) {
+            targetNode = targetNode.parent;
+          }
+          if (targetNode?.userData?.isTarget && targetNode.userData.health > 0) {
+            applyHit(bestHit, camDir, targetNode);
+          } else {
+            applyBulletSurfaceHit(bestHit, camDir, radioactive);
+          }
+        }
         return true;
       }
 
@@ -2773,58 +2778,6 @@ export default function FpsGame() {
             (input.consumeShoot() || autoFireTimer <= 0)
           ) {
             if (fireOneRound()) autoFireTimer = AUTO_FIRE_INTERVAL;
-          }
-        }
-      }
-
-      const _bulletStepVec = new THREE.Vector3();
-      const _bulletNextHit = new THREE.Vector3();
-
-      function updateBullets(bulletDt) {
-        if (bullets.length === 0) return;
-        const targets = liveTargetsScratch;
-        for (let i = bullets.length - 1; i >= 0; i--) {
-          const bullet = bullets[i];
-          const stepLen = BULLET_SPEED * bulletDt;
-          const prevHit = bullet.hitPos;
-          _bulletNextHit.copy(prevHit).addScaledVector(bullet.direction, stepLen);
-
-          shootRaycaster.set(prevHit, bullet.direction);
-          shootRaycaster.far = stepLen + 0.05;
-
-          const targetHits = shootRaycaster.intersectObjects(targets, true);
-          const surfaceHits = shootRaycaster.intersectObjects(
-            levelHitMeshes,
-            false
-          );
-
-          const bestHit = pickClosestBulletHit(targetHits, surfaceHits);
-
-          if (bestHit) {
-            bullet.mesh.position.copy(bestHit.point);
-            let targetNode = bestHit.object;
-            while (targetNode && !targetNode.userData?.isTarget) {
-              targetNode = targetNode.parent;
-            }
-            if (targetNode?.userData?.isTarget && targetNode.userData.health > 0) {
-              applyHit(bestHit, bullet.direction, targetNode);
-            } else {
-              applyBulletSurfaceHit(
-                bestHit,
-                bullet.direction,
-                bullet.radioactive
-              );
-            }
-            removeBullet(i);
-            continue;
-          }
-
-          bullet.mesh.position.addScaledVector(bullet.direction, stepLen);
-          bullet.hitPos.copy(_bulletNextHit);
-          bullet.traveled += stepLen;
-
-          if (bullet.traveled >= BULLET_MAX_RANGE) {
-            removeBullet(i);
           }
         }
       }
@@ -3359,7 +3312,6 @@ export default function FpsGame() {
         }
 
         refreshLiveTargets();
-        updateBullets(rawFrameDt);
         updateBloodSplatters(bloodSplatters, dt, scene);
         updateBulletHoles(dt);
 
@@ -3675,16 +3627,29 @@ export default function FpsGame() {
           arena.wallThickness ?? 0.5,
           arena.floorExtensions ?? []
         );
-        // Viewmodel + barrel-fire: player zone only (geometry pass is unified world+room).
+        // Room pass follows camera frustum (+ body-in-room). Viewmodel lighting follows
+        // feet / door threshold only — not raw frustum (service-room bbox is huge).
+        const inRoomPass = inRoomBody || visibleRoomCount > 0;
+        const inRoomViewmodel = resolveViewmodelIndoorLightingZone(
+          inRoomBody,
+          visibleRoomCount,
+          player.getX(),
+          player.getZ(),
+          arena.rooms,
+          arena.floorExtensions ?? [],
+          arenaHalf,
+          attachWall,
+          arena.wallThickness ?? 0.5
+        );
         syncLightLayersForZone(
           scene,
-          inRoomBody,
+          inRoomViewmodel,
           outdoorLights,
           roomLightsRef.current
         );
         syncOilBarrelFireLightLayers(
           oilBarrelFireLightsRef.current,
-          inRoomBody
+          inRoomViewmodel
         );
 
         const barrelFireShadowCount = areShadowsDisabled()
@@ -3716,7 +3681,7 @@ export default function FpsGame() {
         hitch?.mark("scene");
         renderSceneWithLayeredLighting(renderer, scene, camera, {
           skyRoot: sky?.mesh ?? null,
-          skipRoomPass: visibleRoomCount === 0,
+          skipRoomPass: !inRoomPass,
         });
         if (
           level?.targets &&
@@ -3823,23 +3788,40 @@ export default function FpsGame() {
       if (!isActive()) return;
       reportLoad(97, "Sound effects");
 
-      reportLoad(98, GPU_WARMUP_ENABLED ? "GPU warmup" : "GPU warmup skipped");
-      await warmupGameGpu({
+      reportLoad(98, GPU_PRELOAD_ENABLED ? "GPU preload" : "GPU preload skipped");
+      const spawnFootY = player.getFootY();
+      const spawnEyeY = player.getY();
+      const getShadowFrameOpts = () => {
+        const barrelFireShadowCount = areShadowsDisabled()
+          ? 0
+          : updateOilBarrelFireShadowBudget(
+              oilBarrelRuntimeIndex.fireLights,
+              camera.position,
+              getOilBarrelTuning()
+            );
+        return {
+          sunCastsShadow:
+            !areShadowsDisabled() &&
+            (sunRef.current?.castShadow && sunRef.current.intensity > 0.001),
+          moonCastsShadow:
+            !areShadowsDisabled() &&
+            (moonRef.current?.castShadow && moonRef.current.intensity > 0.001),
+          dayNightAnimating: false,
+          flashlightShadow:
+            !areShadowsDisabled() &&
+            (weapon?.isFlashlightCastingShadow?.() ?? false),
+          barrelFireShadowCount,
+        };
+      };
+      await preloadGameGpu({
         renderer,
         scene,
         camera,
         level,
         weapon,
         sky,
-        bulletPool,
         floorY: level.floorY,
-        colliders: allColliders,
-        bounds: level.bounds,
-        levelCollectibleMeshes: collectibleEntries
-          .map((e) => e.drop?.mesh)
-          .filter(Boolean),
         outdoorLights,
-        outdoorShadowLights: outdoorLights,
         roomLights: roomLightsRef.current,
         oilBarrelFireLights: oilBarrelFireLightsRef.current,
         doorwayOpenings: level.doorwayOpenings ?? [],
@@ -3848,13 +3830,19 @@ export default function FpsGame() {
         arenaHalf,
         attachWall,
         arenaRooms: arena.rooms ?? [],
+        floorExtensions: arena.floorExtensions ?? [],
         roomCullables: roomCullablesRef.current,
         wallThickness: arena.wallThickness ?? 0.5,
-        wallStandoff: arena.wallStandoff ?? 0.5,
+        spawnX: player.getX(),
+        spawnEyeY,
+        spawnZ: player.getZ(),
+        spawnFootY,
+        spawnYaw: player.getYaw?.() ?? 0,
         primeDirectionalShadow: () => {
           if (sunIsDayRef.current) refitSunShadowRef.current?.();
           else refitMoonShadowRef.current?.();
         },
+        getShadowFrameOpts,
         applyDayNightNightness: (nightness) => {
           applyDayNightRef.current?.(nightness);
         },
@@ -3867,6 +3855,32 @@ export default function FpsGame() {
         collectibleEntries.map((e) => e.drop?.mesh),
         level.group
       );
+      await settleGpuSpawnAfterLoad({
+        renderer,
+        scene,
+        camera,
+        level,
+        weapon,
+        sky,
+        floorY: level.floorY,
+        outdoorLights,
+        roomLights: roomLightsRef.current,
+        oilBarrelFireLights: oilBarrelFireLightsRef.current,
+        doorwayOpenings: level.doorwayOpenings ?? [],
+        catwalkDeckY: level.catwalkDeckY,
+        arenaHalf,
+        attachWall,
+        arenaRooms: arena.rooms ?? [],
+        floorExtensions: arena.floorExtensions ?? [],
+        roomCullables: roomCullablesRef.current,
+        wallThickness: arena.wallThickness ?? 0.5,
+        spawnX: player.getX(),
+        spawnEyeY: player.getY(),
+        spawnZ: player.getZ(),
+        spawnFootY: player.getFootY(),
+        spawnYaw: player.getYaw?.() ?? 0,
+        getShadowFrameOpts,
+      });
       beginShadowStartupWindow();
       reportLoad(99, "GPU ready");
 
@@ -3930,14 +3944,6 @@ export default function FpsGame() {
       setSunOcclusionRoot(null);
       levelTextures?.dispose();
       levelTextures = null;
-      if (bulletPool) {
-        for (let i = bullets.length - 1; i >= 0; i--) {
-          const b = bullets[i];
-          b.mesh.parent?.remove(b.mesh);
-        }
-        bullets.length = 0;
-        bulletPool.dispose();
-      }
       weapon?.dispose();
       weaponRef.current = null;
       soundsRef.current?.dispose();
@@ -3951,7 +3957,7 @@ export default function FpsGame() {
       resetRoomInteriorAmbient();
       renderer.dispose();
       rendererRef.current = null;
-      resetGameGpuWarmup();
+      resetGameGpuPreload();
       resetArenaCeilingDayNightCache();
       safeExitPointerLock();
     };

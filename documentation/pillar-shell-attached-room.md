@@ -142,9 +142,9 @@ Adds: floor, ceiling, `addRoomLights`, ground surface for player support, `roomS
 
 ## Headroom / auto-crouch (floor inside room)
 
-Between-door **mouth-plane** wall colliders (arena north wall + pillar-shell mouth lintels) sit on the attach-wall midplane. The player capsule radius overlaps them a few decimetres inside the room (e.g. `x ≈ 1.3`, `z ≈ -14.85`), which falsely forced crouch.
+Between-door **mouth-plane** wall colliders (arena north wall + pillar-shell mouth lintels) sit on the attach-wall midplane. Capsule overlap falsely forced crouch in rooms and on the arena floor beside props.
 
-**Fix:** tag those colliders with `mouthPlane: true` (`addDoorwayWallColliders`, `RoomPillarShell.js`). At floor height, `shouldSkipMouthPlaneHeadroom` in `PlayerController` ignores them when `getIsInRoom` is true and the player is not in a doorway passage (passages still use `getDoorwayHeadroomCeilingY` first).
+**Fix:** tag mouth colliders with `mouthPlane: true`. `shouldSkipMouthPlaneHeadroom` ignores them at floor height whenever the player is **not** in a doorway passage (passages still use `getDoorwayHeadroomCeilingY` first). Standing props (`controlPanel`, `oilBarrel`, `vx27Container`, …) are in `HEADROOM_SKIP_KINDS` so their walk colliders do not act as ceilings.
 
 ## Verification (browser)
 

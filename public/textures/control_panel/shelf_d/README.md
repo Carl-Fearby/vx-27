@@ -10,7 +10,7 @@ Optimized WebP maps for the horizontal work surface (profile edge **D**, corners
 | `shelf_d_emissive.webp` | Emissive (UI glow) |
 | `shelf_d_ao.webp` | Ambient occlusion |
 
-**UV / alignment:** Same as surface C — mesh UV mirror (`u → 1−u`), rotation from `ControlPanelScreenCTuning.js`. **Brightness:** surface D only (gameplay HUD **Surface D** slider, 0–25, `ControlPanelShelfDTuning.js`).
+**UV / alignment:** Same as surface C — mesh UV mirror (`u → 1−u`), rotation from `ControlPanelScreenCTuning.js`. **Brightness:** baked in `ControlPanelShelfDTuning.js` (`CONTROL_PANEL_SHELF_D_BRIGHTNESS`).
 
 Regenerate:
 

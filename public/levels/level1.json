@@ -357,6 +357,116 @@
       "topCap": true,
       "interiorFire": false,
       "note": "Only stack — spawn last, footprint on anchor"
+    },
+    {
+      "id": "oil_barrel_se_textured",
+      "type": "oilBarrel",
+      "x": 11.8581,
+      "z": -11.8362,
+      "note": "SE corner — open-top fire barrel (mirrored from container pile cluster)"
+    },
+    {
+      "id": "oil_barrel_se_pile_stop_begin",
+      "type": "oilBarrel",
+      "x": 13.15,
+      "z": -13.15,
+      "rotationY": 2.0196,
+      "topCap": true,
+      "interiorFire": false,
+      "note": "=== SE corner pile anchor (mirrored hub) ==="
+    },
+    {
+      "id": "oil_barrel_se_pile_02",
+      "type": "oilBarrel",
+      "x": 13.8802,
+      "z": -12.8388,
+      "rotationY": 2.86,
+      "topCap": true,
+      "interiorFire": false
+    },
+    {
+      "id": "oil_barrel_se_pile_01",
+      "type": "oilBarrel",
+      "x": 12.8288,
+      "z": -12.4205,
+      "rotationY": 4.09,
+      "topCap": false,
+      "interiorFire": false
+    },
+    {
+      "id": "oil_barrel_se_on_side_qa",
+      "type": "oilBarrel",
+      "x": 12.2114,
+      "z": -13.6361,
+      "rotationY": 2.12,
+      "rotationZ": 1.5708,
+      "layOnSide": true,
+      "topCap": false,
+      "interiorFire": false,
+      "note": "Dumped — wedged on side"
+    },
+    {
+      "id": "oil_barrel_se_pile_06",
+      "type": "oilBarrel",
+      "x": 12.2857,
+      "z": -12.829,
+      "rotationY": 5.49,
+      "topCap": false,
+      "interiorFire": false
+    },
+    {
+      "id": "oil_barrel_se_pile_03",
+      "type": "oilBarrel",
+      "x": 13.8387,
+      "z": -13.9744,
+      "rotationY": 0.4568,
+      "rotationX": 0.16,
+      "pileRole": "lean",
+      "topCap": false,
+      "interiorFire": false
+    },
+    {
+      "id": "oil_barrel_se_pile_04",
+      "type": "oilBarrel",
+      "x": 13.064,
+      "z": -14.0782,
+      "rotationY": 2.69,
+      "rotationZ": 1.5708,
+      "layOnSide": true,
+      "topCap": false,
+      "interiorFire": false
+    },
+    {
+      "id": "oil_barrel_se_pile_05",
+      "type": "oilBarrel",
+      "x": 14.1697,
+      "z": -13.4001,
+      "rotationY": 2.37,
+      "topCap": true,
+      "interiorFire": false
+    },
+    {
+      "id": "oil_barrel_se_pile_08",
+      "type": "oilBarrel",
+      "x": 13.6031,
+      "z": -12.1663,
+      "rotationY": 3.72,
+      "rotationZ": 1.5708,
+      "layOnSide": true,
+      "topCap": false,
+      "interiorFire": false,
+      "note": "=== SE corner pile end ==="
+    },
+    {
+      "id": "oil_barrel_se_pile_07",
+      "type": "oilBarrel",
+      "x": 13.1321,
+      "z": -13.1813,
+      "rotationY": 3.39,
+      "pileRole": "stack",
+      "topCap": true,
+      "interiorFire": false,
+      "note": "Only stack — spawn last, footprint on anchor"
     }
   ],
   "collectibles": [

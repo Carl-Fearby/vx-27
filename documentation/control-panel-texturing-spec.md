@@ -142,7 +142,7 @@ Single mesh `control_panel_mesh`, **two materials**:
 | **0** | `control_panel_endcap` | **Left & right end caps** — each cap is the **full 10-point silhouette** (1.708 m apart). Paint monitor side detail here if the ends are visible. |
 | **1** | `control_panel_body` | **All swept side walls** — profile extruded along Z. This is the **long strip** wrapping around the console; UVs tile along the perimeter. |
 
-No bevels; hard edges on the extruded profile. C/D are separate clamped quads on profile edges.
+No extrude bevel. **Every profile vertex** uses a quadratic fillet (`CONTROL_PANEL_PROFILE_CORNER_RADIUS_M`, default 6 cm). **Corner strips** (`ControlPanelProfileCornerStrips.js`) bleed hull end-cap UVs on all corners; screen C / shelf D corners use edge UVs where those faces meet. Extruded side walls use the same hull material + cap UVs as K/L. C/D remain separate clamped edge quads.
 
 Grey hull fallback when `hull/` preload fails.
 

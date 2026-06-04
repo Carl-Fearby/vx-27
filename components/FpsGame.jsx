@@ -242,18 +242,11 @@ import {
 import {
   preloadControlPanelShelfDTextures,
   resetControlPanelShelfDTextureCache,
-  updateControlPanelShelfDBrightness,
 } from "@/lib/control-panel/ControlPanelScreenD";
 import {
   preloadControlPanelBodyTextures,
   resetControlPanelBodyTextureCache,
 } from "@/lib/control-panel/ControlPanelBody";
-import {
-  CONTROL_PANEL_SHELF_D_BRIGHTNESS_MAX,
-  CONTROL_PANEL_SHELF_D_BRIGHTNESS_MIN,
-  loadControlPanelShelfDBrightness,
-  saveControlPanelShelfDBrightness,
-} from "@/lib/control-panel/ControlPanelShelfDTuning";
 import { syncControlPanelScreenMaterials } from "@/lib/control-panel/ControlPanel";
 import {
   applyShadowMapTypeToRenderer,
@@ -507,10 +500,11 @@ function triggerHurtVignetteFlash(flashEndRef) {
   flashEndRef.current = performance.now() + HURT_VIGNETTE_FLASH_MS;
 }
 
-/** Vignette pulse + camera shake — use whenever the player takes damage. */
-function triggerPlayerHurtFeedback(flashEndRef) {
+/** Vignette pulse + camera shake + pain vocal — use whenever the player takes damage. */
+function triggerPlayerHurtFeedback(flashEndRef, sounds = null) {
   triggerHurtVignetteFlash(flashEndRef);
   triggerHurtScreenShake();
+  sounds?.playPlayerHurt?.();
 }
 
 function updateHurtVignette(el, flashEndMs) {
@@ -837,9 +831,6 @@ export default function FpsGame() {
   const controlPanelsRef = useRef([]);
   const syncControlPanelCollidersRef = useRef(null);
   const playerPlacementRef = useRef({ x: 0, z: 0, y: 0 });
-  const [controlPanelCount, setControlPanelCount] = useState(0);
-  const [controlPanelShelfDBrightness, setControlPanelShelfDBrightness] =
-    useState(() => loadControlPanelShelfDBrightness());
   const arenaLiveRef = useRef(null);
   const onOilBarrelTuningChange = useCallback((key, value) => {
     setOilBarrelTuning((prev) => {
@@ -1296,7 +1287,6 @@ export default function FpsGame() {
       prebuildRagdollTemplates(level.targets);
       vx27ContainersRef.current = level.vx27ContainerMeshes ?? [];
       controlPanelsRef.current = level.controlPanelMeshes ?? [];
-      setControlPanelCount(controlPanelsRef.current.length);
       syncControlPanelScreenMaterials(controlPanelsRef.current);
       let vx27DoorInteractMeshesCache = collectVx27DoorInteractMeshes(
         vx27ContainersRef.current
@@ -1445,7 +1435,7 @@ export default function FpsGame() {
           nightHemi.intensity,
           nightness
         );
-        const shelteredHemiMul = sheltered ? 0.85 : 1;
+        const shelteredHemiMul = sheltered ? 0.78 : 1;
         applyHemisphereSettings(
           hemiRef.current,
           {
@@ -1456,7 +1446,7 @@ export default function FpsGame() {
             ),
             intensity: hemiIntensity * shelteredHemiMul,
           },
-          { indoor: sheltered }
+          { sheltered }
         );
       };
       refitSunShadowRef.current = () => {
@@ -2226,7 +2216,7 @@ export default function FpsGame() {
             );
             playerHealthRef.current = newHp;
             setPlayerHealth(newHp);
-            triggerPlayerHurtFeedback(hurtVignetteFlashEndRef);
+            triggerPlayerHurtFeedback(hurtVignetteFlashEndRef, sounds);
           }
 
           // Death-fall: dropped through a floor hole — trigger after the fall
@@ -2690,7 +2680,7 @@ export default function FpsGame() {
               const newHp = Math.max(0, playerHealthRef.current - 60);
               playerHealthRef.current = newHp;
               setPlayerHealth(newHp);
-              triggerPlayerHurtFeedback(hurtVignetteFlashEndRef);
+              triggerPlayerHurtFeedback(hurtVignetteFlashEndRef, sounds);
               if (newHp <= 0) grenadeSuicideRef.current = true;
             },
             countdownDuration: sounds.getGrenadeCountdownDuration(),
@@ -3959,34 +3949,6 @@ export default function FpsGame() {
           rebindAction={rebindAction}
           onRebindActionChange={setRebindAction}
         />
-      )}
-      {loadDone && controlPanelCount > 0 && (
-        <div
-          className="hudTunePanel controlPanelScreenTuneHud"
-          aria-label="Surface D shelf brightness"
-        >
-          <div className="hudTuneHeader">
-            <span>Surface D</span>
-          </div>
-          <label className="sliderRow controlPanelScreenSliderRow">
-            <span className="controlPanelScreenSliderLabel">
-              Brightness <output>{controlPanelShelfDBrightness.toFixed(1)}</output>
-            </span>
-            <input
-              type="range"
-              min={CONTROL_PANEL_SHELF_D_BRIGHTNESS_MIN}
-              max={CONTROL_PANEL_SHELF_D_BRIGHTNESS_MAX}
-              step={0.5}
-              value={controlPanelShelfDBrightness}
-              onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                setControlPanelShelfDBrightness(value);
-                saveControlPanelShelfDBrightness(value);
-                updateControlPanelShelfDBrightness(value);
-              }}
-            />
-          </label>
-        </div>
       )}
       {loadDone && (
         <button

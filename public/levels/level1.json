@@ -136,6 +136,28 @@
   },
   "props": [
     {
+      "id": "control_panel_01",
+      "type": "controlPanel",
+      "x": -8.9,
+      "z": -3.65,
+      "y": 0,
+      "rotationY": 3.1416,
+      "panelWidth": 1.708,
+      "sideProfile": [
+        [1, 0],
+        [1, 1],
+        [0.73, 1],
+        [0.43, 0.68],
+        [0, 0.65],
+        [0.06, 0.56],
+        [0.385, 0.49],
+        [0.77, 0.12],
+        [0.03, 0.04],
+        [0, 0]
+      ],
+      "note": "Standing console — baked side profile (10 corners; front step at 9)"
+    },
+    {
       "id": "vx27_cargo_module_qa",
       "type": "vx27Container",
       "x": -3.3,

@@ -1,7 +1,7 @@
 {
   "name": "game-engine2-fps",
   "private": true,
-  "version": "0.1.19",
+  "version": "0.1.20",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:http": "node scripts/dev.mjs --http",
@@ -20,6 +20,10 @@
     "textures:oil-barrel": "node scripts/optimize-oil-barrel-textures.mjs all",
     "textures:game": "node scripts/optimize-game-textures.mjs all",
     "textures:vx27-container": "node scripts/optimize-vx27-container-textures.mjs --prune-png --prune-unused",
+    "textures:control-panel-screen-c": "node scripts/optimize-control-panel-screen-c.mjs",
+    "textures:control-panel-shelf-d": "node scripts/optimize-control-panel-shelf-d.mjs",
+    "textures:control-panel-body": "node scripts/optimize-control-panel-body.mjs",
+    "textures:control-panel-hull": "node scripts/optimize-control-panel-hull.mjs",
     "textures:sky": "node scripts/optimize-sky-dome.mjs",
     "textures:ui": "node scripts/optimize-ui-images.mjs",
     "pile:barrels": "node scripts/generate-oil-barrel-pile.mjs --write",

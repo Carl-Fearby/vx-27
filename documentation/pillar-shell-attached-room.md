@@ -116,13 +116,15 @@ Adds: floor, ceiling, `addRoomLights`, ground surface for player support, `roomS
 
 **Symptom:** weapon goes **black** on catwalk above service room (often before entering the room).
 
-**Cause:** `resolveViewmodelIndoorLightingZone` or `isIndoorLightingZone` treated catwalk feet as “indoor” when the room shell was visible or the player was in a doorway peek band → outdoor sun unpinned from `VIEWMODEL_LAYER`, room point lights do not light the gun.
+**Cause:** Viewmodel lighting flipped indoor too early via (1) catwalk peek / `canPeekIntoAttachedRoom`, (2) `ATTACHED_ROOM_VIEWMODEL_EDGE_DIST` (1.5 m) while the room bbox was visible, or (3) `isIndoorLightingZone` doorway mouth band (`DOORWAY_MOUTH_ARENA_DEPTH` ≈ 1.35 m into the arena).
 
 **Fix (keep these in sync):**
 
-- `isIndoorLightingZone`: **return false** whenever `isOnCatwalkDeck(footY, catwalkDeckY)`.
-- `resolveViewmodelIndoorLightingZone`: **return false** on catwalk; pass `footY` + `catwalkDeckY` from `FpsGame.jsx` / `GpuPreload.js`.
-- **Room render pass** (`inRoomPass`) may still use `visibleRoomCount > 0` — that is separate from viewmodel lighting.
+- `isIndoorLightingZone`: **return false** on catwalk; may still use peek for non-viewmodel effects.
+- `resolveViewmodelIndoorLightingZone`: **false** on catwalk; **true** only when `isPointInsideAnyRoomForViewmodel` (walk footprint + `ROOM_VIEWMODEL_MOUTH_PAD` on the mouth edge, default 0.35 m). Does **not** use peek bands or frustum edge distance.
+- **Room render pass** (`inRoomPass`) still uses `isIndoorLightingZone` / `visibleRoomCount` — separate from viewmodel lighting.
+
+**level1 service_room (north):** outdoor gun above ~`z = -13.8`; indoor at `z ≤ -13.8` (mouth pad from footprint maxZ ≈ `-14.15`).
 
 ## Files checklist (new room copy)
 
@@ -138,9 +140,16 @@ Adds: floor, ceiling, `addRoomLights`, ground surface for player support, `roomS
 | `lib/lighting/SceneEnvironment.js` | Layered render + room ambient |
 | `components/FpsGame.jsx` | `inRoomPass` vs `inRoomViewmodel` split |
 
+## Headroom / auto-crouch (floor inside room)
+
+Between-door **mouth-plane** wall colliders (arena north wall + pillar-shell mouth lintels) sit on the attach-wall midplane. The player capsule radius overlaps them a few decimetres inside the room (e.g. `x ≈ 1.3`, `z ≈ -14.85`), which falsely forced crouch.
+
+**Fix:** tag those colliders with `mouthPlane: true` (`addDoorwayWallColliders`, `RoomPillarShell.js`). At floor height, `shouldSkipMouthPlaneHeadroom` in `PlayerController` ignores them when `getIsInRoom` is true and the player is not in a doorway passage (passages still use `getDoorwayHeadroomCeilingY` first).
+
 ## Verification (browser)
 
 1. **Catwalk** above north room: gun lit by sun; no black silhouette at mouth (`z ≈ -14`, `footY ≈ catwalk`).
+1b. **Service room floor** between doors (`x ≈ 1.3`, `z ≈ -14.85`): stand at full height, no forced crouch.
 2. **Inside** service room: walls dark, point-lit; no sun stripes on cinderblock.
 3. **Doors:** flat @ `centerX 0`, arch @ `3.6` — walkable, no sill gap on arch.
 4. **Catwalk:** no void/black pit; no z-fight line at deck join.

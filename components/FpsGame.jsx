@@ -78,7 +78,6 @@ import {
   ensureOilBarrelInteriorTextures,
   ensureOilBarrelInteriorVideo,
   setOilBarrelTuning as applyOilBarrelMaterialTuning,
-  getOilBarrelTuning,
   OIL_BARREL_FIRE_PROXIMITY_DAMAGE,
   tickOilBarrelFireProximityDamage,
   tickOilBarrelInteriorVideo,
@@ -87,59 +86,36 @@ import {
   ensureOilBarrelFlameMeshes,
   refreshOilBarrelRenderLayers,
 } from "@/lib/oil-barrel/OilBarrel";
-import { arenaHasVx27Containers, preloadVx27ContainerAssets, applyVx27ContainerDoorTuning, consumeVx27DoorColliderDirty, readVx27ContainerDoorTuning, readVx27ContainerEdgeRadius, readVx27ContainerExteriorCornerRadius, readVx27ContainerInteriorInsets, readVx27ContainerScale, rebuildVx27ContainerExterior, rebuildVx27ContainerInterior, rebuildVx27ContainerScale, refreshVx27ContainerRenderLayers, setVx27ContainerExteriorCornerRadius, setVx27ContainerMaterialTuning, updateVx27ContainerDoorAnimations } from "@/lib/vx27-container/Vx27Container";
-import { updateVx27ContainerDoorWizard } from "@/lib/vx27-container/Vx27ContainerDoorWizard";
+import {
+  preloadVx27ContainerAssets,
+  consumeVx27DoorColliderDirty,
+  refreshVx27ContainerRenderLayers,
+  setVx27ContainerMaterialTuning,
+  updateVx27ContainerDoorAnimations,
+} from "@/lib/vx27-container/Vx27Container";
 import {
   collectVx27DoorInteractMeshes,
   getVx27DoorInteractLabel,
   pickVx27DoorUnderCrosshair,
   toggleVx27ContainerDoorLeaf,
 } from "@/lib/vx27-container/Vx27ContainerDoorInteract";
-import { DEFAULT_VX27_CONTAINER_DOOR_TUNING } from "@/lib/vx27-container/Vx27ContainerDoorTuning";
 import {
-  DEFAULT_VX27_CONTAINER_MATERIAL_TUNING,
   loadVx27ContainerMaterialTuning,
   normalizeVx27ContainerMaterialTuning,
-  saveVx27ContainerMaterialTuning,
 } from "@/lib/vx27-container/Vx27ContainerMaterialTuning";
 import {
-  applyVx27ContainerPlacement,
-  buildVx27ContainerPropJson,
-  getVx27ContainerPlacementBounds,
-  loadVx27ContainerInteriorInsets,
-  loadVx27ContainerEdgeRadius,
-  loadVx27ContainerExteriorCornerRadius,
-  loadVx27ContainerTuneEnabled,
   readVx27ContainerPlacement,
-  saveVx27ContainerEdgeRadius,
-  saveVx27ContainerExteriorCornerRadius,
-  saveVx27ContainerInteriorInsets,
-  saveVx27ContainerTuneEnabled,
   syncVx27ContainerCollider,
-  VX27_CONTAINER_TUNE_ENABLED_KEY,
 } from "@/lib/vx27-container/Vx27ContainerTuning";
-// Vx27 container tuning panel moved to components/tuning-panels
 import {
   initOilBarrelFireLightFlicker,
   updateOilBarrelFireShadowBudget,
 } from "@/lib/oil-barrel/OilBarrelFireLight";
 import {
-  DEFAULT_OIL_BARREL_TUNING,
-  loadOilBarrelTuneEnabled,
   loadOilBarrelTuning,
-  OIL_BARREL_TUNE_ENABLED_KEY,
   normalizeOilBarrelTuning,
-  saveOilBarrelTuneEnabled,
   saveOilBarrelTuning,
 } from "@/lib/oil-barrel/OilBarrelTuning";
-// Oil barrel tuning panel moved to components/tuning-panels
-import {
-  isOilBarrelPileManagedProp,
-  applyOilBarrelPileToArena,
-  checkArenaOilBarrelPile,
-  loadPileWizardPrefs,
-  savePileWizardPrefs,
-} from "@/lib/oil-barrel/OilBarrelPileLayout";
 import { rebuildLevelOilBarrels } from "@/lib/level/LevelProps";
 import {
   spawnLevelCollectibles,
@@ -213,7 +189,6 @@ import {
   disposeAllBulletHoles,
   preloadBulletHoleTextures,
   updateBulletHoles,
-  setBulletHolesEnabled,
 } from "@/lib/combat/BulletHoles";
 import { hasLineOfSightToPoint } from "@/lib/combat/LineOfSight";
 import {
@@ -223,11 +198,8 @@ import {
   DEFAULT_HIP_POSE,
   loadBodyLookDownAmount,
   loadBodyLookUpAmount,
-  WEAPON_TUNE_ENABLED_KEY,
   loadWeaponTuning,
-  saveWeaponTuneEnabled,
 } from "@/lib/weapons/WeaponTuning";
-import StairTunePanel from "@/components/tuning-panels/StairTunePanel";
 import {
   shouldDropAmmoCrate,
   loadAmmoDropSpareThreshold,
@@ -244,20 +216,12 @@ import {
   applyHemisphereSettings,
   loadHemiDay,
   loadHemiNight,
-  saveHemiDay,
-  saveHemiNight,
 } from "@/lib/lighting/HemisphereTuning";
-import {
-  getArenaCatwalkDeckY,
-  getArenaFloorDeckY,
-  loadStairTuning,
-  saveStairTuning,
-} from "@/lib/stairs/StairTuning";
+import { loadStairTuning } from "@/lib/stairs/StairTuning";
 import {
   applySunLightPosition,
   loadSunAngles,
   loadSunDayMode,
-  saveSunAngles,
   saveSunDayMode,
   sunPositionFromAngles,
 } from "@/lib/lighting/SunLightTuning";
@@ -266,82 +230,42 @@ import {
   loadMoonAngles,
   loadMoonIntensity,
   moonPositionFromAngles,
-  saveMoonAngles,
-  saveMoonIntensity,
 } from "@/lib/lighting/MoonLightTuning";
-import {
-  DEFAULT_WALK_BOB_SIMPLE,
-  loadWalkBobTuneEnabled,
-  loadWalkBobTuning,
-  normalizeWalkBobSimple,
-  resolveWalkBobTuning,
-  saveWalkBobTuneEnabled,
-  saveWalkBobTuning,
-  WALK_BOB_TUNE_ENABLED_KEY,
-} from "@/lib/player/WalkBobTuning";
-import {
-  DEFAULT_STAIR_WALK_TUNING,
-  loadStairWalkTuneEnabled,
-  loadStairWalkTuning,
-  normalizeStairWalkTuning,
-  saveStairWalkTuneEnabled,
-  saveStairWalkTuning,
-  STAIR_WALK_TUNE_ENABLED_KEY,
-} from "@/lib/stairs/StairWalkTuning";
-import {
-  DEFAULT_HUD_BAR_TUNING,
-  loadHudBarTuneEnabled,
-  loadHudBarTuning,
-  normalizeHudBarTuning,
-  saveHudBarTuneEnabled,
-  saveHudBarTuning,
-  HUD_BAR_TUNE_ENABLED_KEY,
-} from "@/lib/ui/HudBarTuning";
+import { loadWalkBobTuning, resolveWalkBobTuning } from "@/lib/player/WalkBobTuning";
+import { loadStairWalkTuning, normalizeStairWalkTuning } from "@/lib/stairs/StairWalkTuning";
+import { loadHudBarTuning } from "@/lib/ui/HudBarTuning";
 import ControlsPanel from "@/components/ControlsPanel";
 import {
-  DEV_TUNE_BOOT_KEY,
-  isLocalDevHost,
-  resolveDevTuneEnabled,
-} from "@/lib/dev/DevTuneSession";
+  preloadControlPanelScreenCTextures,
+  resetControlPanelScreenCTextureCache,
+} from "@/lib/control-panel/ControlPanelScreenC";
 import {
-  applyDevSceneVisibility,
-  DEV_SHOW_BARRELS_KEY,
-  DEV_SHOW_CONTAINERS_KEY,
-  DEV_SHOW_ENEMIES_KEY,
-  DEV_SHOW_LENS_FLARE_KEY,
-  DEV_SHOW_PILLARS_KEY,
-  DEV_SHOW_STAIRS_KEY,
-  DEV_SHOW_SUN_DISC_KEY,
-  DEV_DISABLE_HOLE_DECALS_KEY,
-  loadDevSceneShow,
-} from "@/lib/dev/DevSceneVisibility";
+  preloadControlPanelShelfDTextures,
+  resetControlPanelShelfDTextureCache,
+  updateControlPanelShelfDBrightness,
+} from "@/lib/control-panel/ControlPanelScreenD";
 import {
-  createFrameHitchProfiler,
-  FRAME_HITCH_PROFILER_KEY,
-  loadFrameHitchProfilerEnabled,
-} from "@/lib/dev/FrameHitchProfiler";
+  preloadControlPanelBodyTextures,
+  resetControlPanelBodyTextureCache,
+} from "@/lib/control-panel/ControlPanelBody";
 import {
-  areShadowsDisabled,
+  CONTROL_PANEL_SHELF_D_BRIGHTNESS_MAX,
+  CONTROL_PANEL_SHELF_D_BRIGHTNESS_MIN,
+  loadControlPanelShelfDBrightness,
+  saveControlPanelShelfDBrightness,
+} from "@/lib/control-panel/ControlPanelShelfDTuning";
+import { syncControlPanelScreenMaterials } from "@/lib/control-panel/ControlPanel";
+import {
   applyShadowMapTypeToRenderer,
-  disableAllShadows,
   enableRendererShadowPipeline,
   loadPlainShadowDepthEnabled,
   loadShadowMapType,
-  loadShadowsDisabled,
   setPlainShadowDepthRuntime,
   setShadowMapTypeRuntime,
-  setShadowsDisabledRuntime,
-  SHADOW_MAP_TYPE_OPTIONS,
 } from "@/lib/dev/ShadowDebug";
 import {
   resetAndApplyShadowCastHygiene,
 } from "@/lib/lighting/ShadowMaterialHygiene";
-import {
-  applyTextureOverride,
-  areTexturesDisabled,
-  loadTexturesDisabled,
-  setTexturesDisabledRuntime,
-} from "@/lib/dev/TextureDebug";
 import {
   applyFrameShadowUpdates,
   beginShadowStartupWindow,
@@ -419,16 +343,11 @@ const KEYBOARD_EASE_KEY = "fps-keyboard-ease";
 const MOUSE_LOOK_KEY = "fps-mouse-look";
 const MOUSE_EASE_KEY = "fps-mouse-ease";
 const LOOK_MAX_RATE_KEY = "fps-look-max-rate";
-const SUN_TUNE_ENABLED_KEY = "fps-sun-tune-enabled";
-const HEMI_TUNE_ENABLED_KEY = "fps-hemi-tune-enabled";
-const STAIRS_TUNE_ENABLED_KEY = "fps-stairs-tune-enabled";
 const LEGACY_LOOK_SPEED_KEY = "fps-look-speed";
 const LEGACY_LOOK_EASE_KEY = "fps-look-ease";
 const RENDER_SCALE_KEY = "fps-render-scale";
 const PLAYER_HEIGHT_KEY = "fps-player-height";
-const SHOW_FPS_KEY = "fps-show-counter";
 const SHOW_HUD_KEY = "fps-show-hud";
-const SHOW_PLAYER_COORDS_KEY = "fps-show-player-coords";
 const MUSIC_ENABLED_KEY = "fps-music-enabled";
 const DEFAULT_KEYBOARD_LOOK = 5;
 const DEFAULT_KEYBOARD_EASE = 0;
@@ -457,13 +376,6 @@ function effectivePixelRatio(scale) {
   if (typeof window === "undefined") return 1;
   return Math.min(window.devicePixelRatio || 1, 2) * scale;
 }
-/** Persisted dev-only "Show FPS counter" toggle. Default off so a normal
- *  player never sees the dev HUD. */
-function loadShowFps() {
-  if (typeof window === "undefined") return false;
-  return window.localStorage.getItem(SHOW_FPS_KEY) === "true";
-}
-
 function loadShowHud() {
   if (typeof window === "undefined") return true;
   return window.localStorage.getItem(SHOW_HUD_KEY) !== "false";
@@ -473,6 +385,11 @@ function loadMusicEnabled() {
   if (typeof window === "undefined") return true;
   return window.localStorage.getItem(MUSIC_ENABLED_KEY) !== "false";
 }
+/** Manual day/night toggle (settings + KeyN). */
+const DAY_NIGHT_SWITCHER_ENABLED = true;
+/** Auto day/night flip while actively playing (demo showcase). Set false to pause. */
+const DAY_NIGHT_DEMO_CYCLE_ENABLED = false;
+
 /** Seconds for the day/night toggle to crossfade from one state to the other. */
 const DAY_NIGHT_FADE_DURATION = 10;
 /** Auto day/night flip while actively playing (demo showcase). */
@@ -794,13 +711,9 @@ export default function FpsGame() {
   const canvasRef = useRef(null);
   const crosshairRef = useRef(null);
   const doorInteractPromptRef = useRef(null);
-  const fpsRef = useRef(null);
   const missionTimerHudRef = useRef(null);
   const hostileCountHudRef = useRef(null);
   const playerCoordsMenuRef = useRef(null);
-  const playerCoordsHudRef = useRef(null);
-  const showDevOverlayRef = useRef(false);
-  const showPlayerCoordsRef = useRef(false);
   const showHudRef = useRef(true);
   const gameRootRef = useRef(null);
   const compassTapeRef = useRef(null);
@@ -837,91 +750,24 @@ export default function FpsGame() {
   const [mouseEase, setMouseEase] = useState(DEFAULT_MOUSE_EASE);
   const [maxLookRate, setMaxLookRate] = useState(DEFAULT_MAX_LOOK_RATE);
   const [playerHeight, setPlayerHeight] = useState(DEFAULT_PLAYER_HEIGHT);
-  const [sunAzimuth, setSunAzimuth] = useState(() => loadSunAngles().azimuth);
-  const [sunElevation, setSunElevation] = useState(() => loadSunAngles().elevation);
   const initialMoonAngles = loadMoonAngles();
-  const [moonAzimuth, setMoonAzimuth] = useState(initialMoonAngles.azimuth);
-  const [moonElevation, setMoonElevation] = useState(initialMoonAngles.elevation);
-  const [moonIntensity, setMoonIntensity] = useState(() => loadMoonIntensity());
-  const [sunIsDay, setSunIsDay] = useState(() => loadSunDayMode());
+  const [sunIsDay, setSunIsDay] = useState(() =>
+    DAY_NIGHT_SWITCHER_ENABLED ? loadSunDayMode() : true
+  );
   const initialStairTuning = loadStairTuning();
   const initialWalkBobTuning = loadWalkBobTuning();
   const initialStairWalkTuning = loadStairWalkTuning();
-  const [stairX, setStairX] = useState(initialStairTuning.position.x);
-  const [stairY, setStairY] = useState(initialStairTuning.position.y);
-  const [stairZ, setStairZ] = useState(initialStairTuning.position.z);
-  const [stairRotationY, setStairRotationY] = useState(initialStairTuning.rotationY);
-  const [arenaHasStairs, setArenaHasStairs] = useState(false);
+  const hudBarLayout = loadHudBarTuning();
   const [levelMeta, setLevelMeta] = useState({
     number: 1,
     id: "level1",
     name: "Level 1",
     objective: "HOLD ZONE",
   });
-  const [stairsTuneEnabled, setStairsTuneEnabled] = useState(false);
-  const [walkBobTuneEnabled, setWalkBobTuneEnabled] = useState(false);
-  const [stairWalkTuneEnabled, setStairWalkTuneEnabled] = useState(false);
-  const [hudBarTuneEnabled, setHudBarTuneEnabled] = useState(false);
-  const [hudBarLayout, setHudBarLayout] = useState(() => loadHudBarTuning());
-  const [oilBarrelTuneEnabled, setOilBarrelTuneEnabled] = useState(false);
   const [oilBarrelTuning, setOilBarrelTuning] = useState(() =>
     loadOilBarrelTuning()
   );
-  const [vx27ContainerTuneEnabled, setVx27ContainerTuneEnabled] = useState(false);
-  const vx27ContainerTuneEnabledRef = useRef(false);
-  const containerDoorTuningKeyRef = useRef("");
-  const [arenaHasVx27ContainersState, setArenaHasVx27ContainersState] = useState(false);
-  const [containerTuneIndex, setContainerTuneIndex] = useState(0);
-  const containerTuneIndexRef = useRef(0);
-  const [containerPropLabels, setContainerPropLabels] = useState([]);
-  const [containerX, setContainerX] = useState(0);
-  const [containerZ, setContainerZ] = useState(0);
-  const [containerFloorY, setContainerFloorY] = useState(0);
-  const [containerRotationY, setContainerRotationY] = useState(0);
-  const initialContainerInsets = loadVx27ContainerInteriorInsets();
-  const [containerInsetLeft, setContainerInsetLeft] = useState(initialContainerInsets.left);
-  const [containerInsetRight, setContainerInsetRight] = useState(initialContainerInsets.right);
-  const [containerInsetFront, setContainerInsetFront] = useState(initialContainerInsets.front);
-  const [containerInsetBack, setContainerInsetBack] = useState(initialContainerInsets.back);
-  const [containerFloorOffset, setContainerFloorOffset] = useState(
-    initialContainerInsets.floorOffset
-  );
-  const [containerCeilingOffset, setContainerCeilingOffset] = useState(
-    initialContainerInsets.ceilingOffset
-  );
-  const [containerEdgeRadius, setContainerEdgeRadius] = useState(() =>
-    loadVx27ContainerEdgeRadius()
-  );
-  const [containerExteriorCornerRadius, setContainerExteriorCornerRadius] =
-    useState(() => loadVx27ContainerExteriorCornerRadius());
-  const [containerScale, setContainerScale] = useState(1);
-  const [containerMaterialTuning, setContainerMaterialTuning] = useState(() =>
-    loadVx27ContainerMaterialTuning()
-  );
-  const [containerDoorTuning, setContainerDoorTuning] = useState(
-    () => DEFAULT_VX27_CONTAINER_DOOR_TUNING
-  );
-  const [containerDoorWizardEnabled, setContainerDoorWizardEnabled] = useState(false);
-  const containerDoorWizardEnabledRef = useRef(false);
-  const [containerBounds, setContainerBounds] = useState(() =>
-    getVx27ContainerPlacementBounds(null, 0, 4.35)
-  );
-  const pilePrefs = loadPileWizardPrefs();
-  const [pileSeed, setPileSeed] = useState(pilePrefs.seed);
-  const [pileHubX, setPileHubX] = useState(pilePrefs.hub.x);
-  const [pileHubZ, setPileHubZ] = useState(pilePrefs.hub.z);
-  const [pileHubRotationY, setPileHubRotationY] = useState(
-    pilePrefs.hub.rotationY ?? 0
-  );
-  const [pileStatus, setPileStatus] = useState("");
-  const [pileBusy, setPileBusy] = useState(false);
-  const [walkBobTuning, setWalkBobTuning] = useState(initialWalkBobTuning);
-  const [stairWalkTuning, setStairWalkTuning] = useState(initialStairWalkTuning);
-  const [sunTuneEnabled, setSunTuneEnabled] = useState(false);
-  const [hemiTuneEnabled, setHemiTuneEnabled] = useState(false);
-  const [floorDeckY, setFloorDeckY] = useState(0);
-  const [catwalkDeckY, setCatwalkDeckY] = useState(4.13);
-  const [pointerLocked, setPointerLocked] = useState(false);
+  const oilBarrelTuningRef = useRef(loadOilBarrelTuning());
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadAssetLabel, setLoadAssetLabel] = useState("Initializing…");
   const [assetsReady, setAssetsReady] = useState(false);
@@ -929,7 +775,6 @@ export default function FpsGame() {
   const loadDoneRef = useRef(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
-  const [showFps, setShowFps] = useState(false);
   const [showHud, setShowHud] = useState(() => loadShowHud());
   const [musicEnabled, setMusicEnabled] = useState(true);
   const musicEnabledRef = useRef(true);
@@ -939,84 +784,34 @@ export default function FpsGame() {
   const ammoDropSpareThresholdRef = useRef(DEFAULT_AMMO_DROP_SPARE_THRESHOLD);
   const loadingMusicTrackIdRef = useRef(loadStoredLoadingTrackId());
   const levelMusicTrackIdRef = useRef(DEFAULT_LEVEL_TRACK_ID);
-  const [showDevOverlay, setShowDevOverlay] = useState(() => window.localStorage.getItem("fps-show-dev-overlay") === "true");
-  const [devShowBarrels, setDevShowBarrels] = useState(() => loadDevSceneShow(DEV_SHOW_BARRELS_KEY));
-  const [devShowEnemies, setDevShowEnemies] = useState(() => loadDevSceneShow(DEV_SHOW_ENEMIES_KEY));
-  const [devShowStairs, setDevShowStairs] = useState(() => loadDevSceneShow(DEV_SHOW_STAIRS_KEY));
-  const [devShowContainers, setDevShowContainers] = useState(() =>
-    loadDevSceneShow(DEV_SHOW_CONTAINERS_KEY)
-  );
-  const [devShowPillars, setDevShowPillars] = useState(() => loadDevSceneShow(DEV_SHOW_PILLARS_KEY));
-  const [devShowLensFlare, setDevShowLensFlare] = useState(() =>
-    loadDevSceneShow(DEV_SHOW_LENS_FLARE_KEY)
-  );
-  const [devShowSunDisc, setDevShowSunDisc] = useState(() => loadDevSceneShow(DEV_SHOW_SUN_DISC_KEY));
-  const [devDisableHoleDecals, setDevDisableHoleDecals] = useState(() => {
-    try {
-      return window.localStorage.getItem(DEV_DISABLE_HOLE_DECALS_KEY) === "true";
-    } catch {
-      return false;
-    }
-  });
-  const [frameHitchProfiler, setFrameHitchProfiler] = useState(() =>
-    loadFrameHitchProfilerEnabled()
-  );
-  const frameHitchProfilerRef = useRef(null);
-  const [shadowsDisabled, setShadowsDisabled] = useState(() =>
-    loadShadowsDisabled()
-  );
-  const shadowsDisabledRef = useRef(shadowsDisabled);
-  const applyShadowDebugRef = useRef(null);
-  const [texturesDisabled, setTexturesDisabled] = useState(() =>
-    loadTexturesDisabled()
-  );
-  const texturesDisabledRef = useRef(texturesDisabled);
-  const applyTextureDebugRef = useRef(null);
-  const [shadowMapType, setShadowMapType] = useState(() => loadShadowMapType());
-  const shadowMapTypeRef = useRef(shadowMapType);
-  const [plainShadowDepth, setPlainShadowDepth] = useState(() =>
-    loadPlainShadowDepthEnabled()
-  );
-  const plainShadowDepthRef = useRef(plainShadowDepth);
-  const applyShadowExperimentRef = useRef(null);
-  const [showPlayerCoords, setShowPlayerCoords] = useState(
-    () => window.localStorage.getItem(SHOW_PLAYER_COORDS_KEY) === "true"
-  );
-  const [hudCogX, setHudCogX] = useState(4);
-  const [hudCogY, setHudCogY] = useState(32);
-  const [hudCogSize, setHudCogSize] = useState(8);
-  const [hudRoundsX, setHudRoundsX] = useState(33);
-  const [hudRoundsY, setHudRoundsY] = useState(10);
-  const [hudMagX, setHudMagX] = useState(50);
-  const [hudMagY, setHudMagY] = useState(10);
-  const [hudMagsX, setHudMagsX] = useState(67);
-  const [hudMagsY, setHudMagsY] = useState(10);
-  const [hudValueFont, setHudValueFont] = useState(2.97);
-  const [hudLabelY, setHudLabelY] = useState(8);
-  const [hudFireModeY, setHudFireModeY] = useState(14.5);
-  const [hudBarCompassX, setHudBarCompassX] = useState(92);
-  const [hudBarCompassY, setHudBarCompassY] = useState(21);
-  const [hudBarCompassSize, setHudBarCompassSize] = useState(6.3);
-  const [hbCorner, setHbCorner] = useState(3);
+  const hudCogX = 4;
+  const hudCogY = 32;
+  const hudCogSize = 8;
+  const hudRoundsX = 33;
+  const hudRoundsY = 10;
+  const hudMagX = 50;
+  const hudMagY = 10;
+  const hudMagsX = 67;
+  const hudMagsY = 10;
+  const hudValueFont = 2.97;
+  const hudLabelY = 8;
+  const hudFireModeY = 14.5;
+  const hudBarCompassX = 92;
+  const hudBarCompassY = 21;
+  const hudBarCompassSize = 6.3;
+  const hbCorner = 3;
   const [radarInnerX] = useState(49);
   const [radarInnerY] = useState(50);
   const [radarInnerSize] = useState(80);
   const [radarLeft] = useState(1.5);
   const [radarBottom] = useState(1.5);
   const [radarScale] = useState(11);
-  const [weaponTuneEnabled, setWeaponTuneEnabled] = useState(false);
-  const [levelEditEnabled, setLevelEditEnabled] = useState(false);
-  const levelEditEnabledRef = useRef(false);
-  const selectedLevelObjectRef = useRef(null);
-  const [selectedLevelObjectVer, setSelectedLevelObjectVer] = useState(0);
-  const levelObjectsRef = useRef([]);
   const sceneRef = useRef(null);
   const [bindings, setBindings] = useState(() => loadBindings());
   const [rebindAction, setRebindAction] = useState(null);
   const bindingsRef = useRef(loadBindings());
   const settingsOpenRef = useRef(false);
   const controlsOpenRef = useRef(false);
-  const weaponTuneEnabledRef = useRef(false);
   const invertYRef = useRef(false);
   const keyboardLookRef = useRef(DEFAULT_KEYBOARD_LOOK);
   const keyboardEaseRef = useRef(DEFAULT_KEYBOARD_EASE);
@@ -1036,35 +831,21 @@ export default function FpsGame() {
   );
   const refitSunShadowRef = useRef(null);
   const refitMoonShadowRef = useRef(null);
-  const rebuildStairsRef = useRef(null);
   const rebuildOilBarrelsRef = useRef(null);
   const levelRef = useRef(null);
-  const pilePlacementRafRef = useRef(0);
   const vx27ContainersRef = useRef([]);
-  const vx27ContainerCommitRef = useRef(null);
-  const vx27ContainerInteriorCommitRef = useRef(null);
-  const vx27ContainerExteriorCommitRef = useRef(null);
-  const vx27ContainerExteriorCornerCommitRef = useRef(null);
-  const vx27ContainerScaleCommitRef = useRef(null);
-  const vx27ContainerDoorCommitRef = useRef(null);
-  const getPlayerPlacementRef = useRef(null);
+  const controlPanelsRef = useRef([]);
+  const syncControlPanelCollidersRef = useRef(null);
+  const playerPlacementRef = useRef({ x: 0, z: 0, y: 0 });
+  const [controlPanelCount, setControlPanelCount] = useState(0);
+  const [controlPanelShelfDBrightness, setControlPanelShelfDBrightness] =
+    useState(() => loadControlPanelShelfDBrightness());
   const arenaLiveRef = useRef(null);
-  const onContainerMaterialChange = useCallback((key, value) => {
-    setContainerMaterialTuning((prev) => {
-      const next = normalizeVx27ContainerMaterialTuning({ ...prev, [key]: value });
-      saveVx27ContainerMaterialTuning(next);
-      const containerGroup =
-        vx27ContainersRef.current[containerTuneIndexRef.current] ??
-        sceneRef.current ??
-        undefined;
-      setVx27ContainerMaterialTuning(next, containerGroup);
-      return next;
-    });
-  }, []);
   const onOilBarrelTuningChange = useCallback((key, value) => {
     setOilBarrelTuning((prev) => {
       const next = normalizeOilBarrelTuning({ ...prev, [key]: value });
       saveOilBarrelTuning(next);
+      oilBarrelTuningRef.current = next;
       applyOilBarrelMaterialTuning(next, sceneRef.current ?? undefined);
       if (key === "topCap") {
         if (value === false) {
@@ -1083,169 +864,35 @@ export default function FpsGame() {
     });
   }, []);
 
-  const persistPilePrefs = useCallback((seed, hubX, hubZ, hubRotationY) => {
-    savePileWizardPrefs({
-      seed,
-      hub: { x: hubX, z: hubZ, rotationY: hubRotationY },
-    });
-  }, []);
-
-  const applyAllTunePanels = useCallback((enabled) => {
-    const on = enabled ? "true" : "false";
-    saveWeaponTuneEnabled(enabled);
-    localStorage.setItem(SUN_TUNE_ENABLED_KEY, on);
-    localStorage.setItem(HEMI_TUNE_ENABLED_KEY, on);
-    localStorage.setItem(STAIRS_TUNE_ENABLED_KEY, on);
-    saveWalkBobTuneEnabled(enabled);
-    saveStairWalkTuneEnabled(enabled);
-    saveHudBarTuneEnabled(enabled);
-    saveOilBarrelTuneEnabled(enabled);
-    saveVx27ContainerTuneEnabled(enabled);
-    setWeaponTuneEnabled(enabled);
-    weaponTuneEnabledRef.current = enabled;
-    setSunTuneEnabled(enabled);
-    setHemiTuneEnabled(enabled);
-    setStairsTuneEnabled(enabled);
-    setWalkBobTuneEnabled(enabled);
-    setStairWalkTuneEnabled(enabled);
-    setHudBarTuneEnabled(enabled);
-    setOilBarrelTuneEnabled(enabled);
-    setVx27ContainerTuneEnabled(enabled);
-  }, []);
-
-  const applyPilePlacementToScene = useCallback(
-    (hubX, hubZ, hubRotationY, { persist = true } = {}) => {
-      const arena = arenaLiveRef.current;
-      if (!arena) {
-        setPileStatus("Level not loaded yet.");
-        return null;
-      }
-      const result = applyOilBarrelPileToArena(arena, {
-        hub: { x: hubX, z: hubZ },
-        rotationY: hubRotationY,
-      });
-      rebuildOilBarrelsRef.current?.();
-      if (persist) {
-        persistPilePrefs(pileSeed, hubX, hubZ, hubRotationY);
-      }
-      const check = checkArenaOilBarrelPile(arena);
-      const rotDeg = (hubRotationY * (180 / Math.PI)).toFixed(1);
-      if (!result.ok) {
-        const miss = result.failed.length
-          ? result.failed.join(", ")
-          : "not enough barrels placed";
-        setPileStatus(
-          `Pile at (${hubX.toFixed(2)}, ${hubZ.toFixed(2)}, ${rotDeg}°) — ${miss}.`
-        );
-      } else if (!check.ok) {
-        setPileStatus(
-          `Pile at (${hubX.toFixed(2)}, ${hubZ.toFixed(2)}, ${rotDeg}°) — overlaps detected.`
-        );
-      } else {
-        setPileStatus(
-          `Pile at (${hubX.toFixed(2)}, ${hubZ.toFixed(2)}, ${rotDeg}°) — check OK.`
-        );
-      }
-      return result;
-    },
-    [pileSeed, persistPilePrefs]
-  );
-
-  const schedulePilePlacement = useCallback(
-    (hubX, hubZ, hubRotationY) => {
-      if (pilePlacementRafRef.current) {
-        cancelAnimationFrame(pilePlacementRafRef.current);
-      }
-      pilePlacementRafRef.current = requestAnimationFrame(() => {
-        pilePlacementRafRef.current = 0;
-        applyPilePlacementToScene(hubX, hubZ, hubRotationY);
-      });
-    },
-    [applyPilePlacementToScene]
-  );
-
-  const onPileGenerate = useCallback(() => {
-    if (pileBusy) return;
-    setPileBusy(true);
-    setPileStatus("Applying pile layout…");
-    void (async () => {
-      try {
-        await new Promise((r) => setTimeout(r, 0));
-        applyPilePlacementToScene(pileHubX, pileHubZ, pileHubRotationY);
-      } finally {
-        setPileBusy(false);
-      }
-    })();
-  }, [pileBusy, pileHubX, pileHubZ, pileHubRotationY, applyPilePlacementToScene]);
-
-  const onPileCheck = useCallback(() => {
-    const arena = arenaLiveRef.current;
-    if (!arena) {
-      setPileStatus("Level not loaded yet.");
-      return;
-    }
-    const { ok, count } = checkArenaOilBarrelPile(arena);
-    setPileStatus(
-      ok
-        ? `Check OK — ${count} pile barrel(s), no overlaps.`
-        : `Check failed — ${count} pile barrel(s) intersect.`
-    );
-  }, []);
-
-  const onPileCopyJson = useCallback(async () => {
-    const arena = arenaLiveRef.current;
-    if (!arena) return;
-    const pile = (arena.props ?? []).filter((p) => isOilBarrelPileManagedProp(p));
-    const text = JSON.stringify(pile, null, 2);
-    try {
-      await navigator.clipboard.writeText(text);
-      setPileStatus(`Copied ${pile.length} pile props to clipboard.`);
-    } catch {
-      setPileStatus("Copy failed — see console.");
-      console.log("Oil barrel pile props:", text);
-    }
-  }, []);
-
   const stairParamsRef = useRef(initialStairTuning);
   const walkBobTuningRef = useRef(initialWalkBobTuning);
   const stairWalkTuningRef = useRef(initialStairWalkTuning);
   const sunRef = useRef(null);
   const moonRef = useRef(null);
   const sunBaseIntensityRef = useRef(2.85);
-  const sunIsDayRef = useRef(loadSunDayMode());
+  const sunIsDayRef = useRef(
+    DAY_NIGHT_SWITCHER_ENABLED ? loadSunDayMode() : true
+  );
   const applyDayNightRef = useRef(null);
   // Continuous 0 (full day) → 1 (full night) value driving the day/night fade.
   // `target` is set instantly by the toggle; `cur` is slewed toward it in the
   // animate loop so every light/atmosphere/hemi setting eases together.
-  const dayNightTargetNightnessRef = useRef(loadSunDayMode() ? 0 : 1);
-  const dayNightCurNightnessRef = useRef(loadSunDayMode() ? 0 : 1);
+  const dayNightTargetNightnessRef = useRef(
+    DAY_NIGHT_SWITCHER_ENABLED && !loadSunDayMode() ? 1 : 0
+  );
+  const dayNightCurNightnessRef = useRef(
+    DAY_NIGHT_SWITCHER_ENABLED && !loadSunDayMode() ? 1 : 0
+  );
   const dayNightDemoCycleElapsedRef = useRef(0);
   const skyRef = useRef(null);
-  const applyDevSceneVisibilityRef = useRef(null);
-  const devSceneShowRef = useRef({
-    showBarrels: true,
-    showEnemies: true,
-    showStairs: true,
-    showContainers: true,
-    showPillars: true,
-    showLensFlare: true,
-    showSunDisc: true,
-  });
   const weaponRef = useRef(null);
   const hemiRef = useRef(null);
   const roomLightsRef = useRef([]);
   const oilBarrelFireLightsRef = useRef([]);
   const roomCullablesRef = useRef([]);
   const dayNightToggleRef = useRef(null);
-  const [hemiDay, setHemiDay] = useState(() => ({ ...DEFAULT_HEMI_DAY }));
-  const [hemiNight, setHemiNight] = useState(() => ({ ...DEFAULT_HEMI_NIGHT }));
-  const hemiDayRef = useRef({ ...DEFAULT_HEMI_DAY });
-  const hemiNightRef = useRef({ ...DEFAULT_HEMI_NIGHT });
-  const [weaponPoseMode, setWeaponPoseMode] = useState("hip");
-  const [hipWeaponPose, setHipWeaponPose] = useState(DEFAULT_HIP_POSE);
-  const [adsWeaponPose, setAdsWeaponPose] = useState(DEFAULT_ADS_POSE);
-  const [bodyLookUpAmount, setBodyLookUpAmount] = useState(0);
-  const [bodyLookDownAmount, setBodyLookDownAmount] = useState(0);
+  const hemiDayRef = useRef(loadHemiDay());
+  const hemiNightRef = useRef(loadHemiNight());
   const [fireMode, setFireMode] = useState("auto");
   const [roundsInMag, setRoundsInMag] = useState(MAGAZINE_SIZE);
   const [spareMags, setSpareMags] = useState(SPARE_MAGAZINES);
@@ -1275,11 +922,11 @@ export default function FpsGame() {
   const [grenHudCountX, setGrenHudCountX] = useState(-10);
   const [grenHudCountY, setGrenHudCountY] = useState(-6);
   const [grenHudCountScale, setGrenHudCountScale] = useState(1.15);
-  const [weaponStackTune, setWeaponStackTune] = useState(() => ({
+  const weaponStackTune = {
     1: { ...DEFAULT_WEAPON_STACK_TUNE[1] },
     2: { ...DEFAULT_WEAPON_STACK_TUNE[2] },
     3: { ...DEFAULT_WEAPON_STACK_TUNE[3] },
-  }));
+  };
   const [selectedWeaponSlot, setSelectedWeaponSlot] = useState(GRENADE_WEAPON_SLOT);
   const selectedWeaponSlotRef = useRef(GRENADE_WEAPON_SLOT);
   selectedWeaponSlotRef.current = selectedWeaponSlot;
@@ -1298,37 +945,16 @@ export default function FpsGame() {
     bodyLookUpAmount: DEFAULT_BODY_LOOK_UP_AMOUNT,
     bodyLookDownAmount: DEFAULT_BODY_LOOK_DOWN_AMOUNT,
   });
-  const weaponPoseModeRef = useRef("hip");
   const rebindActionRef = useRef(null);
 
   useEffect(() => {
     const tuning = loadWeaponTuning();
-    setHipWeaponPose(tuning.hip);
-    setAdsWeaponPose(tuning.ads);
-    setBodyLookUpAmount(loadBodyLookUpAmount());
-    setBodyLookDownAmount(loadBodyLookDownAmount());
-    const storedHemiDay = loadHemiDay();
-    const storedHemiNight = loadHemiNight();
-    setHemiDay(storedHemiDay);
-    setHemiNight(storedHemiNight);
-    hemiDayRef.current = storedHemiDay;
-    hemiNightRef.current = storedHemiNight;
     weaponTuningRef.current = {
       ...tuning,
       bodyLookUpAmount: loadBodyLookUpAmount(),
       bodyLookDownAmount: loadBodyLookDownAmount(),
     };
   }, []);
-
-  weaponTuningRef.current = {
-    hip: hipWeaponPose,
-    ads: adsWeaponPose,
-    bodyLookUpAmount,
-    bodyLookDownAmount,
-  };
-  weaponPoseModeRef.current = weaponPoseMode;
-  walkBobTuningRef.current = walkBobTuning;
-  stairWalkTuningRef.current = stairWalkTuning;
   bindingsRef.current = bindings;
   rebindActionRef.current = rebindAction;
   fireModeRef.current = fireMode;
@@ -1336,20 +962,8 @@ export default function FpsGame() {
   if (loadDone) gameSessionStarted = true;
   musicEnabledRef.current = musicEnabled;
   ammoDropSpareThresholdRef.current = ammoDropSpareThreshold;
-  showDevOverlayRef.current = showDevOverlay;
-  devSceneShowRef.current = {
-    showBarrels: devShowBarrels,
-    showEnemies: devShowEnemies,
-    showStairs: devShowStairs,
-    showContainers: devShowContainers,
-    showPillars: devShowPillars,
-    showLensFlare: devShowLensFlare,
-    showSunDisc: devShowSunDisc,
-  };
-  showPlayerCoordsRef.current = showPlayerCoords;
   showHudRef.current = showHud;
-  containerTuneIndexRef.current = containerTuneIndex;
-  vx27ContainerTuneEnabledRef.current = vx27ContainerTuneEnabled;
+  oilBarrelTuningRef.current = oilBarrelTuning;
 
   scheduleGameplayHudSyncRef.current = () => {
     if (hudSyncPendingRef.current) return;
@@ -1453,29 +1067,10 @@ export default function FpsGame() {
     const mEase = read(MOUSE_EASE_KEY, mouseEaseFallback);
     const maxRate = read(LOOK_MAX_RATE_KEY, DEFAULT_MAX_LOOK_RATE);
 
-    const persistAllTunePanels = (enabled) => {
-      applyAllTunePanels(enabled);
-    };
-
-    if (isLocalDevHost() && localStorage.getItem(DEV_TUNE_BOOT_KEY) !== "1") {
-      localStorage.setItem(DEV_TUNE_BOOT_KEY, "1");
-      persistAllTunePanels(false);
-    }
-
-    const tuneEnabled = resolveDevTuneEnabled(WEAPON_TUNE_ENABLED_KEY);
-    const sunEnabled = resolveDevTuneEnabled(SUN_TUNE_ENABLED_KEY);
-    const hemiEnabled = resolveDevTuneEnabled(HEMI_TUNE_ENABLED_KEY);
-    const stairsEnabled = resolveDevTuneEnabled(STAIRS_TUNE_ENABLED_KEY);
-    const walkBobEnabled = resolveDevTuneEnabled(WALK_BOB_TUNE_ENABLED_KEY);
-    const stairWalkEnabled = resolveDevTuneEnabled(STAIR_WALK_TUNE_ENABLED_KEY);
-    const hudBarEnabled = resolveDevTuneEnabled(HUD_BAR_TUNE_ENABLED_KEY);
-    const oilBarrelEnabled = resolveDevTuneEnabled(OIL_BARREL_TUNE_ENABLED_KEY);
-    const vx27ContainerEnabled = resolveDevTuneEnabled(VX27_CONTAINER_TUNE_ENABLED_KEY);
     setInvertYLook(storedInvert);
     const storedScale = loadRenderScale();
     setRenderScale(storedScale);
     renderScaleRef.current = storedScale;
-    setShowFps(loadShowFps());
     setShowHud(loadShowHud());
     const storedMusicEnabled = loadMusicEnabled();
     const storedLoadingTrack = loadStoredLoadingTrackId();
@@ -1485,30 +1080,10 @@ export default function FpsGame() {
     setAmmoDropSpareThreshold(storedAmmoDropThreshold);
     ammoDropSpareThresholdRef.current = storedAmmoDropThreshold;
     loadingMusicTrackIdRef.current = storedLoadingTrack;
-    setWeaponTuneEnabled(tuneEnabled);
-    setSunTuneEnabled(sunEnabled);
-    setHemiTuneEnabled(hemiEnabled);
-    setStairsTuneEnabled(stairsEnabled);
-    setWalkBobTuneEnabled(walkBobEnabled);
-    setStairWalkTuneEnabled(stairWalkEnabled);
-    setHudBarTuneEnabled(hudBarEnabled);
-    setHudBarLayout(loadHudBarTuning());
-    setOilBarrelTuneEnabled(oilBarrelEnabled);
-    setVx27ContainerTuneEnabled(vx27ContainerEnabled);
-    // Dev: disable hole decals toggle
-    try {
-      const storedDisableHoleDecals = localStorage.getItem(DEV_DISABLE_HOLE_DECALS_KEY) === "true";
-      setDevDisableHoleDecals(storedDisableHoleDecals);
-      // setBulletHolesEnabled expects an enabled flag, so invert the stored "disable" value
-      setBulletHolesEnabled(!storedDisableHoleDecals);
-    } catch {
-      // ignore
-    }
-    weaponTuneEnabledRef.current = tuneEnabled;
     const barrelTuning = loadOilBarrelTuning();
     setOilBarrelTuning(barrelTuning);
+    oilBarrelTuningRef.current = barrelTuning;
     applyOilBarrelMaterialTuning(barrelTuning, sceneRef.current ?? undefined);
-    setContainerMaterialTuning(loadVx27ContainerMaterialTuning());
     setKeyboardLook(kbLook);
     setKeyboardEase(kbEase);
     setMouseLook(mLook);
@@ -1523,7 +1098,7 @@ export default function FpsGame() {
     mouseLookRef.current = mLook;
     mouseEaseRef.current = mEase;
     maxLookRateRef.current = maxRate;
-  }, [applyAllTunePanels]);
+  }, []);
 
   invertYRef.current = invertYLook;
   renderScaleRef.current = renderScale;
@@ -1533,23 +1108,9 @@ export default function FpsGame() {
   mouseEaseRef.current = mouseEase;
   maxLookRateRef.current = maxLookRate;
   playerHeightRef.current = playerHeight;
-  sunAnglesRef.current = { azimuth: sunAzimuth, elevation: sunElevation };
-  sunLightPosRef.current = sunPositionFromAngles(sunAzimuth, sunElevation);
-  moonAnglesRef.current = { azimuth: moonAzimuth, elevation: moonElevation };
-  moonIntensityRef.current = moonIntensity;
-  moonLightPosRef.current = moonPositionFromAngles(moonAzimuth, moonElevation);
   sunIsDayRef.current = sunIsDay;
-  const commitStairParams = (params) => {
-    stairParamsRef.current = params;
-    saveStairTuning(params);
-    rebuildStairsRef.current?.(params);
-    applyDayNightRef.current?.(dayNightCurNightnessRef.current);
-    refitSunShadowRef.current?.();
-    refitMoonShadowRef.current?.();
-  };
   settingsOpenRef.current = settingsOpen;
   controlsOpenRef.current = controlsOpen;
-  weaponTuneEnabledRef.current = weaponTuneEnabled;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1585,9 +1146,6 @@ export default function FpsGame() {
     let onKeyDown = null;
     let onResize = null;
     const arenaAbort = new AbortController();
-    frameHitchProfilerRef.current = createFrameHitchProfiler({
-      enabled: loadFrameHitchProfilerEnabled(),
-    });
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
@@ -1600,11 +1158,9 @@ export default function FpsGame() {
       const isActive = () => !disposed;
       renderer.setPixelRatio(effectivePixelRatio(renderScaleRef.current));
       renderer.setSize(window.innerWidth, window.innerHeight);
-      if (areShadowsDisabled()) {
-        renderer.shadowMap.enabled = false;
-      } else {
-        enableRendererShadowPipeline(renderer);
-      }
+      enableRendererShadowPipeline(renderer);
+      setShadowMapTypeRuntime(loadShadowMapType());
+      setPlainShadowDepthRuntime(loadPlainShadowDepthEnabled());
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.0;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -1613,14 +1169,6 @@ export default function FpsGame() {
       scene = new THREE.Scene();
       scene.fog = new THREE.Fog(DAY_CLEAR_COLOR, 45, 95);
       sceneRef.current = scene;
-      applyTextureDebugRef.current = (disabled) => {
-        setTexturesDisabledRuntime(disabled);
-        texturesDisabledRef.current = disabled;
-        applyTextureOverride(scene, disabled);
-      };
-      if (areTexturesDisabled()) {
-        applyTextureOverride(scene, true);
-      }
 
       const HIP_FOV = 75;
       const ADS_FOV = 52;
@@ -1688,6 +1236,15 @@ export default function FpsGame() {
       if (!isActive()) return;
       await preloadVx27ContainerAssets(arena);
       if (!isActive()) return;
+      resetControlPanelScreenCTextureCache();
+      resetControlPanelShelfDTextureCache();
+      resetControlPanelBodyTextureCache();
+      await Promise.all([
+        preloadControlPanelScreenCTextures(),
+        preloadControlPanelShelfDTextures(),
+        preloadControlPanelBodyTextures(),
+      ]);
+      if (!isActive()) return;
       reportLoad(55, "HP orb textures");
       await preloadHpOrbAssets();
       if (!isActive()) return;
@@ -1718,26 +1275,12 @@ export default function FpsGame() {
       roomLightsRef.current = roomLights;
       ensureRoomInteriorAmbient(scene);
       syncLightLayersForZone(scene, false, outdoorLights, roomLights);
-      setFloorDeckY(getArenaFloorDeckY());
-      setCatwalkDeckY(getArenaCatwalkDeckY(arena));
-      let stairParams = loadStairTuning(arena.stairs, arena);
+      const stairParams = loadStairTuning(arena.stairs, arena);
       stairParamsRef.current = stairParams;
-      setStairX(stairParams.position.x);
-      setStairY(stairParams.position.y);
-      setStairZ(stairParams.position.z);
-      setStairRotationY(stairParams.rotationY);
       const arenaLive = { ...arena, stairs: stairParams };
       arenaLiveRef.current = arenaLive;
-      const pileAnchor = arenaLive.props?.find(
-        (p) => p.id === "oil_barrel_pile_stop_begin"
-      );
-      if (pileAnchor) {
-        setPileHubX(pileAnchor.x);
-        setPileHubZ(pileAnchor.z);
-      }
       level = createLevelFromArena(scene, arenaLive, levelTextures);
       levelRef.current = level;
-      setArenaHasStairs(Boolean(arena.stairs));
       if (!isActive()) {
         if (level?.group) disposeLevelGroup(level.group);
         resetArenaCeilingDayNightCache();
@@ -1747,32 +1290,16 @@ export default function FpsGame() {
       enableShadowsOn(level.group);
       assignWorldLayers(level.group);
       disableInteriorCastShadows(level.group);
-      if (areShadowsDisabled()) {
-        disableAllShadows(renderer, scene);
-      }
       setHealthBarOccluders(level.group);
       setSunOcclusionRoot(level.group);
       reportLoad(72, "Level geometry");
       prebuildRagdollTemplates(level.targets);
-      levelObjectsRef.current = level.pillarMeshes ?? [];
       vx27ContainersRef.current = level.vx27ContainerMeshes ?? [];
+      controlPanelsRef.current = level.controlPanelMeshes ?? [];
+      setControlPanelCount(controlPanelsRef.current.length);
+      syncControlPanelScreenMaterials(controlPanelsRef.current);
       let vx27DoorInteractMeshesCache = collectVx27DoorInteractMeshes(
         vx27ContainersRef.current
-      );
-      setArenaHasVx27ContainersState(
-        vx27ContainersRef.current.length > 0 || arenaHasVx27Containers(arena)
-      );
-      setContainerPropLabels(
-        vx27ContainersRef.current.map(
-          (group) => group.userData.vx27PropId ?? "vx27_container"
-        )
-      );
-      setContainerBounds(
-        getVx27ContainerPlacementBounds(
-          level.bounds,
-          level.floorY,
-          level.catwalkDeckY
-        )
       );
       if (vx27ContainersRef.current.length > 0) {
         const firstGroup = vx27ContainersRef.current[0];
@@ -1780,28 +1307,7 @@ export default function FpsGame() {
         const materialTuning = propMaterial
           ? normalizeVx27ContainerMaterialTuning(propMaterial)
           : loadVx27ContainerMaterialTuning();
-        setContainerMaterialTuning(materialTuning);
         setVx27ContainerMaterialTuning(materialTuning, firstGroup);
-
-        const placement = readVx27ContainerPlacement(firstGroup);
-        const insets = readVx27ContainerInteriorInsets(firstGroup);
-        setContainerTuneIndex(0);
-        setContainerX(placement.x);
-        setContainerZ(placement.z);
-        setContainerFloorY(placement.floorY);
-        setContainerRotationY(placement.rotationY);
-        setContainerInsetLeft(insets.left);
-        setContainerInsetRight(insets.right);
-        setContainerInsetFront(insets.front);
-        setContainerInsetBack(insets.back);
-        setContainerFloorOffset(insets.floorOffset);
-        setContainerCeilingOffset(insets.ceilingOffset);
-        setContainerEdgeRadius(readVx27ContainerEdgeRadius(firstGroup));
-        setContainerExteriorCornerRadius(
-          readVx27ContainerExteriorCornerRadius(firstGroup)
-        );
-        setContainerScale(readVx27ContainerScale(firstGroup));
-        setContainerDoorTuning(readVx27ContainerDoorTuning(firstGroup));
       }
       preloadBulletHoleTextures();
       const levelHitMeshes = collectLevelHitMeshes(level.group, level.targets);
@@ -1834,17 +1340,6 @@ export default function FpsGame() {
       ensureOilBarrelFlameMeshes(level.group);
       refreshOilBarrelRenderLayers(level.group);
       refreshVx27ContainerRenderLayers(level.group);
-      applyDevSceneVisibilityRef.current = () => {
-        applyDevSceneVisibility({
-          levelGroup: level?.group,
-          targets: level?.targets,
-          containers: vx27ContainersRef.current,
-          pillars: levelObjectsRef.current,
-          sky: skyRef.current,
-          ...devSceneShowRef.current,
-        });
-      };
-      applyDevSceneVisibilityRef.current();
       syncInteriorLighting();
       syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, false);
       applySunLightPosition(sun, sunLightPosRef.current);
@@ -1916,10 +1411,7 @@ export default function FpsGame() {
         // above the horizon at once, and dual shadow passes hitch the fade.
         const sunShadowOn = sun.intensity > 0.001;
         const moonShadowOn = moon.intensity > 0.001;
-        if (areShadowsDisabled()) {
-          sun.castShadow = false;
-          moon.castShadow = false;
-        } else if (sunShadowOn && moonShadowOn) {
+        if (sunShadowOn && moonShadowOn) {
           if (sun.intensity >= moon.intensity) {
             sun.castShadow = true;
             moon.castShadow = false;
@@ -1968,7 +1460,7 @@ export default function FpsGame() {
         );
       };
       refitSunShadowRef.current = () => {
-        if (areShadowsDisabled() || !level?.group) return;
+        if (!level?.group) return;
         applySunLightPosition(sun, sunLightPosRef.current);
         fitDirectionalLightShadow(sun, level.group, {
           arenaSize: arena.size,
@@ -1977,7 +1469,7 @@ export default function FpsGame() {
         sun.target.updateMatrixWorld(true);
       };
       refitMoonShadowRef.current = () => {
-        if (areShadowsDisabled() || !level?.group || !moon) return;
+        if (!level?.group || !moon) return;
         applyMoonLightPosition(moon, moonLightPosRef.current);
         fitMoonDirectionalLightShadow(moon, level.group, {
           arenaSize: arena.size,
@@ -1985,42 +1477,6 @@ export default function FpsGame() {
         moon.updateMatrixWorld(true);
         moon.target.updateMatrixWorld(true);
       };
-      applyShadowDebugRef.current = (disabled) => {
-        setShadowsDisabledRuntime(disabled);
-        shadowsDisabledRef.current = disabled;
-        if (disabled) {
-          disableAllShadows(renderer, scene);
-        } else {
-          enableRendererShadowPipeline(renderer);
-          enableShadowsOn(level.group);
-          if (level.pickupsGroup) enableShadowsOn(level.pickupsGroup);
-          disableInteriorCastShadows(level.group);
-          resetAndApplyShadowCastHygiene(level.group);
-          if (level.pickupsGroup) {
-            resetAndApplyShadowCastHygiene(level.pickupsGroup);
-          }
-          refreshLevelPickupShadows(
-            level.pickupsGroup ?? scene,
-            collectibleEntries.map((e) => e.drop?.mesh),
-            level.group
-          );
-          refitSunShadowRef.current?.();
-          refitMoonShadowRef.current?.();
-          requestShadowMapUpdate(renderer);
-        }
-      };
-      applyShadowExperimentRef.current = () => {
-        if (areShadowsDisabled()) return;
-        applyShadowMapTypeToRenderer(renderer);
-        resetAndApplyShadowCastHygiene(level.group);
-        if (level.pickupsGroup) {
-          resetAndApplyShadowCastHygiene(level.pickupsGroup);
-        }
-        requestShadowMapUpdate(renderer);
-      };
-      if (areShadowsDisabled()) {
-        disableAllShadows(renderer, scene);
-      }
       const mountLevelCollectibles = () => {
         if (disposed || !level) return;
         const spawnedCollectibles = spawnLevelCollectibles(
@@ -2034,11 +1490,7 @@ export default function FpsGame() {
           collectibleEntries.map((e) => e.drop?.mesh),
           level.group
         );
-        if (areShadowsDisabled()) {
-          disableAllShadows(renderer, scene);
-        } else {
-          requestShadowMapUpdate(renderer);
-        }
+        requestShadowMapUpdate(renderer);
         mountCompassCollectibleMarkers(
           compassMarkersRef.current,
           collectibleEntries
@@ -2046,7 +1498,12 @@ export default function FpsGame() {
       };
       applyDayNightRef.current(sunIsDayRef.current);
       mountLevelCollectibles();
-      applyShadowExperimentRef.current?.();
+      applyShadowMapTypeToRenderer(renderer);
+      resetAndApplyShadowCastHygiene(level.group);
+      if (level.pickupsGroup) {
+        resetAndApplyShadowCastHygiene(level.pickupsGroup);
+      }
+      requestShadowMapUpdate(renderer);
       if (sunIsDayRef.current) {
         refitSunShadowRef.current();
       } else {
@@ -2068,145 +1525,12 @@ export default function FpsGame() {
         );
       }
       syncAllColliders();
-      vx27ContainerCommitRef.current = (index, placement) => {
-        const group = vx27ContainersRef.current[index];
-        if (!group) return;
-        applyVx27ContainerPlacement(group, placement);
-        syncVx27ContainerCollider(
-          level.colliders,
-          group.userData.vx27PropId,
-          placement,
-          {
-            ...group.userData.vx27PropDef,
-            interiorInsets: group.userData.vx27InteriorInsets,
-            edgeRadius: group.userData.vx27EdgeRadius,
-            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
-            scale: group.userData.vx27Scale,
-            doorTuning: group.userData.vx27DoorTuning,
-          }
-        );
+      syncControlPanelCollidersRef.current = () => {
+        const arena = arenaLiveRef.current;
+        const lvl = levelRef.current;
+        if (!arena || !lvl) return;
+        lvl.resyncControlPanelColliders?.();
         syncAllColliders();
-      };
-      vx27ContainerScaleCommitRef.current = (index, scale) => {
-        const group = vx27ContainersRef.current[index];
-        if (!group) return;
-        rebuildVx27ContainerScale(group, scale);
-        const placement = readVx27ContainerPlacement(group);
-        syncVx27ContainerCollider(
-          level.colliders,
-          group.userData.vx27PropId,
-          placement,
-          {
-            ...group.userData.vx27PropDef,
-            interiorInsets: group.userData.vx27InteriorInsets,
-            edgeRadius: group.userData.vx27EdgeRadius,
-            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
-            scale: group.userData.vx27Scale,
-            doorTuning: group.userData.vx27DoorTuning,
-          }
-        );
-        syncAllColliders();
-      };
-      vx27ContainerInteriorCommitRef.current = (index, insets) => {
-        const group = vx27ContainersRef.current[index];
-        if (!group) return;
-        const normalized = rebuildVx27ContainerInterior(group, insets);
-        saveVx27ContainerInteriorInsets(normalized);
-        const placement = readVx27ContainerPlacement(group);
-        syncVx27ContainerCollider(
-          level.colliders,
-          group.userData.vx27PropId,
-          placement,
-          {
-            ...group.userData.vx27PropDef,
-            interiorInsets: normalized,
-            edgeRadius: group.userData.vx27EdgeRadius,
-            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
-            scale: group.userData.vx27Scale,
-            doorTuning: group.userData.vx27DoorTuning,
-          }
-        );
-        syncAllColliders();
-      };
-      vx27ContainerExteriorCommitRef.current = (index, edgeRadius) => {
-        const group = vx27ContainersRef.current[index];
-        if (!group) return;
-        const normalized = rebuildVx27ContainerExterior(group, edgeRadius);
-        saveVx27ContainerEdgeRadius(normalized);
-        group.userData.vx27EdgeRadius = normalized;
-        const placement = readVx27ContainerPlacement(group);
-        syncVx27ContainerCollider(
-          level.colliders,
-          group.userData.vx27PropId,
-          placement,
-          {
-            ...group.userData.vx27PropDef,
-            interiorInsets: group.userData.vx27InteriorInsets,
-            edgeRadius: normalized,
-            exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
-            scale: group.userData.vx27Scale,
-            width: group.userData.vx27Width,
-            height: group.userData.vx27Height,
-            length: group.userData.vx27Length,
-            doorTuning: group.userData.vx27DoorTuning,
-          }
-        );
-        syncAllColliders();
-      };
-      vx27ContainerExteriorCornerCommitRef.current = (index, exteriorCornerRadius) => {
-        const group = vx27ContainersRef.current[index];
-        if (!group) return;
-        const normalized = setVx27ContainerExteriorCornerRadius(group, exteriorCornerRadius);
-        saveVx27ContainerExteriorCornerRadius(normalized);
-        const placement = readVx27ContainerPlacement(group);
-        syncVx27ContainerCollider(
-          level.colliders,
-          group.userData.vx27PropId,
-          placement,
-          {
-            ...group.userData.vx27PropDef,
-            interiorInsets: group.userData.vx27InteriorInsets,
-            edgeRadius: group.userData.vx27EdgeRadius,
-            exteriorCornerRadius: normalized,
-            scale: group.userData.vx27Scale,
-            width: group.userData.vx27Width,
-            height: group.userData.vx27Height,
-            length: group.userData.vx27Length,
-            doorTuning: group.userData.vx27DoorTuning,
-          }
-        );
-        syncAllColliders();
-      };
-      vx27ContainerDoorCommitRef.current = (index, doorPatch) => {
-        const group = vx27ContainersRef.current[index];
-        if (!group) return;
-        const normalized = applyVx27ContainerDoorTuning(group, doorPatch, {
-          animate: true,
-        });
-        const placement = readVx27ContainerPlacement(group);
-        const anim = group.userData.vx27DoorAnim;
-        if (!anim?.active) {
-          syncVx27ContainerCollider(
-            level.colliders,
-            group.userData.vx27PropId,
-            placement,
-            {
-              ...group.userData.vx27PropDef,
-              interiorInsets: group.userData.vx27InteriorInsets,
-              edgeRadius: group.userData.vx27EdgeRadius,
-              exteriorCornerRadius: group.userData.vx27ExteriorCornerRadius,
-              scale: group.userData.vx27Scale,
-              width: group.userData.vx27Width,
-              height: group.userData.vx27Height,
-              length: group.userData.vx27Length,
-              doorTuning: normalized,
-            }
-          );
-          syncAllColliders();
-        }
-        if (containerDoorWizardEnabledRef.current) {
-          updateVx27ContainerDoorWizard(group, true);
-        }
       };
       for (const group of vx27ContainersRef.current) {
         syncVx27ContainerCollider(
@@ -2227,19 +1551,6 @@ export default function FpsGame() {
         );
       }
       syncAllColliders();
-      getPlayerPlacementRef.current = () => {
-        if (!player) return null;
-        return {
-          x: camera.position.x,
-          z: camera.position.z,
-          floorY: player.getFootY(),
-        };
-      };
-      rebuildStairsRef.current = (params) => {
-        if (!level?.rebuildStairs) return;
-        level.rebuildStairs(params);
-        syncAllColliders();
-      };
       rebuildOilBarrelsRef.current = () => {
         const arena = arenaLiveRef.current;
         if (!arena || !level?.group) return;
@@ -2326,19 +1637,6 @@ export default function FpsGame() {
       hitRaycaster.layers.enable(WORLD_LAYER);
       hitRaycaster.layers.enable(ROOM_INTERIOR_LAYER);
       const screenCenter = new THREE.Vector2(0, 0);
-
-      /** Keep tune-panel open sliders + export JSON aligned with in-game door state. */
-      const syncContainerDoorTuningPanel = (group, preferTarget = false) => {
-        if (!vx27ContainerTuneEnabledRef.current || !group) return;
-        if (group !== vx27ContainersRef.current[containerTuneIndexRef.current]) {
-          return;
-        }
-        const next = readVx27ContainerDoorTuning(group, { preferTarget });
-        const key = `${next.frontLeftOpen}|${next.frontRightOpen}|${next.backLeftOpen}|${next.backRightOpen}`;
-        if (key === containerDoorTuningKeyRef.current) return;
-        containerDoorTuningKeyRef.current = key;
-        setContainerDoorTuning(next);
-      };
 
       const currentWeaponLoad = ++weaponLoadId;
       reportLoad(74, "View weapon (rifle GLTF)");
@@ -2727,20 +2025,6 @@ export default function FpsGame() {
 
         hitRaycaster.setFromCamera(screenCenter, camera);
 
-        if (levelEditEnabledRef.current && levelObjectsRef.current.length) {
-          const loHits = hitRaycaster.intersectObjects(levelObjectsRef.current, false);
-          if (loHits.length) {
-            const prev = selectedLevelObjectRef.current;
-            if (prev && prev !== loHits[0].object) {
-              prev.material.emissive?.setHex(0x000000);
-            }
-            const selected = loHits[0].object;
-            selected.material.emissive?.setHex(0x222222);
-            selectedLevelObjectRef.current = selected;
-            setSelectedLevelObjectVer((v) => v + 1);
-          }
-        }
-
         const camDir = hitRaycaster.ray.direction.clone();
         const radioactive = playerHealthRef.current > 100;
         flashMuzzle();
@@ -2816,11 +2100,9 @@ export default function FpsGame() {
       }
 
       let lastTime = performance.now();
-      let fpsSmooth = 60;
 
       function syncPointerLocked() {
         const locked = document.pointerLockElement === canvas;
-        setPointerLocked(locked);
         if (locked) sounds.resume();
       }
 
@@ -2828,50 +2110,35 @@ export default function FpsGame() {
         if (disposed || !gameReady || !level?.group) return;
         if (!level.group.parent) scene.add(level.group);
         rafId = requestAnimationFrame(animate);
-        const hitch = frameHitchProfilerRef.current;
-        hitch?.frameStart(now);
         try {
         flushBloodAfterRagdoll();
         flushPendingRagdolls();
         flushPendingKillBlood();
-        hitch?.mark("deferrals");
         tickOilBarrelInteriorVideo(camera, oilBarrelRuntimeIndex);
         sounds.updateOilBarrelFire(
           oilBarrelRuntimeIndex.fireLights,
-          getOilBarrelTuning().interiorFire !== false
+          oilBarrelTuningRef.current.interiorFire !== false
         );
         const rawFrameDt = Math.min((now - lastTime) / 1000, 0.15);
         const dt = Math.min(rawFrameDt, 0.05);
         lastTime = now;
         if (dt > 0) simTime += dt;
-        if (dt > 0) {
-          fpsSmooth += (1 / dt - fpsSmooth) * 0.12;
-          if (fpsRef.current) {
-            fpsRef.current.textContent = `${Math.round(fpsSmooth)} FPS`;
-          }
-          if (player && (settingsOpenRef.current || showPlayerCoordsRef.current)) {
-            const yawDeg = (player.getYaw() * 180) / Math.PI;
-            const footY = player.getFootY();
-            const px = camera.position.x;
-            const pz = camera.position.z;
-            const text =
-              `X ${px.toFixed(3)}  Z ${pz.toFixed(3)}  foot ${footY.toFixed(3)}  eye ${camera.position.y.toFixed(3)}  yaw ${yawDeg.toFixed(1)}°`;
-            const json = JSON.stringify({
-              x: +px.toFixed(3),
-              z: +pz.toFixed(3),
-              footY: +footY.toFixed(3),
-              eyeY: +camera.position.y.toFixed(3),
-              yawDeg: +yawDeg.toFixed(1),
-            });
-            if (settingsOpenRef.current && playerCoordsMenuRef.current) {
-              playerCoordsMenuRef.current.textContent = text;
-              playerCoordsMenuRef.current.dataset.coords = json;
-            }
-            if (showPlayerCoordsRef.current && playerCoordsHudRef.current) {
-              playerCoordsHudRef.current.textContent = text;
-              playerCoordsHudRef.current.dataset.coords = json;
-            }
-          }
+        if (dt > 0 && player && settingsOpenRef.current && playerCoordsMenuRef.current) {
+          const yawDeg = (player.getYaw() * 180) / Math.PI;
+          const footY = player.getFootY();
+          const px = camera.position.x;
+          const pz = camera.position.z;
+          const text =
+            `X ${px.toFixed(3)}  Z ${pz.toFixed(3)}  foot ${footY.toFixed(3)}  eye ${camera.position.y.toFixed(3)}  yaw ${yawDeg.toFixed(1)}°`;
+          const json = JSON.stringify({
+            x: +px.toFixed(3),
+            z: +pz.toFixed(3),
+            footY: +footY.toFixed(3),
+            eyeY: +camera.position.y.toFixed(3),
+            yawDeg: +yawDeg.toFixed(1),
+          });
+          playerCoordsMenuRef.current.textContent = text;
+          playerCoordsMenuRef.current.dataset.coords = json;
         }
 
         // Candle-flicker the warm interior lights. Uses rAF's absolute
@@ -2882,9 +2149,7 @@ export default function FpsGame() {
         const aimHeld =
           !rebindActionRef.current &&
           isBindingDown(input, bindingsRef.current, "aim");
-        const aimTabActive =
-          weaponTuneEnabledRef.current && weaponPoseModeRef.current === "ads";
-        const aimTarget = aimHeld || aimTabActive ? 1 : 0;
+        const aimTarget = aimHeld ? 1 : 0;
 
         // Death sequence (two phases):
         //   1. FREEZE  — overlay is fully opaque, player is not respawned,
@@ -2930,6 +2195,11 @@ export default function FpsGame() {
 
         if (!frozen) {
           player.update(input, dt);
+          playerPlacementRef.current = {
+            x: player.getX(),
+            z: player.getZ(),
+            y: player.getFootY(),
+          };
 
           if (player.isFallingThroughHole?.()) {
             if (!holeFallCryPlayedRef.current) {
@@ -2946,7 +2216,7 @@ export default function FpsGame() {
               level.group,
               camera.position,
               dt,
-              getOilBarrelTuning(),
+              oilBarrelTuningRef.current,
               levelHitMeshes
             )
           ) {
@@ -3161,7 +2431,6 @@ export default function FpsGame() {
             rdot.style.opacity = "0.85";
           }
         }
-        hitch?.mark("player");
         camera.updateMatrixWorld(true);
 
         const canInteract =
@@ -3205,7 +2474,6 @@ export default function FpsGame() {
             doorTarget.end,
             doorTarget.side
           );
-          syncContainerDoorTuningPanel(doorTarget.group, true);
         }
 
         if (
@@ -3219,12 +2487,10 @@ export default function FpsGame() {
         }
 
         if (
+          DAY_NIGHT_SWITCHER_ENABLED &&
           canUseWeapons &&
           wasBindingPressed(input, bindingsRef.current, "dayNightToggle")
         ) {
-          // Toggle from the latest ref value so we don't fight the smooth
-          // fade — handleDayNightChange just updates the target, the
-          // animate loop slews toward it.
           dayNightToggleRef.current?.(!sunIsDayRef.current);
         }
 
@@ -3360,6 +2626,7 @@ export default function FpsGame() {
         }
 
         if (
+          DAY_NIGHT_DEMO_CYCLE_ENABLED &&
           !frozen &&
           !settingsOpenRef.current &&
           !controlsOpenRef.current
@@ -3485,20 +2752,10 @@ export default function FpsGame() {
           updateTargetHealthBars(level.targets, dt, camera);
         }
         updateVx27ContainerDoorAnimations(vx27ContainersRef.current, dt);
-        const tunedContainer =
-          vx27ContainersRef.current[containerTuneIndexRef.current];
-        if (tunedContainer?.userData.vx27DoorAnim?.active) {
-          syncContainerDoorTuningPanel(tunedContainer);
-        }
-        if (containerDoorWizardEnabledRef.current) {
-          const wizardGroup = tunedContainer;
-          if (wizardGroup) updateVx27ContainerDoorWizard(wizardGroup, true);
-        }
         let doorCollidersDirty = false;
         for (const doorGroup of vx27ContainersRef.current) {
           if (!consumeVx27DoorColliderDirty(doorGroup)) continue;
           doorCollidersDirty = true;
-          syncContainerDoorTuningPanel(doorGroup);
           syncVx27ContainerCollider(
             level.colliders,
             doorGroup.userData.vx27PropId,
@@ -3663,8 +2920,6 @@ export default function FpsGame() {
           );
         }
 
-        hitch?.mark("sim");
-
         input.endFrame();
         sun.target.updateMatrixWorld();
 
@@ -3724,33 +2979,26 @@ export default function FpsGame() {
           inRoomViewmodel
         );
 
-        const barrelFireShadowCount = areShadowsDisabled()
-          ? 0
-          : updateOilBarrelFireShadowBudget(
-              oilBarrelRuntimeIndex.fireLights,
-              camera.position,
-              getOilBarrelTuning()
-            );
+        const barrelFireShadowCount = updateOilBarrelFireShadowBudget(
+          oilBarrelRuntimeIndex.fireLights,
+          camera.position,
+          oilBarrelTuningRef.current
+        );
         applyFrameShadowUpdates(renderer, {
           sunCastsShadow:
-            !areShadowsDisabled() &&
-            ((sunRef.current?.castShadow && sunRef.current.intensity > 0.001) ||
-              false),
+            (sunRef.current?.castShadow && sunRef.current.intensity > 0.001) ||
+            false,
           moonCastsShadow:
-            !areShadowsDisabled() &&
-            ((moonRef.current?.castShadow && moonRef.current.intensity > 0.001) ||
-              false),
+            (moonRef.current?.castShadow && moonRef.current.intensity > 0.001) ||
+            false,
           dayNightAnimating:
             dayNightCurNightnessRef.current !==
             dayNightTargetNightnessRef.current,
-          flashlightShadow:
-            !areShadowsDisabled() &&
-            (weapon?.isFlashlightCastingShadow?.() ?? false),
+          flashlightShadow: weapon?.isFlashlightCastingShadow?.() ?? false,
           barrelFireShadowCount,
         });
 
         sky?.update(camera);
-        hitch?.mark("scene");
         renderSceneWithLayeredLighting(renderer, scene, camera, {
           skyRoot: sky?.mesh ?? null,
           skipRoomPass: !inRoomPass,
@@ -3760,15 +3008,12 @@ export default function FpsGame() {
           showHudRef.current &&
           hasVisibleTargetHealthBars(level.targets)
         ) {
-          hitch?.mark("healthBars");
           renderTargetHealthBarsPass(renderer, scene, camera, level.targets);
         }
-        hitch?.mark("viewmodel");
         weapon?.renderViewmodel(renderer, scene, camera);
         } catch (err) {
           console.error("Frame render failed:", err);
         }
-        hitch?.frameEnd(now);
       }
 
       onCanvasClick = (e) => {
@@ -3845,7 +3090,6 @@ export default function FpsGame() {
         // and moon discs are still at the origin / fully transparent. Re-run
         // the applier with the current nightness so they snap into place.
         applyDayNightRef.current?.(dayNightCurNightnessRef.current);
-        applyDevSceneVisibilityRef.current?.();
       } catch (err) {
         console.error("Sky dome failed to load:", err);
       }
@@ -3864,24 +3108,18 @@ export default function FpsGame() {
       const spawnFootY = player.getFootY();
       const spawnEyeY = player.getY();
       const getShadowFrameOpts = () => {
-        const barrelFireShadowCount = areShadowsDisabled()
-          ? 0
-          : updateOilBarrelFireShadowBudget(
-              oilBarrelRuntimeIndex.fireLights,
-              camera.position,
-              getOilBarrelTuning()
-            );
+        const barrelFireShadowCount = updateOilBarrelFireShadowBudget(
+          oilBarrelRuntimeIndex.fireLights,
+          camera.position,
+          oilBarrelTuningRef.current
+        );
         return {
           sunCastsShadow:
-            !areShadowsDisabled() &&
-            (sunRef.current?.castShadow && sunRef.current.intensity > 0.001),
+            sunRef.current?.castShadow && sunRef.current.intensity > 0.001,
           moonCastsShadow:
-            !areShadowsDisabled() &&
-            (moonRef.current?.castShadow && moonRef.current.intensity > 0.001),
+            moonRef.current?.castShadow && moonRef.current.intensity > 0.001,
           dayNightAnimating: false,
-          flashlightShadow:
-            !areShadowsDisabled() &&
-            (weapon?.isFlashlightCastingShadow?.() ?? false),
+          flashlightShadow: weapon?.isFlashlightCastingShadow?.() ?? false,
           barrelFireShadowCount,
         };
       };
@@ -3961,7 +3199,6 @@ export default function FpsGame() {
         "--hud-night-grayscale",
         String(dayNightCurNightnessRef.current)
       );
-      frameHitchProfilerRef.current?.markGameplayStart();
       reportLoad(100, "Ready");
       setAssetsReady(true);
       rafId = requestAnimationFrame(animate);
@@ -3986,7 +3223,6 @@ export default function FpsGame() {
 
     return () => {
       disposed = true;
-      frameHitchProfilerRef.current?.dispose();
       arenaAbort.abort();
       weaponLoadId += 1;
       cancelAnimationFrame(rafId);
@@ -4040,6 +3276,7 @@ export default function FpsGame() {
   }, []);
 
   const handleDayNightChange = (isDay, { persist = true } = {}) => {
+    if (!DAY_NIGHT_SWITCHER_ENABLED) return;
     setSunIsDay(isDay);
     sunIsDayRef.current = isDay;
     if (persist) saveSunDayMode(isDay);
@@ -4331,34 +3568,6 @@ export default function FpsGame() {
         </div>
       </div>
 
-      {showDevOverlay && (
-        <div className="demoBtnGroup">
-          <button
-            type="button"
-            className="demoDamageBtn"
-            onClick={() => {
-              const next = Math.max(0, playerHealthRef.current - 10);
-              playerHealthRef.current = next;
-              setPlayerHealth(next);
-              triggerPlayerHurtFeedback(hurtVignetteFlashEndRef);
-            }}
-          >
-            −10 HP
-          </button>
-          <button
-            type="button"
-            className="demoHealBtn"
-            onClick={() => {
-              const next = playerHealthRef.current + 10;
-              playerHealthRef.current = next;
-              setPlayerHealth(next);
-            }}
-          >
-            +10 HP
-          </button>
-        </div>
-      )}
-
       {/* Health bar — top right */}
       <div
         className="hudHealthBar"
@@ -4489,35 +3698,37 @@ export default function FpsGame() {
               </p>
             </SettingsSection>
 
-            <SettingsSection title="Time of Day">
-              <div
-                className="settingRow settingRowButtons"
-                role="group"
-                aria-label="Time of day"
-              >
-                <button
-                  type="button"
-                  className={`settingsBtn settingsToggleBtn${sunIsDay ? " active" : ""}`}
-                  aria-pressed={sunIsDay}
-                  onClick={() => handleDayNightChange(true)}
+            {DAY_NIGHT_SWITCHER_ENABLED && (
+              <SettingsSection title="Time of Day">
+                <div
+                  className="settingRow settingRowButtons"
+                  role="group"
+                  aria-label="Time of day"
                 >
-                  ☀ Day
-                </button>
-                <button
-                  type="button"
-                  className={`settingsBtn settingsToggleBtn${!sunIsDay ? " active" : ""}`}
-                  aria-pressed={!sunIsDay}
-                  onClick={() => handleDayNightChange(false)}
-                >
-                  ☾ Night
-                </button>
-              </div>
-              <p className="settingsHint">
-                Crossfades the sun and moon over {DAY_NIGHT_FADE_DURATION}{" "}
-                seconds. While playing, day and night auto-flip every 5 minutes. You
-                can also press the bound Day/Night key.
-              </p>
-            </SettingsSection>
+                  <button
+                    type="button"
+                    className={`settingsBtn settingsToggleBtn${sunIsDay ? " active" : ""}`}
+                    aria-pressed={sunIsDay}
+                    onClick={() => handleDayNightChange(true)}
+                  >
+                    ☀ Day
+                  </button>
+                  <button
+                    type="button"
+                    className={`settingsBtn settingsToggleBtn${!sunIsDay ? " active" : ""}`}
+                    aria-pressed={!sunIsDay}
+                    onClick={() => handleDayNightChange(false)}
+                  >
+                    ☾ Night
+                  </button>
+                </div>
+                <p className="settingsHint">
+                  Crossfades the sun and moon over {DAY_NIGHT_FADE_DURATION}{" "}
+                  seconds. While playing, day and night auto-flip every 5 minutes.
+                  You can also press the bound Day/Night key.
+                </p>
+              </SettingsSection>
+            )}
 
             <SettingsSection title="General">
               <label className="settingRow">
@@ -4709,285 +3920,10 @@ export default function FpsGame() {
             </SettingsSection>
 
             <SettingsSection title="Development">
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Dev tools and runtime debug toggles. Stairway placement is tuned in-game
-                via the panel below when enabled. Other tuning panels live in{" "}
-                <code>components/tuning-panels</code> (not mounted here).
-              </p>
-              <p className="settingsGroupLabel">Tuning panels</p>
-              <div className="settingsBtnRow" style={{ marginBottom: "0.65rem" }}>
-                <button
-                  type="button"
-                  className="settingsBtn"
-                  onClick={() => applyAllTunePanels(true)}
-                >
-                  Enable all panels
-                </button>
-                <button
-                  type="button"
-                  className="settingsBtn"
-                  onClick={() => applyAllTunePanels(false)}
-                >
-                  Disable all panels
-                </button>
-              </div>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={stairsTuneEnabled}
-                  disabled={!arenaHasStairs}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setStairsTuneEnabled(checked);
-                    localStorage.setItem(STAIRS_TUNE_ENABLED_KEY, String(checked));
-                  }}
-                />
-                Stairway tuning
-                {!arenaHasStairs && (
-                  <span className="settingsHint" style={{ marginLeft: "0.4rem" }}>
-                    (no stairs in this arena)
-                  </span>
-                )}
-              </label>
-              <p className="settingsGroupLabel">Scene visibility (perf debug)</p>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Hide meshes to isolate FPS cost. Collision and lights stay active unless
-                noted — sun toggle is the sky disc only, not the directional light.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={devShowBarrels}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setDevShowBarrels(checked);
-                    devSceneShowRef.current.showBarrels = checked;
-                    localStorage.setItem(DEV_SHOW_BARRELS_KEY, String(checked));
-                    applyDevSceneVisibilityRef.current?.();
-                  }}
-                />
-                Oil barrels
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={devShowEnemies}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setDevShowEnemies(checked);
-                    devSceneShowRef.current.showEnemies = checked;
-                    localStorage.setItem(DEV_SHOW_ENEMIES_KEY, String(checked));
-                    applyDevSceneVisibilityRef.current?.();
-                  }}
-                />
-                Enemies (targets)
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={devShowStairs}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setDevShowStairs(checked);
-                    devSceneShowRef.current.showStairs = checked;
-                    localStorage.setItem(DEV_SHOW_STAIRS_KEY, String(checked));
-                    applyDevSceneVisibilityRef.current?.();
-                  }}
-                />
-                Stairs
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={devShowContainers}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setDevShowContainers(checked);
-                    devSceneShowRef.current.showContainers = checked;
-                    localStorage.setItem(DEV_SHOW_CONTAINERS_KEY, String(checked));
-                    applyDevSceneVisibilityRef.current?.();
-                  }}
-                />
-                VX-27 containers
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={devShowPillars}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setDevShowPillars(checked);
-                    devSceneShowRef.current.showPillars = checked;
-                    localStorage.setItem(DEV_SHOW_PILLARS_KEY, String(checked));
-                    applyDevSceneVisibilityRef.current?.();
-                  }}
-                />
-                Pillars
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={devShowLensFlare}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setDevShowLensFlare(checked);
-                    devSceneShowRef.current.showLensFlare = checked;
-                    localStorage.setItem(DEV_SHOW_LENS_FLARE_KEY, String(checked));
-                    applyDevSceneVisibilityRef.current?.();
-                  }}
-                />
-                Lens flare (ghosts + sun spikes)
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={devShowSunDisc}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setDevShowSunDisc(checked);
-                    devSceneShowRef.current.showSunDisc = checked;
-                    localStorage.setItem(DEV_SHOW_SUN_DISC_KEY, String(checked));
-                    applyDevSceneVisibilityRef.current?.();
-                  }}
-                />
-                Sun disc (sky sprite, not the light)
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={devDisableHoleDecals}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setDevDisableHoleDecals(checked);
-                    try {
-                      localStorage.setItem(DEV_DISABLE_HOLE_DECALS_KEY, String(checked));
-                    } catch {}
-                    // checked === true means "disable hole decals", so pass !checked
-                    setBulletHolesEnabled(!checked);
-                  }}
-                />
-                Disable hole decals (dev)
-              </label>
-              <p className="settingsGroupLabel">Debug tools</p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={shadowsDisabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setShadowsDisabled(checked);
-                    shadowsDisabledRef.current = checked;
-                    setShadowsDisabledRuntime(checked);
-                    applyShadowDebugRef.current?.(checked);
-                  }}
-                />
-                Disable all shadows (debug)
-              </label>
-              <p className="settingsHint" style={{ marginTop: "-0.35rem" }}>
-                Sun/moon, flashlight, barrel fire, mesh cast/receive — off entirely.
-                Toggle then click <strong>Start Game</strong> if the level is already
-                running. Compare stair hitch with this on vs off.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={texturesDisabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setTexturesDisabled(checked);
-                    texturesDisabledRef.current = checked;
-                    setTexturesDisabledRuntime(checked);
-                    applyTextureDebugRef.current?.(checked);
-                  }}
-                />
-                Disable all textures (debug)
-              </label>
-              <p className="settingsHint" style={{ marginTop: "-0.35rem" }}>
-                Flat grey Lambert via <code>scene.overrideMaterial</code> — no map
-                sampling (walls, floor, props, sky mesh). Toggle then{" "}
-                <strong>Start Game</strong> if already in-level.
-              </p>
-              <p className="settingsGroupLabel">Shadow experiments</p>
-              <label className="settingRow">
-                <span>Shadow map type</span>
-                <select
-                  value={shadowMapType}
-                  disabled={shadowsDisabled}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setShadowMapType(value);
-                    shadowMapTypeRef.current = value;
-                    setShadowMapTypeRuntime(value);
-                    applyShadowExperimentRef.current?.();
-                  }}
-                  style={{ marginLeft: "0.5rem" }}
-                >
-                  {SHADOW_MAP_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={plainShadowDepth}
-                  disabled={shadowsDisabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setPlainShadowDepth(checked);
-                    plainShadowDepthRef.current = checked;
-                    setPlainShadowDepthRuntime(checked);
-                    applyShadowExperimentRef.current?.();
-                  }}
-                />
-                Plain shadow depth (no alpha/map in cast pass)
-              </label>
-              <p className="settingsHint" style={{ marginTop: "-0.35rem" }}>
-                Bisect the stair hitch: textures+shadows together vs plain depth or
-                Basic/VSM map type. Click <strong>Start Game</strong> after changing
-                if already in-level.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={frameHitchProfiler}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setFrameHitchProfiler(checked);
-                    localStorage.setItem(FRAME_HITCH_PROFILER_KEY, String(checked));
-                    frameHitchProfilerRef.current?.setEnabled(checked);
-                  }}
-                />
-                Log browser long tasks to console (&gt;50ms; enable with DevTools open)
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={levelEditEnabled}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setLevelEditEnabled(checked);
-                    levelEditEnabledRef.current = checked;
-                    if (!checked) {
-                      const prev = selectedLevelObjectRef.current;
-                      if (prev) prev.material.emissive?.setHex(0x000000);
-                      selectedLevelObjectRef.current = null;
-                      setSelectedLevelObjectVer((v) => v + 1);
-                    }
-                  }}
-                />
-                Level object editor
-              </label>
-              <p className="settingsHint">
-                Shoot a pillar to select it. Adjust texture offset, rotation, and position
-                with sliders. Copy JSON to paste into your level file.
-              </p>
               <p className="settingsGroupLabel">Player position</p>
-              <p className="settingsHint">
-                Live readout while settings are open. Stand at a blocked spot and copy
-                coordinates below.
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Live readout while settings are open. Stand at a spot and copy coordinates
+                below. Toggle the gameplay HUD with <strong>H</strong>.
               </p>
               <div
                 ref={playerCoordsMenuRef}
@@ -5006,60 +3942,6 @@ export default function FpsGame() {
               >
                 Copy coordinates JSON
               </button>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={showPlayerCoords}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setShowPlayerCoords(checked);
-                    localStorage.setItem(SHOW_PLAYER_COORDS_KEY, String(checked));
-                  }}
-                />
-                Show player coordinates HUD (in-game)
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={showDevOverlay}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setShowDevOverlay(checked);
-                    localStorage.setItem("fps-show-dev-overlay", String(checked));
-                    if (checked) {
-                      setHudBarTuneEnabled(true);
-                      saveHudBarTuneEnabled(true);
-                    }
-                  }}
-                />
-                Show dev overlay (HP demo buttons)
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={showHud}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    showHudRef.current = checked;
-                    setShowHud(checked);
-                    localStorage.setItem(SHOW_HUD_KEY, String(checked));
-                    gameRootRef.current?.classList.toggle("gameHudHidden", !checked);
-                  }}
-                />
-                Show HUD (ammo, health, radar) — press H in-game
-              </label>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={showFps}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setShowFps(checked);
-                    localStorage.setItem(SHOW_FPS_KEY, String(checked));
-                  }}
-                />
-                Show FPS counter
-              </label>
             </SettingsSection>
             </div>
           </div>
@@ -5078,67 +3960,32 @@ export default function FpsGame() {
           onRebindActionChange={setRebindAction}
         />
       )}
-      <div className="devTuneStack">
-        {arenaHasStairs && stairsTuneEnabled && (
-          <StairTunePanel
-            floorDeckY={floorDeckY}
-            catwalkDeckY={catwalkDeckY}
-            x={stairX}
-            y={stairY}
-            z={stairZ}
-            rotationY={stairRotationY}
-            onXChange={(value) => {
-              setStairX(value);
-              commitStairParams({
-                ...stairParamsRef.current,
-                position: { ...stairParamsRef.current.position, x: value },
-              });
-            }}
-            onYChange={(value) => {
-              setStairY(value);
-              commitStairParams({
-                ...stairParamsRef.current,
-                position: { ...stairParamsRef.current.position, y: value },
-              });
-            }}
-            onZChange={(value) => {
-              setStairZ(value);
-              commitStairParams({
-                ...stairParamsRef.current,
-                position: { ...stairParamsRef.current.position, z: value },
-              });
-            }}
-            onRotationChange={(value) => {
-              setStairRotationY(value);
-              commitStairParams({
-                ...stairParamsRef.current,
-                rotationY: value,
-              });
-            }}
-            onClose={() => {
-              setStairsTuneEnabled(false);
-              localStorage.setItem(STAIRS_TUNE_ENABLED_KEY, "false");
-            }}
-          />
-        )}
-      </div>
-      {showFps && (
-        <div ref={fpsRef} className="fpsCounter fpsCounterFixed" aria-live="polite">
-          — FPS
-        </div>
-      )}
-      {showPlayerCoords && !settingsOpen && (
+      {loadDone && controlPanelCount > 0 && (
         <div
-          ref={playerCoordsHudRef}
-          className="hudPlayerCoords"
-          aria-live="polite"
-          title="Click to copy JSON"
-          onClick={() => {
-            const json = playerCoordsHudRef.current?.dataset.coords;
-            if (json) navigator.clipboard?.writeText(json);
-          }}
+          className="hudTunePanel controlPanelScreenTuneHud"
+          aria-label="Surface D shelf brightness"
         >
-          X —  Z —  foot —
+          <div className="hudTuneHeader">
+            <span>Surface D</span>
+          </div>
+          <label className="sliderRow controlPanelScreenSliderRow">
+            <span className="controlPanelScreenSliderLabel">
+              Brightness <output>{controlPanelShelfDBrightness.toFixed(1)}</output>
+            </span>
+            <input
+              type="range"
+              min={CONTROL_PANEL_SHELF_D_BRIGHTNESS_MIN}
+              max={CONTROL_PANEL_SHELF_D_BRIGHTNESS_MAX}
+              step={0.5}
+              value={controlPanelShelfDBrightness}
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                setControlPanelShelfDBrightness(value);
+                saveControlPanelShelfDBrightness(value);
+                updateControlPanelShelfDBrightness(value);
+              }}
+            />
+          </label>
         </div>
       )}
       {loadDone && (

@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-04T18:46:38.039Z",
-  "head": "9a04014",
-  "count": 92,
+  "generatedAt": "2026-06-04T21:16:52.245Z",
+  "head": "288e22d",
+  "count": 94,
   "commits": [
+    {
+      "sha": "288e22d",
+      "date": "2026-06-04",
+      "subject": "Fix v0.1.19 release commit hash in version history."
+    },
+    {
+      "sha": "c14b90e",
+      "date": "2026-06-04",
+      "subject": "Release v0.1.19: Pillar-shell service room and catwalk gun lighting."
+    },
     {
       "sha": "9a04014",
       "date": "2026-06-04",

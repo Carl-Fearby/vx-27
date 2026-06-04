@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-04T00:16:13.932Z",
-  "head": "87d7d2b",
-  "count": 82,
+  "generatedAt": "2026-06-04T00:47:13.344Z",
+  "head": "09f4114",
+  "count": 84,
   "commits": [
+    {
+      "sha": "09f4114",
+      "date": "2026-06-04",
+      "subject": "Release v0.1.16: Hole falls, death vocals, service room barrels."
+    },
+    {
+      "sha": "effe35e",
+      "date": "2026-06-04",
+      "subject": "Refresh git version history after v0.1.15 deploy build."
+    },
     {
       "sha": "87d7d2b",
       "date": "2026-06-04",

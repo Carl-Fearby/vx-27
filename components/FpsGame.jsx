@@ -475,6 +475,8 @@ function loadMusicEnabled() {
 }
 /** Seconds for the day/night toggle to crossfade from one state to the other. */
 const DAY_NIGHT_FADE_DURATION = 10;
+/** Auto day/night flip while actively playing (demo showcase). */
+const DAY_NIGHT_DEMO_CYCLE_SEC = 60;
 /** Meters below `floorY` (feet) at which a falling player is considered dead.
  *  Matches hole-fall remove depth so the tumble finishes before the overlay. */
 const DEATH_FALL_DROP = 12;
@@ -1216,6 +1218,7 @@ export default function FpsGame() {
   // animate loop so every light/atmosphere/hemi setting eases together.
   const dayNightTargetNightnessRef = useRef(loadSunDayMode() ? 0 : 1);
   const dayNightCurNightnessRef = useRef(loadSunDayMode() ? 0 : 1);
+  const dayNightDemoCycleElapsedRef = useRef(0);
   const skyRef = useRef(null);
   const applyDevSceneVisibilityRef = useRef(null);
   const devSceneShowRef = useRef({
@@ -2596,6 +2599,12 @@ export default function FpsGame() {
         }
       }
 
+      function playTargetHitSound(mesh, hitPoint, hitZone) {
+        sounds.playEnemyHit(scene, hitPoint, {
+          headshot: hitZone === "head",
+        });
+      }
+
       function playTargetDeathSound(mesh, hitPoint, hitZone) {
         const pos = hitPoint?.clone?.() ?? mesh.position.clone();
         if (!hitPoint) {
@@ -2608,10 +2617,19 @@ export default function FpsGame() {
         });
       }
 
+      function playTargetHoleFallSound(mesh, position) {
+        const pos = position?.clone?.() ?? mesh.position.clone();
+        sounds.playHoleFallDeathWorld(scene, pos);
+      }
+
       function applyHit(hit, bulletDirection, targetMesh) {
         const mesh = targetMesh ?? hit.object;
         const { killed, zone, damage } = applyTargetHit(mesh, hit.point, bulletDirection);
         if (zone !== "miss") {
+          playTargetHitSound(mesh, hit.point, zone);
+          if (killed) {
+            playTargetDeathSound(mesh, hit.point, zone);
+          }
           const splatterDamage = Math.max(damage, 4);
           if (killed) {
             pendingKillBlood.push({
@@ -2640,7 +2658,6 @@ export default function FpsGame() {
         }
         if (killed) {
           const deathPos = mesh.position.clone();
-          playTargetDeathSound(mesh, hit.point, zone);
           scheduleKillDrops(deathPos, zone);
           startDeathAnimation(mesh, bulletDirection, {
             scene,
@@ -3334,6 +3351,20 @@ export default function FpsGame() {
           applyDayNightRef.current?.(dnCur);
         }
 
+        if (
+          !frozen &&
+          !settingsOpenRef.current &&
+          !controlsOpenRef.current
+        ) {
+          dayNightDemoCycleElapsedRef.current += dt;
+          if (dayNightDemoCycleElapsedRef.current >= DAY_NIGHT_DEMO_CYCLE_SEC) {
+            dayNightDemoCycleElapsedRef.current = 0;
+            dayNightToggleRef.current?.(!sunIsDayRef.current, {
+              persist: false,
+            });
+          }
+        }
+
         refreshLiveTargets();
         updateBloodSplatters(bloodSplatters, dt, scene);
         updateBulletHoles(dt);
@@ -3437,7 +3468,10 @@ export default function FpsGame() {
           (mesh) => {
             deactivateTarget(mesh);
             scheduleRespawn(mesh);
-          }
+          },
+          (mesh, position) => {
+            playTargetHoleFallSound(mesh, position);
+          },
         );
         if (showHudRef.current) {
           updateTargetHealthBars(level.targets, dt, camera);
@@ -3485,6 +3519,9 @@ export default function FpsGame() {
           floorHoles: level.floorHoles ?? [],
           onBodyFloorHit: (pos, impact) => {
             sounds.playBodyFloorHit(scene, pos, { impact });
+          },
+          onHoleFall: (mesh, position) => {
+            playTargetHoleFallSound(mesh, position);
           },
         });
 
@@ -3987,10 +4024,11 @@ export default function FpsGame() {
     };
   }, []);
 
-  const handleDayNightChange = (isDay) => {
+  const handleDayNightChange = (isDay, { persist = true } = {}) => {
     setSunIsDay(isDay);
     sunIsDayRef.current = isDay;
-    saveSunDayMode(isDay);
+    if (persist) saveSunDayMode(isDay);
+    dayNightDemoCycleElapsedRef.current = 0;
     // Setting the target lets the animate loop ease toward it; pre-fit the
     // destination shadow caster so it's ready when its intensity rises.
     dayNightTargetNightnessRef.current = isDay ? 0 : 1;
@@ -4461,7 +4499,8 @@ export default function FpsGame() {
               </div>
               <p className="settingsHint">
                 Crossfades the sun and moon over {DAY_NIGHT_FADE_DURATION}{" "}
-                seconds. You can also press the bound Day/Night key.
+                seconds. While playing, day and night auto-flip every minute. You
+                can also press the bound Day/Night key.
               </p>
             </SettingsSection>
 

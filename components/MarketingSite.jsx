@@ -23,7 +23,7 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
-  { label: "BUILD", value: `v${BUILD_VERSION} · death vocals live` },
+  { label: "BUILD", value: `v${BUILD_VERSION} · hit vocals & day/night demo` },
   { label: "ZONE", value: "Exclusion sector · sealed" },
   { label: "THREAT", value: "Remnant · contractors · drones" },
   { label: "RENDER", value: "WebGL · Three.js · load-screen bake" },
@@ -32,19 +32,19 @@ const TELEMETRY = [
 
 const WHATS_NEW = [
   {
-    tag: "Hazard",
-    title: "Floor holes that actually kill you",
-    text: "Step over a pit and you're committed — no walking out sideways. Fall with a look-up swirl, then the death screen once you've dropped far enough.",
-  },
-  {
     tag: "Audio",
-    title: "Death vocals for you and them",
-    text: "Three random combat death cries for the player, a separate hole-fall scream, and positional enemy death sounds on rifle and grenade kills.",
+    title: "Enemy bullet-hit vocals",
+    text: "Four random ouch clips on rifle hits — foot, body, head. One at a time so rapid fire doesn't turn into a choir.",
   },
   {
-    tag: "Zone",
-    title: "Service room corner fires",
-    text: "Four open-top oil barrels with interior flame in the dark service room — NW mirror expanded to every corner.",
+    tag: "Hazard",
+    title: "Hole falls sound worse now",
+    text: "Bodies that tumble through floor pits get the same positional hole-fall cry you hear on your own drop.",
+  },
+  {
+    tag: "Atmosphere",
+    title: "Day/night demo cycle",
+    text: "While you're playing, sun and moon auto-crossfade every minute — a rolling showcase of the lighting pass.",
   },
 ];
 
@@ -609,7 +609,7 @@ export default function MarketingSite() {
           You were sent to recover a weapon. You found something worse.
         </p>
         <p className="mktLaunchBuildNote">
-          Now live · v{BUILD_VERSION} · hole falls &amp; death vocals
+          Now live · v{BUILD_VERSION} · hit vocals &amp; day/night demo
         </p>
         <Link href="/game" className="mktPlayBtn mktPlayBtnLaunch">
           <span className="mktPlayBtnLabel">Launch VX-27</span>

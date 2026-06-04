@@ -1038,6 +1038,7 @@ export default function FpsGame() {
   const refitMoonShadowRef = useRef(null);
   const rebuildStairsRef = useRef(null);
   const rebuildOilBarrelsRef = useRef(null);
+  const levelRef = useRef(null);
   const pilePlacementRafRef = useRef(0);
   const vx27ContainersRef = useRef([]);
   const vx27ContainerCommitRef = useRef(null);
@@ -1735,6 +1736,7 @@ export default function FpsGame() {
         setPileHubZ(pileAnchor.z);
       }
       level = createLevelFromArena(scene, arenaLive, levelTextures);
+      levelRef.current = level;
       setArenaHasStairs(Boolean(arena.stairs));
       if (!isActive()) {
         if (level?.group) disposeLevelGroup(level.group);
@@ -2245,7 +2247,6 @@ export default function FpsGame() {
         level?.resyncOilBarrelColliders?.();
         syncInteriorLighting();
       };
-
       player = createPlayerController(camera, level.bounds, level.floorY, {
         getColliders: () => allColliders,
         getGroundSurfaces: () => level.groundSurfaces,
@@ -3707,7 +3708,10 @@ export default function FpsGame() {
           arena.floorExtensions ?? [],
           arenaHalf,
           attachWall,
-          arena.wallThickness ?? 0.5
+          arena.wallThickness ?? 0.5,
+          undefined,
+          player.getFootY(),
+          level.catwalkDeckY
         );
         syncLightLayersForZone(
           scene,

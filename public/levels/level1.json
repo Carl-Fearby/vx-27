@@ -4,7 +4,7 @@
     "id": "level1",
     "name": "Square Arena",
     "objective": "HOLD ZONE",
-    "devNote": "2026-06-03: service_room interior removed (dual-pass experiment rollback). Arena floor extended via floorExtensions to former room footprint; north doorways unchanged."
+    "devNote": "2026-06-04: service_room back on standard attached rooms[] path (floorExtensions experiment rolled back)."
   },
   "size": 28,
   "wallHeight": 4,
@@ -42,13 +42,15 @@
       "radius": 1.4
     }
   ],
-  "floorExtensions": [
+  "rooms": [
     {
       "id": "service_room",
       "centerX": 0,
       "width": 11,
       "depth": 9,
+      "height": 3.8,
       "wallThickness": 0.35,
+      "pillarShell": true,
       "textures": {
         "floor": "ground_smooth_concrete_worn",
         "wall": "wall_blue_cinderblock_worn",
@@ -66,7 +68,6 @@
       ]
     }
   ],
-  "rooms": [],
   "textures": {
     "floor": "ground_concrete_asphalt_dirty",
     "wall": "wall_poured_concrete_industrial",

@@ -33,7 +33,7 @@ lib/
 | Input | Action |
 |-------|--------|
 | **W A S D** | Walk (rebindable in Controls) |
-| **Z** (hold) | Aim down sights |
+| **Z** (hold) | Aim down sights (30% look + move speed while held; see `lib/player/AimTuning.js`) |
 | **Shift** | Sprint |
 | **Ctrl** | Crouch |
 | **Space** | Jump |

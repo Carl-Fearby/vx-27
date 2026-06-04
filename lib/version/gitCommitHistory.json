@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-04T21:16:52.245Z",
-  "head": "288e22d",
-  "count": 94,
+  "generatedAt": "2026-06-04T23:14:29.118Z",
+  "head": "091643d",
+  "count": 96,
   "commits": [
+    {
+      "sha": "091643d",
+      "date": "2026-06-05",
+      "subject": "Fix v0.1.20 release commit hash in version history."
+    },
+    {
+      "sha": "e02ee37",
+      "date": "2026-06-05",
+      "subject": "Release v0.1.20: Control panel texturing and service room collision."
+    },
     {
       "sha": "288e22d",
       "date": "2026-06-04",

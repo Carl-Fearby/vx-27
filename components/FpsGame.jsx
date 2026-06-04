@@ -65,7 +65,7 @@ import {
 } from "@/lib/audio/Sound";
 import LoadingAudioViz from "@/components/LoadingAudioViz";
 import PickupFlashLayer from "@/components/PickupFlashLayer";
-import { warmupPickupPreviewEngine } from "@/lib/pickups/PickupPreviewEngine";
+import { initPickupPreviewEngine } from "@/lib/pickups/PickupPreviewEngine";
 import { getLaserPalette, loadViewWeapon } from "@/lib/weapons/ViewWeapon";
 import {
   spawnAmmoDrop, updateAmmoDrops,
@@ -168,7 +168,8 @@ import {
   preloadGameGpu,
   settleGpuSpawnAfterLoad,
   resetGameGpuPreload,
-  GPU_PRELOAD_ENABLED,
+  getGpuPreloadLoadLabel,
+  GPU_PRELOAD_READY_LABEL,
 } from "@/lib/dev/GpuPreload";
 import { resetArenaCeilingDayNightCache } from "@/lib/lighting/ArenaCeilingDayNight";
 import {
@@ -1686,7 +1687,7 @@ export default function FpsGame() {
       await preloadHpOrbAssets();
       if (!isActive()) return;
       reportLoad(58, "Pickup assets");
-      warmupPickupPreviewEngine();
+      initPickupPreviewEngine();
       if (!isActive()) return;
       reportLoad(59, "Pickup preview ready");
 
@@ -3788,7 +3789,7 @@ export default function FpsGame() {
       if (!isActive()) return;
       reportLoad(97, "Sound effects");
 
-      reportLoad(98, GPU_PRELOAD_ENABLED ? "GPU preload" : "GPU preload skipped");
+      reportLoad(98, getGpuPreloadLoadLabel());
       const spawnFootY = player.getFootY();
       const spawnEyeY = player.getY();
       const getShadowFrameOpts = () => {
@@ -3882,7 +3883,7 @@ export default function FpsGame() {
         getShadowFrameOpts,
       });
       beginShadowStartupWindow();
-      reportLoad(99, "GPU ready");
+      reportLoad(99, GPU_PRELOAD_READY_LABEL);
 
       gameReady = true;
       frameHitchProfilerRef.current?.markGameplayStart();

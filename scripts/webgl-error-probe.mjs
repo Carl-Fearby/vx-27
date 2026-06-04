@@ -22,9 +22,9 @@ page.on("console", (msg) => {
 });
 
 await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
-console.log("Waiting for Start Game button (GPU warmup)...");
+console.log("Waiting for Start Game button (GPU preload)...");
 await page.waitForSelector(".loadingStartBtn", { timeout: 180000 });
-console.log("Warmup done. Before-click mismatches:", beforeClick.length);
+console.log("GPU preload done. Before-click mismatches:", beforeClick.length);
 clicked = true;
 await page.click(".loadingStartBtn");
 await page.waitForTimeout(4000);

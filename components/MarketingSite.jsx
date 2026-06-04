@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import packageJson from "../package.json";
 import CreditsScanlineCanvas from "@/components/CreditsScanlineCanvas";
 import MarketingBrowserBanner, {
   useNonChromeBrowser,
 } from "@/components/MarketingBrowserBanner";
+
+const BUILD_VERSION = packageJson.version;
 
 const POSTER = "/ui/vx-27poster.webp";
 const GITHUB_REPO = "https://github.com/Carl-Fearby/vx-27";
@@ -20,10 +23,29 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
+  { label: "BUILD", value: `v${BUILD_VERSION} · GPU preload live` },
   { label: "ZONE", value: "Exclusion sector · sealed" },
   { label: "THREAT", value: "Remnant · contractors · drones" },
-  { label: "RENDER", value: "WebGL · Three.js" },
-  { label: "DEPLOY", value: "Zero install" },
+  { label: "RENDER", value: "WebGL · Three.js · load-screen bake" },
+  { label: "DEPLOY", value: "Zero install · browser native" },
+];
+
+const WHATS_NEW = [
+  {
+    tag: "Load",
+    title: "GPU preload on the loading screen",
+    text: "Shaders, textures, door transitions, stairs, and spawn poses compile before you click Start Game — fewer first-step hitches after days of fighting the zone.",
+  },
+  {
+    tag: "Combat",
+    title: "Hitscan rifle, instant feedback",
+    text: "Muzzle flash and impact effects without traveling bolt meshes — cleaner gunplay and less GPU churn in firefights.",
+  },
+  {
+    tag: "Zones",
+    title: "Service room & doorway lighting",
+    text: "Room pass and viewmodel lighting stay aligned through door mouths — gun stays lit outdoors, interiors read correctly inside.",
+  },
 ];
 
 const COLLAB_AREAS = [
@@ -120,6 +142,12 @@ const FACTIONS = [
 
 const OPS = [
   {
+    code: "GPU",
+    title: "Load-screen GPU bake",
+    body: "Real gameplay render path on the loading bar — compileAsync, texture upload, doorway poses, stair climb, flashlight and muzzle priming. Pay the cost before the breach.",
+    accent: "v0.1.14+ preload",
+  },
+  {
     code: "CRG",
     title: "VX-27 cargo module",
     body: "Corrugated shell, rounded roof matching the floor, interior liner, and twin doors on E. Thirty-seven PBR maps shipped as WebP — ~96% lighter. Bullet holes stick to doors open or closed.",
@@ -166,6 +194,11 @@ export default function MarketingSite() {
     <div className={`mkt${showBrowserBanner ? " mktHasBrowserBanner" : ""}`}>
       {showBrowserBanner ? <MarketingBrowserBanner /> : null}
       <CreditsScanlineCanvas active />
+      <div className="mktSparkleField" aria-hidden>
+        {Array.from({ length: 28 }, (_, i) => (
+          <span key={i} className="mktSparkle" style={{ "--sparkle-i": i }} />
+        ))}
+      </div>
       <div className="mktGrid" aria-hidden />
       <div className="mktNoise" aria-hidden />
       <div className="mktVignette" aria-hidden />
@@ -222,6 +255,9 @@ export default function MarketingSite() {
               <span className="mktStatusSep">·</span>
               <span className="mktStatusDim">SYS/VX-27</span>
               <span className="mktWipBadge">Work in progress</span>
+              <Link href="/version" className="mktBuildBadge">
+                Latest · v{BUILD_VERSION}
+              </Link>
             </div>
 
             <h1 className="mktHeroTitle">
@@ -278,6 +314,37 @@ export default function MarketingSite() {
               <span className="mktTickerValue">{t.value}</span>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="mktWhatsNew" aria-labelledby="whats-new-heading">
+        <div className="mktWhatsNewHead">
+          <p className="mktKicker">Transmission · build {BUILD_VERSION}</p>
+          <h2 id="whats-new-heading">What landed this week</h2>
+          <p className="mktWhatsNewDeck">
+            A sticky few days turned into real progress — smoother loads, cleaner combat,
+            and doorways that finally behave. Play the latest build in your browser; no
+            install.
+          </p>
+        </div>
+        <div className="mktWhatsNewGrid">
+          {WHATS_NEW.map((item) => (
+            <article key={item.title} className="mktWhatsNewCard">
+              <span className="mktWhatsNewTag">{item.tag}</span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
+        <div className="mktWhatsNewCta">
+          <Link href="/version" className="mktGhostLink">
+            Full version history
+            <span aria-hidden>↗</span>
+          </Link>
+          <Link href="/game" className="mktPlayBtn mktPlayBtnCompact">
+            <span className="mktPlayBtnLabel">Play v{BUILD_VERSION}</span>
+            <span className="mktPlayBtnSub">GPU preload runs on load</span>
+          </Link>
         </div>
       </section>
 
@@ -525,6 +592,7 @@ export default function MarketingSite() {
 
       <section className="mktLaunch">
         <div className="mktLaunchGlow" aria-hidden />
+        <div className="mktLaunchSparkleRing" aria-hidden />
         <Image
           src="/ui/logo.png"
           alt="VX-27"
@@ -539,6 +607,9 @@ export default function MarketingSite() {
         </p>
         <p className="mktLaunchNarrative">
           You were sent to recover a weapon. You found something worse.
+        </p>
+        <p className="mktLaunchBuildNote">
+          Now live · v{BUILD_VERSION} · load-screen GPU preload
         </p>
         <Link href="/game" className="mktPlayBtn mktPlayBtnLaunch">
           <span className="mktPlayBtnLabel">Launch VX-27</span>

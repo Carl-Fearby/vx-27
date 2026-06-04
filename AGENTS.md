@@ -51,9 +51,11 @@ Quick examples
 When in doubt
 - Run the site locally, open DevTools, and use the network/console to observe asset load order. The renderer/scene lifecycle is sensitive to order of texture/geometry preloads.
 - Prefer changes to `lib/*.js` with clear unitable behavior; use browser testing rather than node-only tests.
+- Load-screen GPU work lives in `lib/dev/GpuPreload.js` (`preloadGameGpu`, `settleGpuSpawnAfterLoad`). Do not reintroduce `GpuWarmup.js` or post-load shadow/material resets.
 
 References
 - Main mount: `components/FpsGame.jsx`
+- GPU preload: `lib/dev/GpuPreload.js`
 - Subsystems examples: `lib/Level.js`, `lib/Input.js`, `lib/PlayerController.js`, `lib/Sound.js`, `lib/SceneEnvironment.js`
 - Dev script: `scripts/dev.mjs`, alias config `jsconfig.json`, tuning pattern `lib/*Tuning.js`
 

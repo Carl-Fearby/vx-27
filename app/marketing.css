@@ -82,6 +82,61 @@ body {
     radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.65) 100%);
 }
 
+.mktSparkleField {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+  mask-image: radial-gradient(ellipse 85% 65% at 50% 35%, black 15%, transparent 78%);
+}
+
+.mktSparkle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--blue-hot);
+  box-shadow:
+    0 0 6px rgba(142, 200, 255, 0.95),
+    0 0 14px rgba(94, 170, 255, 0.55);
+  opacity: 0;
+  animation: mktSparkleDrift 7s var(--ease-out) infinite;
+  animation-delay: calc(var(--sparkle-i, 0) * -0.31s);
+  left: calc((var(--sparkle-i, 0) * 17.3%) % 100%);
+  top: calc((var(--sparkle-i, 0) * 23.7%) % 100%);
+}
+
+.mktSparkle:nth-child(3n) {
+  width: 2px;
+  height: 2px;
+  background: #9effd0;
+  box-shadow: 0 0 8px rgba(120, 255, 190, 0.7);
+  animation-duration: 9s;
+}
+
+.mktSparkle:nth-child(5n) {
+  animation-duration: 5.5s;
+}
+
+@keyframes mktSparkleDrift {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.4);
+  }
+  12% {
+    opacity: 0.85;
+  }
+  55% {
+    opacity: 0.35;
+    transform: translate3d(18px, -42vh, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-8px, -88vh, 0) scale(0.2);
+  }
+}
+
 .mktBrackets {
   position: fixed;
   inset: clamp(0.75rem, 2vw, 1.25rem);
@@ -358,6 +413,35 @@ body {
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
 }
 
+.mktBuildBadge {
+  padding: 0.22rem 0.62rem;
+  border: 1px solid rgba(94, 170, 255, 0.55);
+  border-radius: 999px;
+  background: linear-gradient(
+    135deg,
+    rgba(94, 170, 255, 0.18),
+    rgba(61, 255, 154, 0.08)
+  );
+  color: #d4ecff;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  text-shadow: 0 0 12px rgba(94, 170, 255, 0.35);
+  box-shadow: 0 0 20px rgba(94, 170, 255, 0.12);
+  transition:
+    border-color 0.2s var(--ease-out),
+    box-shadow 0.2s var(--ease-out),
+    transform 0.2s var(--ease-out);
+}
+
+.mktBuildBadge:hover {
+  border-color: rgba(142, 200, 255, 0.85);
+  box-shadow: 0 0 28px rgba(94, 170, 255, 0.28);
+  transform: translateY(-1px);
+}
+
 .mktHeroTitle {
   margin: 0 0 1.25rem;
   font-family: var(--font);
@@ -380,6 +464,28 @@ body {
   text-shadow:
     0 0 32px rgba(94, 170, 255, 0.4),
     0 2px 24px rgba(0, 0, 0, 0.92);
+  background: linear-gradient(
+    110deg,
+    #8ec8ff 0%,
+    #d8eeff 42%,
+    #5eaaff 58%,
+    #c8e4ff 100%
+  );
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: mktAccentShimmer 8s ease-in-out infinite;
+}
+
+@keyframes mktAccentShimmer {
+  0%,
+  100% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
 }
 
 .mktHeroDeck {
@@ -537,6 +643,106 @@ body {
 }
 
 /* Briefing */
+
+/* What's new — latest build highlights */
+.mktWhatsNew {
+  position: relative;
+  z-index: 10;
+  padding: clamp(3rem, 8vw, 5rem) clamp(1.25rem, 4vw, 3rem);
+  border-block: 1px solid rgba(94, 170, 255, 0.12);
+  background:
+    linear-gradient(180deg, rgba(94, 170, 255, 0.06), transparent 42%),
+    rgba(4, 8, 16, 0.55);
+}
+
+.mktWhatsNewHead {
+  max-width: 42rem;
+  margin-bottom: 2rem;
+}
+
+.mktWhatsNewHead h2 {
+  margin: 0.35rem 0 0.85rem;
+  font-family: var(--font);
+  font-size: clamp(1.65rem, 3.5vw, 2.35rem);
+  letter-spacing: 0.03em;
+  color: #f0f6ff;
+}
+
+.mktWhatsNewDeck {
+  margin: 0;
+  max-width: 36rem;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+
+.mktWhatsNewGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  margin-bottom: 1.75rem;
+}
+
+.mktWhatsNewCard {
+  position: relative;
+  padding: 1.15rem 1.2rem 1.25rem;
+  border: 1px solid rgba(94, 170, 255, 0.16);
+  border-radius: 4px;
+  background: var(--panel);
+  overflow: hidden;
+  transition:
+    border-color 0.25s var(--ease-out),
+    box-shadow 0.25s var(--ease-out),
+    transform 0.25s var(--ease-out);
+}
+
+.mktWhatsNewCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(94, 170, 255, 0.75), transparent);
+  opacity: 0.65;
+}
+
+.mktWhatsNewCard:hover {
+  border-color: rgba(142, 200, 255, 0.42);
+  box-shadow: 0 0 32px rgba(94, 170, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.mktWhatsNewTag {
+  display: inline-block;
+  margin-bottom: 0.55rem;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8ec8ff;
+}
+
+.mktWhatsNewCard h3 {
+  margin: 0 0 0.55rem;
+  font-family: var(--font);
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  color: #eef4ff;
+}
+
+.mktWhatsNewCard p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: rgba(210, 224, 245, 0.88);
+}
+
+.mktWhatsNewCta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem 1.75rem;
+}
+
 .mktBriefing {
   position: relative;
   z-index: 10;
@@ -1114,6 +1320,32 @@ body {
   pointer-events: none;
 }
 
+.mktLaunchSparkleRing {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: min(520px, 90vw);
+  height: min(520px, 90vw);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(94, 170, 255, 0.12) 0%, transparent 62%);
+  animation: mktLaunchPulse 6s ease-in-out infinite;
+}
+
+@keyframes mktLaunchPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
+
 .mktLaunchLogo {
   position: relative;
   width: min(420px, 72vw);
@@ -1135,6 +1367,17 @@ body {
   margin-top: 1rem !important;
   font-size: 1.02rem !important;
   color: rgba(186, 210, 245, 0.82) !important;
+}
+
+.mktLaunchBuildNote {
+  position: relative;
+  max-width: 28rem;
+  margin: 0.75rem auto 0 !important;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(142, 200, 255, 0.88) !important;
 }
 
 .mktLaunch .mktPlayBtn {

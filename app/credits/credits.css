@@ -1719,6 +1719,18 @@ html:has(.creditsRoot) body {
   animation: creditsPropFloat 6s ease-in-out infinite;
 }
 
+.creditsPropInsert:has(.creditsVx27Container) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.creditsInterstitial--container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .creditsInterstitial--container .creditsVx27Container {
   margin-bottom: 0.35rem;
 }

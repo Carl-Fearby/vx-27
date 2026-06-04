@@ -286,8 +286,29 @@ body {
   --hud-compass-width: min(24rem, calc(100vw - 2 * min(22rem, 36vw) - 5rem));
   --hud-compass-top: 1rem;
   --hud-compass-height: calc(var(--hud-compass-width) * 292 / 1828);
+  --hud-night-grayscale: 0;
   position: fixed;
   inset: 0;
+}
+
+/* Desaturate HUD chrome in night mode (crosshair and modal settings stay full colour). */
+.gameRoot .hudBottomBar,
+.gameRoot .hudStaminaBar,
+.gameRoot .hudCompass,
+.gameRoot .hudBarCompass,
+.gameRoot .hudRadar,
+.gameRoot .hudHealthBar,
+.gameRoot .hudMissionInfo,
+.gameRoot .hudDamageVignette,
+.gameRoot .hudSecondWeapon,
+.gameRoot .topRightHud,
+.gameRoot .hudPlayerCoords,
+.gameRoot .pickupOverlayRow,
+.gameRoot .hudCompassPointer,
+.gameRoot .doorInteractPrompt,
+.gameRoot .demoBtnGroup {
+  filter: grayscale(var(--hud-night-grayscale))
+    brightness(calc(1 - 0.75 * var(--hud-night-grayscale)));
 }
 
 /* Dev toggle: hide in-game HUD chrome for clean captures (crosshair stays). */

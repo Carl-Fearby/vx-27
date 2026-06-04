@@ -476,7 +476,7 @@ function loadMusicEnabled() {
 /** Seconds for the day/night toggle to crossfade from one state to the other. */
 const DAY_NIGHT_FADE_DURATION = 10;
 /** Auto day/night flip while actively playing (demo showcase). */
-const DAY_NIGHT_DEMO_CYCLE_SEC = 60;
+const DAY_NIGHT_DEMO_CYCLE_SEC = 300;
 /** Meters below `floorY` (feet) at which a falling player is considered dead.
  *  Matches hole-fall remove depth so the tumble finishes before the overlay. */
 const DEATH_FALL_DROP = 12;
@@ -3350,6 +3350,13 @@ export default function FpsGame() {
           dayNightCurNightnessRef.current = dnCur;
           applyDayNightRef.current?.(dnCur);
         }
+        const hudRoot = gameRootRef.current;
+        if (hudRoot) {
+          hudRoot.style.setProperty(
+            "--hud-night-grayscale",
+            String(dayNightCurNightnessRef.current)
+          );
+        }
 
         if (
           !frozen &&
@@ -3946,6 +3953,10 @@ export default function FpsGame() {
       reportLoad(99, GPU_PRELOAD_READY_LABEL);
 
       gameReady = true;
+      gameRootRef.current?.style.setProperty(
+        "--hud-night-grayscale",
+        String(dayNightCurNightnessRef.current)
+      );
       frameHitchProfilerRef.current?.markGameplayStart();
       reportLoad(100, "Ready");
       setAssetsReady(true);
@@ -4499,7 +4510,7 @@ export default function FpsGame() {
               </div>
               <p className="settingsHint">
                 Crossfades the sun and moon over {DAY_NIGHT_FADE_DURATION}{" "}
-                seconds. While playing, day and night auto-flip every minute. You
+                seconds. While playing, day and night auto-flip every 5 minutes. You
                 can also press the bound Day/Night key.
               </p>
             </SettingsSection>

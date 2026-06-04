@@ -1,8 +1,53 @@
 {
-  "generatedAt": "2026-06-03T21:26:11.466Z",
-  "head": "adc4072",
-  "count": 70,
+  "generatedAt": "2026-06-04T00:07:12.121Z",
+  "head": "feb297d",
+  "count": 79,
   "commits": [
+    {
+      "sha": "feb297d",
+      "date": "2026-06-04",
+      "subject": "Release v0.1.14: GPU preload on load screen."
+    },
+    {
+      "sha": "d590d15",
+      "date": "2026-06-04",
+      "subject": "Merge pull request #2 from Carl-Fearby/fix/working-on-optimizations"
+    },
+    {
+      "sha": "d2a1f71",
+      "date": "2026-06-04",
+      "subject": "SLight level changes"
+    },
+    {
+      "sha": "7bf1500",
+      "date": "2026-06-04",
+      "subject": "Merge pull request #1 from Carl-Fearby/fix/working-on-optimizations"
+    },
+    {
+      "sha": "1c5bb16",
+      "date": "2026-06-04",
+      "subject": "Working on getting the glicthes gone"
+    },
+    {
+      "sha": "c7d5146",
+      "date": "2026-06-03",
+      "subject": "Working on getting the glicthes gone"
+    },
+    {
+      "sha": "570d97d",
+      "date": "2026-06-03",
+      "subject": "Working on getting the glicthes gone"
+    },
+    {
+      "sha": "fc4edc3",
+      "date": "2026-06-03",
+      "subject": "Add stair back-fill ramp so treads stay the walk surface."
+    },
+    {
+      "sha": "6942106",
+      "date": "2026-06-03",
+      "subject": "Disable GPU warmup and add perf debug tools after stair hitch investigation."
+    },
     {
       "sha": "adc4072",
       "date": "2026-06-03",

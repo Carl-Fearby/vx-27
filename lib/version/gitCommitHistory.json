@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-04T00:07:12.121Z",
-  "head": "feb297d",
-  "count": 79,
+  "generatedAt": "2026-06-04T00:15:59.802Z",
+  "head": "9517bec",
+  "count": 81,
   "commits": [
+    {
+      "sha": "9517bec",
+      "date": "2026-06-04",
+      "subject": "Release v0.1.15: cleanup, marketing sparkle, deploy-ready."
+    },
+    {
+      "sha": "5009702",
+      "date": "2026-06-04",
+      "subject": "Stamp v0.1.14 release commit hash and refresh git version history."
+    },
     {
       "sha": "feb297d",
       "date": "2026-06-04",

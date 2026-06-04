@@ -1,8 +1,28 @@
 {
-  "generatedAt": "2026-06-04T01:18:12.583Z",
-  "head": "55abbc2",
-  "count": 87,
+  "generatedAt": "2026-06-04T13:00:46.204Z",
+  "head": "01bd050",
+  "count": 91,
   "commits": [
+    {
+      "sha": "01bd050",
+      "date": "2026-06-04",
+      "subject": "Release v0.1.18: Doorway wall halves, HUD night, ADS tuning."
+    },
+    {
+      "sha": "080e26e",
+      "date": "2026-06-04",
+      "subject": "Fix doorway walls with back-to-back half slabs and HUD night styling."
+    },
+    {
+      "sha": "06524e7",
+      "date": "2026-06-04",
+      "subject": "Bake in 30% ADS sensitivity for look and movement."
+    },
+    {
+      "sha": "0d89a40",
+      "date": "2026-06-04",
+      "subject": "Stamp v0.1.17 release commit hash and refresh git version history."
+    },
     {
       "sha": "55abbc2",
       "date": "2026-06-04",

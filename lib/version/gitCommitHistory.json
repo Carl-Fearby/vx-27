@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-04T23:41:11.548Z",
-  "head": "89f385d",
-  "count": 99,
+  "generatedAt": "2026-06-05T00:05:22.675Z",
+  "head": "1b69f35",
+  "count": 101,
   "commits": [
+    {
+      "sha": "1b69f35",
+      "date": "2026-06-05",
+      "subject": "Fix v0.1.22 release commit hash in version history."
+    },
+    {
+      "sha": "a8c83f4",
+      "date": "2026-06-05",
+      "subject": "Release v0.1.22: Control panel foot fix and laser tracers."
+    },
     {
       "sha": "89f385d",
       "date": "2026-06-05",

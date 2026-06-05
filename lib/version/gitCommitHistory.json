@@ -1,8 +1,23 @@
 {
-  "generatedAt": "2026-06-05T02:00:21.930Z",
-  "head": "1d251fe",
-  "count": 113,
+  "generatedAt": "2026-06-05T02:11:38.885Z",
+  "head": "8eedb2d",
+  "count": 116,
   "commits": [
+    {
+      "sha": "8eedb2d",
+      "date": "2026-06-05",
+      "subject": "Fix v0.1.27 release commit hash in version history."
+    },
+    {
+      "sha": "b652373",
+      "date": "2026-06-05",
+      "subject": "Release v0.1.27: Compass enemy and reward blips."
+    },
+    {
+      "sha": "4a5fe1f",
+      "date": "2026-06-05",
+      "subject": "Refresh git commit history after deploy build."
+    },
     {
       "sha": "1d251fe",
       "date": "2026-06-05",

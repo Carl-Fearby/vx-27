@@ -1,8 +1,23 @@
 {
-  "generatedAt": "2026-06-05T23:11:39.785Z",
-  "head": "14da513",
-  "count": 122,
+  "generatedAt": "2026-06-05T23:56:23.258Z",
+  "head": "0833c56",
+  "count": 125,
   "commits": [
+    {
+      "sha": "0833c56",
+      "date": "2026-06-06",
+      "subject": "Fix v0.1.30 release commit hash in version history."
+    },
+    {
+      "sha": "702d7de",
+      "date": "2026-06-06",
+      "subject": "Release v0.1.30: Arena consoles and hitscan-only combat."
+    },
+    {
+      "sha": "fcd4020",
+      "date": "2026-06-06",
+      "subject": "Refresh git commit history after v0.1.29 release."
+    },
     {
       "sha": "14da513",
       "date": "2026-06-06",

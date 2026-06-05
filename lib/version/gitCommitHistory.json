@@ -1,8 +1,28 @@
 {
-  "generatedAt": "2026-06-05T22:41:25.160Z",
-  "head": "8f94568",
-  "count": 118,
+  "generatedAt": "2026-06-05T23:11:39.785Z",
+  "head": "14da513",
+  "count": 122,
   "commits": [
+    {
+      "sha": "14da513",
+      "date": "2026-06-06",
+      "subject": "Fix v0.1.29 release commit hash in version history."
+    },
+    {
+      "sha": "54bdcde",
+      "date": "2026-06-06",
+      "subject": "Release v0.1.29: Control panel texture stability."
+    },
+    {
+      "sha": "34f8ea6",
+      "date": "2026-06-05",
+      "subject": "Refresh git commit history after v0.1.28 release."
+    },
+    {
+      "sha": "13def86",
+      "date": "2026-06-05",
+      "subject": "Fix v0.1.28 release commit hash in version history."
+    },
     {
       "sha": "8f94568",
       "date": "2026-06-05",

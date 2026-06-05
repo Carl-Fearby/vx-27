@@ -37,7 +37,7 @@ function buildCompassMarks(minDeg = -360, maxDeg = 720, step = 5) {
 
 const COMPASS_MARKS = buildCompassMarks();
 
-export default function HudCompass({ tapeRef, viewportRef, markersRef }) {
+export default function HudCompass({ tapeRef, viewportRef, markersRef, blipsRef }) {
   const marks = useMemo(() => COMPASS_MARKS, []);
 
   return (
@@ -73,6 +73,7 @@ export default function HudCompass({ tapeRef, viewportRef, markersRef }) {
               </div>
             ))}
           </div>
+          <div ref={blipsRef} className="hudCompassBlips" aria-hidden="true" />
           <div ref={markersRef} className="hudCompassMarkers" aria-hidden="true" />
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -141,6 +141,10 @@ import {
   updateLevelCollectibles,
   LEVEL_COLLECTIBLE_TEST_RESPAWN,
 } from "@/lib/pickups/LevelCollectibles";
+import {
+  updateCompassEnemyBlips,
+  updateCompassRewardBlips,
+} from "@/lib/CompassBlips";
 
 import {
   spawnGrenade, updateGrenades, disposeAllGrenades,
@@ -742,6 +746,7 @@ export default function FpsGame() {
   const compassTapeRef = useRef(null);
   const compassViewportRef = useRef(null);
   const compassMarkersRef = useRef(null);
+  const compassBlipsRef = useRef(null);
   const radarRef = useRef(null);
   const radarSweepRef = useRef(null);
   const radarDotsRef = useRef(null);
@@ -2413,6 +2418,36 @@ export default function FpsGame() {
               pxPerDeg
             );
           }
+          if (compassBlipsRef.current) {
+            const px = camera.position.x;
+            const pz = camera.position.z;
+            const yaw = player.getYaw();
+            if (level?.targets) {
+              updateCompassEnemyBlips(
+                compassBlipsRef.current,
+                level.targets,
+                px,
+                pz,
+                yaw,
+                viewport,
+                pxPerDeg
+              );
+            }
+            const levelDrops = collectibleEntries
+              .filter((e) => !e.collected && e.drop?.mesh?.position)
+              .map((e) => e.drop);
+            const allDrops = [...hpOrbs, ...ammoDrops, ...grenadeDrops, ...levelDrops]
+              .filter((d) => !d.collected && d.mesh?.position);
+            updateCompassRewardBlips(
+              compassBlipsRef.current,
+              allDrops,
+              px,
+              pz,
+              yaw,
+              viewport,
+              pxPerDeg
+            );
+          }
         }
         if (showHudRef.current && radarDotsRef.current && level?.targets) {
           const px = camera.position.x;
@@ -3745,6 +3780,7 @@ export default function FpsGame() {
         tapeRef={compassTapeRef}
         viewportRef={compassViewportRef}
         markersRef={compassMarkersRef}
+        blipsRef={compassBlipsRef}
       />
 
       {/* Radar — bottom left */}

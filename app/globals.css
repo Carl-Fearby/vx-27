@@ -1502,6 +1502,43 @@ body {
   filter: drop-shadow(0 0 6px rgba(120, 210, 255, 0.65));
 }
 
+.hudCompassBlips {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.hudCompassEnemyBlips,
+.hudCompassRewardBlips {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hudCompassBlip {
+  position: absolute;
+  top: 72%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.hudCompassBlipEnemy {
+  width: 6px;
+  height: 6px;
+  background: rgb(255, 100, 40);
+  box-shadow: 0 0 4px rgba(255, 100, 40, 0.6);
+}
+
+.hudCompassBlipReward {
+  width: 5px;
+  height: 5px;
+  background: #3af;
+  box-shadow: 0 0 4px rgba(51, 170, 255, 0.5);
+}
+
 .hudCompassMarkers {
   position: absolute;
   inset: 0;

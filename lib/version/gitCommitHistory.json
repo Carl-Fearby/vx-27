@@ -1,8 +1,13 @@
 {
-  "generatedAt": "2026-06-05T01:18:15.301Z",
-  "head": "20c4587",
-  "count": 108,
+  "generatedAt": "2026-06-05T01:29:45.122Z",
+  "head": "8928cac",
+  "count": 109,
   "commits": [
+    {
+      "sha": "8928cac",
+      "date": "2026-06-05",
+      "subject": "Release v0.1.25: Combat scoring and kill callouts."
+    },
     {
       "sha": "20c4587",
       "date": "2026-06-05",

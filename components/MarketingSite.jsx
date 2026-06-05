@@ -23,28 +23,43 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
-  { label: "BUILD", value: `v${BUILD_VERSION} · hit vocals & day/night demo` },
+  { label: "BUILD", value: `v${BUILD_VERSION} · iPad touch · laser tracers` },
+  { label: "PLATFORM", value: "Desktop · iPad Safari · zero install" },
   { label: "ZONE", value: "Exclusion sector · sealed" },
-  { label: "THREAT", value: "Remnant · contractors · drones" },
-  { label: "RENDER", value: "WebGL · Three.js · load-screen bake" },
-  { label: "DEPLOY", value: "Zero install · browser native" },
+  { label: "RENDER", value: "WebGL · Three.js · GPU preload on load" },
+  { label: "DEPLOY", value: "Browser native · no app store" },
 ];
 
 const WHATS_NEW = [
   {
-    tag: "Audio",
-    title: "Enemy bullet-hit vocals",
-    text: "Four random ouch clips on rifle hits — foot, body, head. One at a time so rapid fire doesn't turn into a choir.",
+    tag: "v0.1.24",
+    title: "iPad touch controls",
+    text: "Move stick, look drag zone, and FIRE / AIM / JUMP buttons on coarse-pointer devices. HUD scales for tablet safe areas — play in Safari without a keyboard.",
   },
   {
-    tag: "Hazard",
-    title: "Hole falls sound worse now",
-    text: "Bodies that tumble through floor pits get the same positional hole-fall cry you hear on your own drop.",
+    tag: "v0.1.23",
+    title: "Gameplay hints",
+    text: "Press N for night and a brief toast reminds you to hit F for the weapon torch. Six-second pulse, then gone — no permanent nag while you're still in day mode.",
   },
   {
-    tag: "Atmosphere",
-    title: "Day/night demo cycle",
-    text: "While you're playing, sun and moon auto-crossfade every minute — a rolling showcase of the lighting pass.",
+    tag: "v0.1.22",
+    title: "Laser tracers",
+    text: "Simple muzzle-aligned hitscan lines in weapon blue — readable feedback without the old thick traveling bolt parade.",
+  },
+  {
+    tag: "Prop",
+    title: "Control panel console",
+    text: "Procedural console in the arena: hull PBR, screen C, shelf D, sharp extrusion, plinth fixed off the floor. New credits section for the polish pass.",
+  },
+  {
+    tag: "v0.1.21",
+    title: "Hurt vocals & barrel pile",
+    text: "Player hurt sounds on fire and grenade damage. Oil barrel pile mirrored to the SE corner; sheltered rooms read darker in the corners.",
+  },
+  {
+    tag: "Load",
+    title: "GPU preload",
+    text: "Loading bar runs real gameplay renders — doorway poses, stairs, flashlight, muzzle — so the first step into the zone stutters less.",
   },
 ];
 
@@ -142,10 +157,22 @@ const FACTIONS = [
 
 const OPS = [
   {
+    code: "PAD",
+    title: "iPad & touch breach",
+    body: "On-screen move stick, right-side look drag, and action buttons for fire, aim, jump, reload, and door USE. HUD lifts clear of your thumbs — no pointer lock on tablet.",
+    accent: "v0.1.24 · Safari",
+  },
+  {
     code: "GPU",
     title: "Load-screen GPU bake",
     body: "Real gameplay render path on the loading bar — compileAsync, texture upload, doorway poses, stair climb, flashlight and muzzle priming. Pay the cost before the breach.",
     accent: "v0.1.14+ preload",
+  },
+  {
+    code: "PNL",
+    title: "Control panel console",
+    body: "Procedural console prop in the arena — hull overlays, screen C and shelf D quads, sharp extrusion, plinth clearance. Looks like someone left it running.",
+    accent: "PBR · screen C",
   },
   {
     code: "CRG",
@@ -154,27 +181,27 @@ const OPS = [
     accent: "WebP · E interact",
   },
   {
+    code: "WPN",
+    title: "Iron-sight gunplay",
+    body: "Recoil you can feel, ADS that costs time, muzzle-aligned laser tracers in weapon blue, torch on F for night work. N toggles sun and moon with a ten-second crossfade.",
+    accent: "hitscan + Line2 tracers",
+  },
+  {
     code: "MOV",
     title: "Tactical movement",
     body: "Sprint until your lungs disagree, crouch under fire, read stair ramps before you commit. Vertical space is cover — not decoration.",
     accent: "0.12s response",
   },
   {
-    code: "WPN",
-    title: "Iron-sight gunplay",
-    body: "Recoil you can feel, ADS that costs time, a cone torch for night work and attached rooms. Every weapon feels like it was built for a war that got out of control.",
-    accent: "hitscan + torch",
-  },
-  {
     code: "HZD",
     title: "Burning barrels",
-    body: "Stacked oil drums, interior fire video, dual flicker lights per barrel with independent shadow play. Chemical residue on cracked concrete. Hazards compound.",
+    body: "Stacked oil drums, interior fire video, dual flicker lights per barrel with independent shadow play. SE corner pile mirrors the module hazard layout.",
     accent: "paired dynamic light",
   },
   {
     code: "NAV",
     title: "Industrial sectors",
-    body: "Attached rooms, ceiling cuts, perimeter catwalks, flooded corridors. Every environment tells the story of something abandoned in a hurry.",
+    body: "Attached service rooms, pillar-shell walls, ceiling cuts, perimeter catwalks. Doorway lighting and room culling that finally behave at the threshold.",
     accent: "multi-level",
   },
 ];
@@ -282,7 +309,7 @@ export default function MarketingSite() {
             <div className="mktHeroActions">
               <Link href="/game" className="mktPlayBtn">
                 <span className="mktPlayBtnLabel">Enter the zone</span>
-                <span className="mktPlayBtnSub">Click to capture mouse</span>
+                <span className="mktPlayBtnSub">Desktop · mouse lock · iPad touch</span>
               </Link>
               <a href="#collaborate" className="mktGhostLink">
                 Help build it
@@ -322,9 +349,10 @@ export default function MarketingSite() {
           <p className="mktKicker">Transmission · build {BUILD_VERSION}</p>
           <h2 id="whats-new-heading">What landed this week</h2>
           <p className="mktWhatsNewDeck">
-            A sticky few days turned into real progress — smoother loads, cleaner combat,
-            and doorways that finally behave. Play the latest build in your browser; no
-            install.
+            Control panel in the arena, laser tracers that read from the muzzle, contextual
+            flashlight hints at night, and full touch controls for iPad — plus the usual
+            load-screen GPU bake keeping first contact smooth. Play v{BUILD_VERSION} in your
+            browser; no install.
           </p>
         </div>
         <div className="mktWhatsNewGrid">
@@ -343,7 +371,7 @@ export default function MarketingSite() {
           </Link>
           <Link href="/game" className="mktPlayBtn mktPlayBtnCompact">
             <span className="mktPlayBtnLabel">Play v{BUILD_VERSION}</span>
-            <span className="mktPlayBtnSub">GPU preload runs on load</span>
+            <span className="mktPlayBtnSub">Desktop or iPad · free</span>
           </Link>
         </div>
       </section>
@@ -470,24 +498,27 @@ export default function MarketingSite() {
             world.
           </p>
           <p className="mktIntelBody">
-            The trial runs entirely in your browser — load the page, lock the mouse,
-            and accept that the loading screen music will outlast your first life.
-            Real-time shadows, layered interior lighting, and piles that look dumped
-            by someone in a hurry. v0.1.5 trimmed container texture load by ~96% and
-            tightened the frame budget around room lights and fire video.
+            The trial runs entirely in your browser — desktop with pointer lock, or iPad
+            with on-screen sticks and buttons. Load the page, breach the zone, and accept
+            that the loading screen music will outlast your first life. Real-time shadows,
+            layered interior lighting, procedural props, and piles that look dumped by
+            someone in a hurry.
           </p>
           <ul className="mktIntelList">
-            <li>Pointer-lock FPS — WASD, sprint, crouch, aim, torch on F</li>
-            <li>VX-27 cargo container — open doors, fight inside, bullet decals on shell</li>
-            <li>Container PBR maps as WebP (~40 MB saved); roof and floor caps share materials</li>
-            <li>Catwalks, stairs, attached dark rooms with real collision</li>
-            <li>Dumped barrel pile and burning open-top drum beside the module</li>
+            <li>Desktop FPS — WASD, sprint, crouch, aim, torch on F, day/night on N</li>
+            <li>iPad &amp; touch — move stick, look drag, FIRE / AIM / JUMP / USE buttons</li>
+            <li>Muzzle-aligned laser tracers and contextual F-for-flashlight hints at night</li>
+            <li>Control panel console prop with PBR hull, screen C, and shelf D overlays</li>
+            <li>VX-27 cargo container — open doors on E, bullet decals on shell</li>
+            <li>Catwalks, stairs, attached service rooms with pillar-shell lighting</li>
+            <li>Dumped barrel pile and burning open-top drum — SE corner layout</li>
             <li>Grenades, health, stamina pickups — full HUD with compass and radar</li>
+            <li>GPU preload on the loading bar — fewer first-frame hitches after Start Game</li>
           </ul>
           <p className="mktIntelBody" style={{ marginTop: "1rem" }}>
-            Settings → Development opens live tuning panels on localhost — weapon pose,
-            lighting, barrel pile placement, VX-27 container JSON export, door depth, and
-            more. HUD position tuning is opt-in. Tweak in-game, copy JSON, bake into the level.
+            Settings → Development opens live tuning panels on localhost when enabled —
+            weapon pose, lighting, barrel pile placement, VX-27 container JSON export, and
+            more. Tweak in-game, copy JSON, bake into the level.
           </p>
           <Link href="/game" className="mktPlayBtn mktPlayBtnCompact">
             <span className="mktPlayBtnLabel">Play now</span>
@@ -602,14 +633,15 @@ export default function MarketingSite() {
         />
         <h2>Survive the breach. Recover the truth.</h2>
         <p>
-          Escape before the zone closes around you. Fullscreen recommended.
-          Headphones help. Dark rooms want the torch — burning barrels want distance.
+          Escape before the zone closes around you. Fullscreen recommended on desktop;
+          landscape on iPad. Headphones help. Dark rooms want the torch — burning barrels
+          want distance.
         </p>
         <p className="mktLaunchNarrative">
           You were sent to recover a weapon. You found something worse.
         </p>
         <p className="mktLaunchBuildNote">
-          Now live · v{BUILD_VERSION} · hit vocals &amp; day/night demo
+          Now live · v{BUILD_VERSION} · iPad touch · laser tracers · control panel
         </p>
         <Link href="/game" className="mktPlayBtn mktPlayBtnLaunch">
           <span className="mktPlayBtnLabel">Launch VX-27</span>

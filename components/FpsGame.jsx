@@ -57,6 +57,8 @@ import {
 } from "@/lib/lighting/CandleFlicker";
 import { getArenaAttachWall } from "@/lib/rooms/DoorwayWall";
 import { createInput } from "@/lib/player/Input";
+import { prefersTouchControls } from "@/lib/player/TouchDetect.js";
+import TouchControls from "@/components/TouchControls";
 import { createPlayerController } from "@/lib/player/PlayerController";
 import {
   createSoundManager,
@@ -491,6 +493,7 @@ function updateFlashbangOverlay(el, blindStartMs) {
 }
 
 function safeRequestPointerLock(canvas) {
+  if (touchControlsGateRef.current) return;
   if (document.pointerLockElement === canvas) return;
   canvas.requestPointerLock().catch(() => {});
 }
@@ -553,6 +556,9 @@ function formatMissionTimer(totalSecs) {
   const s = totalSecs % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
+
+/** Synced each render — skips pointer lock on touch/iPad UI. */
+const touchControlsGateRef = { current: false };
 
 /** Direct DOM update — avoids re-rendering the whole game tree every second. */
 function updateMissionTimerHud(el, totalSecs) {
@@ -816,6 +822,10 @@ export default function FpsGame() {
   const gameplayHintRuntimeRef = useRef(createGameplayHintRuntime());
   const [flashlightOn, setFlashlightOn] = useState(false);
   const flashlightOnRef = useRef(false);
+  const inputRef = useRef(null);
+  const [touchControlsActive, setTouchControlsActive] = useState(false);
+  const [touchShowInteract, setTouchShowInteract] = useState(false);
+  const touchShowInteractRef = useRef(false);
   const [rebindAction, setRebindAction] = useState(null);
   const bindingsRef = useRef(loadBindings());
   const settingsOpenRef = useRef(false);
@@ -1117,6 +1127,15 @@ export default function FpsGame() {
   flashlightOnRef.current = flashlightOn;
   settingsOpenRef.current = settingsOpen;
   controlsOpenRef.current = controlsOpen;
+  touchControlsGateRef.current = touchControlsActive;
+
+  useEffect(() => {
+    setTouchControlsActive(prefersTouchControls());
+  }, []);
+
+  useEffect(() => {
+    inputRef.current?.setTouchMode(touchControlsActive);
+  }, [touchControlsActive]);
 
   const refreshGameplayHintHudRef = useRef(() => {});
   const refreshGameplayHintHud = () => {
@@ -1541,6 +1560,8 @@ export default function FpsGame() {
       moon.updateMatrixWorld(true);
       moon.target.updateMatrixWorld(true);
       input = createInput(canvas, () => bindingsRef.current);
+      inputRef.current = input;
+      if (touchControlsGateRef.current) input.setTouchMode(true);
       /** Stable collider list — avoids spreading into a new array on every physics query. */
       const allColliders = [];
       function syncAllColliders() {
@@ -2191,6 +2212,8 @@ export default function FpsGame() {
         updateCandleFlicker(flickerLights, now * 0.001);
 
         const locked = input.isLocked();
+        const pointerActive = input.isPointerActive();
+        const touchMode = input.isTouchMode();
         const aimHeld =
           !rebindActionRef.current &&
           isBindingDown(input, bindingsRef.current, "aim");
@@ -2479,7 +2502,7 @@ export default function FpsGame() {
         camera.updateMatrixWorld(true);
 
         const canInteract =
-          locked &&
+          pointerActive &&
           !frozen &&
           !rebindActionRef.current &&
           !settingsOpenRef.current &&
@@ -2493,6 +2516,13 @@ export default function FpsGame() {
           );
         }
         crosshair.classList.toggle("crosshairDoorTarget", Boolean(doorTarget));
+        if (touchMode) {
+          const showDoor = Boolean(doorTarget);
+          if (showDoor !== touchShowInteractRef.current) {
+            touchShowInteractRef.current = showDoor;
+            setTouchShowInteract(showDoor);
+          }
+        }
         const doorPromptEl = doorInteractPromptRef.current;
         if (doorPromptEl) {
           if (doorTarget) {
@@ -2553,7 +2583,7 @@ export default function FpsGame() {
 
         if (!frozen) {
           weapon?.update(camera, aimTarget, dt, weaponTuningRef, {
-            snapAim: !locked,
+            snapAim: !locked && !touchMode,
             moveSpeed: player.getHorizontalSpeed(),
             onStairs: player.isOnStairs(),
             walkBobTuning: resolveWalkBobTuning(walkBobTuningRef.current),
@@ -2567,7 +2597,7 @@ export default function FpsGame() {
         camera.fov += (targetFov - camera.fov) * (1 - Math.exp(-12 * dt));
         camera.updateProjectionMatrix();
 
-        if (canUseWeapons && (locked || keyboardShoot)) {
+        if (canUseWeapons && (pointerActive || keyboardShoot)) {
           processWeaponFire(dt);
         }
 
@@ -3321,6 +3351,7 @@ export default function FpsGame() {
       soundsRef.current = null;
       respawnCallbackRef.current = null;
       hemiRef.current = null;
+      inputRef.current = null;
       input?.dispose();
       sky?.dispose();
       skyRef.current = null;
@@ -3412,13 +3443,15 @@ export default function FpsGame() {
     loadDoneRef.current = true;
     soundsRef.current?.resume();
     setLoadDone(true);
-    safeRequestPointerLock(canvasRef.current);
+    if (!touchControlsActive) {
+      safeRequestPointerLock(canvasRef.current);
+    }
   };
 
   return (
     <div
       ref={gameRootRef}
-      className={`gameRoot${showHud ? "" : " gameHudHidden"}`}
+      className={`gameRoot${showHud ? "" : " gameHudHidden"}${touchControlsActive ? " gameRoot--touch" : ""}`}
     >
       <div
         className={`loadingOverlay${loadDone ? " loadingDone" : ""}`}
@@ -3475,6 +3508,16 @@ export default function FpsGame() {
         ) : null}
       </div>
       <canvas ref={canvasRef} className="gameCanvas" />
+      <TouchControls
+        active={
+          touchControlsActive &&
+          loadDone &&
+          !settingsOpen &&
+          !controlsOpen
+        }
+        inputRef={inputRef}
+        showInteract={touchShowInteract}
+      />
       <div
         ref={flashbangOverlayRef}
         className="flashbangOverlay"

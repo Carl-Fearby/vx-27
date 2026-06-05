@@ -227,7 +227,6 @@ import {
   preloadBulletHoleTextures,
   updateBulletHoles,
 } from "@/lib/combat/BulletHoles";
-import { createLaserTracerSystem } from "@/lib/combat/LaserTracers.js";
 import { hasLineOfSightToPoint } from "@/lib/combat/LineOfSight";
 import {
   DEFAULT_ADS_POSE,
@@ -1223,7 +1222,6 @@ export default function FpsGame() {
     /** Kill-shot blood — waits for ragdoll, then spawns next frame. */
     let pendingKillBlood = [];
     let bloodAfterRagdoll = [];
-    let laserTracers = null;
     let gameReady = false;
     let healthRegenTimer = 0;
     let radioactiveOverflowDecayTimer = 0;
@@ -1794,12 +1792,6 @@ export default function FpsGame() {
       const BULLET_MAX_RANGE = 55;
       const _muzzlePos = new THREE.Vector3();
       const _muzzleDir = new THREE.Vector3();
-      const _tracerEnd = new THREE.Vector3();
-      laserTracers = createLaserTracerSystem(scene);
-      laserTracers.setResolution(
-        renderer.domElement.width,
-        renderer.domElement.height,
-      );
       const targetConfig = level.targetConfig;
 
       const liveTargetsScratch = [];
@@ -2205,7 +2197,6 @@ export default function FpsGame() {
         );
         const bestHit = pickClosestBulletHit(targetHits, surfaceHits);
         if (bestHit) {
-          _tracerEnd.copy(bestHit.point);
           let targetNode = bestHit.object;
           while (targetNode && !targetNode.userData?.isTarget) {
             targetNode = targetNode.parent;
@@ -2215,15 +2206,7 @@ export default function FpsGame() {
           } else {
             applyBulletSurfaceHit(bestHit, camDir, radioactive);
           }
-        } else {
-          _tracerEnd.copy(_muzzlePos).addScaledVector(camDir, BULLET_MAX_RANGE);
         }
-        // Line leaves the barrel along the aim vector (not camera origin).
-        const along = _tracerEnd.subVectors(_tracerEnd, _muzzlePos).dot(camDir);
-        if (along > 0.02) {
-          _tracerEnd.copy(_muzzlePos).addScaledVector(camDir, along);
-        }
-        laserTracers?.spawn(_muzzlePos, _tracerEnd, { radioactive });
         return true;
       }
 
@@ -2860,7 +2843,6 @@ export default function FpsGame() {
         updateBloodSplatters(bloodSplatters, dt, scene);
         scorePopupLayer?.update(camera, dt);
         updateBulletHoles(dt);
-        laserTracers?.update(dt);
 
         updateGrenades(
           grenades,
@@ -3296,7 +3278,6 @@ export default function FpsGame() {
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(effectivePixelRatio(renderScaleRef.current));
         renderer.setSize(w, h);
-        laserTracers?.setResolution(renderer.domElement.width, renderer.domElement.height);
       };
 
       canvas.addEventListener("click", onCanvasClick);
@@ -3508,8 +3489,6 @@ export default function FpsGame() {
       scorePopupContainer?.remove();
       scorePopupContainer = null;
       disposeAllBulletHoles();
-      laserTracers?.dispose();
-      laserTracers = null;
       disposePreview();
       setHealthBarOccluders(null);
       setSunOcclusionRoot(null);

@@ -158,6 +158,50 @@
       "note": "Standing console — baked side profile (10 corners; front step at 9)"
     },
     {
+      "id": "control_panel_arena_south_west",
+      "type": "controlPanel",
+      "x": -0.854,
+      "z": 13.24,
+      "y": 0,
+      "rotationY": -1.5708,
+      "panelWidth": 1.708,
+      "sideProfile": [
+        [1, 0],
+        [1, 1],
+        [0.73, 1],
+        [0.43, 0.68],
+        [0, 0.65],
+        [0.06, 0.56],
+        [0.385, 0.49],
+        [0.77, 0.12],
+        [0.03, 0.04],
+        [0, 0]
+      ],
+      "note": "Arena south back wall — west console (pair, flush center)"
+    },
+    {
+      "id": "control_panel_arena_south_east",
+      "type": "controlPanel",
+      "x": 0.854,
+      "z": 13.24,
+      "y": 0,
+      "rotationY": -1.5708,
+      "panelWidth": 1.708,
+      "sideProfile": [
+        [1, 0],
+        [1, 1],
+        [0.73, 1],
+        [0.43, 0.68],
+        [0, 0.65],
+        [0.06, 0.56],
+        [0.385, 0.49],
+        [0.77, 0.12],
+        [0.03, 0.04],
+        [0, 0]
+      ],
+      "note": "Arena south back wall — east console (pair, flush center)"
+    },
+    {
       "id": "control_panel_service_west",
       "type": "controlPanel",
       "x": -1.708,
@@ -278,6 +322,29 @@
         "backLeftOpen": 0,
         "backRightOpen": 135
       }
+    },
+    {
+      "id": "control_panel_cargo_side",
+      "type": "controlPanel",
+      "x": -4.06,
+      "z": 8.41,
+      "y": 0.141,
+      "rotationY": 2.79,
+      "roomId": "vx27_cargo_module_qa",
+      "panelWidth": 1.708,
+      "sideProfile": [
+        [1, 0],
+        [1, 1],
+        [0.73, 1],
+        [0.43, 0.68],
+        [0, 0.65],
+        [0.06, 0.56],
+        [0.385, 0.49],
+        [0.77, 0.12],
+        [0.03, 0.04],
+        [0, 0]
+      ],
+      "note": "VX-27 cargo module interior — center of left side wall, faces aisle"
     },
     {
       "id": "oil_barrel_textured",

@@ -59,7 +59,11 @@ import { getArenaAttachWall } from "@/lib/rooms/DoorwayWall";
 import { createInput } from "@/lib/player/Input";
 import { prefersTouchControls } from "@/lib/player/TouchDetect.js";
 import TouchControls from "@/components/TouchControls";
-import { createPlayerController } from "@/lib/player/PlayerController";
+import {
+  createPlayerController,
+  RADIOACTIVE_OVERFLOW_DECAY_INTERVAL_SEC,
+  RADIOACTIVE_OVERFLOW_DECAY_PCT,
+} from "@/lib/player/PlayerController";
 import {
   createSoundManager,
   DEFAULT_LEVEL_TRACK_ID,
@@ -591,12 +595,12 @@ function updateWalkPowerHud(el, stamina, staminaMax, playerHealth, visible) {
 
   const radioactive = playerHealth > 100;
   const overload = playerHealth > 150;
-  const pct = staminaMax > 0 ? Math.min(1, Math.max(0, stamina / staminaMax)) : 0;
-  const displayMax = radioactive ? playerHealth : 100;
-  const displayVal = Math.round(pct * displayMax);
+  const hpCap = radioactive ? playerHealth : 100;
+  const displayVal = Math.round(Math.max(0, stamina) * 100);
+  const pctOfHpCap = hpCap > 0 ? Math.min(1, displayVal / hpCap) : 0;
   let greenOp = 0;
-  if (radioactive && displayMax > 100 && displayVal > 100) {
-    greenOp = Math.min(1, (displayVal - 100) / (displayMax - 100));
+  if (displayVal > 100 && hpCap > 100) {
+    greenOp = Math.min(1, (Math.min(displayVal, hpCap) - 100) / (hpCap - 100));
   }
 
   const track = el.querySelector(".hudStaminaTrack");
@@ -619,15 +623,15 @@ function updateWalkPowerHud(el, stamina, staminaMax, playerHealth, visible) {
 
   const fill = el.querySelector(".hudWalkPowerFill");
   if (fill) {
-    fill.style.width = `${pct * 100}%`;
+    fill.style.width = `${pctOfHpCap * 100}%`;
     let orangeOp = 0;
     let redOp = 0;
     if (displayVal <= 100) {
       if (displayVal <= 50) orangeOp = 1;
       if (displayVal <= 25) redOp = 1;
     } else if (!radioactive) {
-      if (pct <= 0.5) orangeOp = 1;
-      if (pct <= 0.25) redOp = 1;
+      if (pctOfHpCap <= 0.5) orangeOp = 1;
+      if (pctOfHpCap <= 0.25) redOp = 1;
     }
     fill.style.setProperty("--orange-op", orangeOp);
     fill.style.setProperty("--red-op", redOp);
@@ -644,7 +648,7 @@ function updateWalkPowerHud(el, stamina, staminaMax, playerHealth, visible) {
   if (textWhite) textWhite.textContent = label;
   if (textBlack) {
     textBlack.textContent = label;
-    textBlack.style.width = `${pct * 100}%`;
+    textBlack.style.width = `${pctOfHpCap * 100}%`;
   }
 }
 
@@ -1196,6 +1200,7 @@ export default function FpsGame() {
     let laserTracers = null;
     let gameReady = false;
     let healthRegenTimer = 0;
+    let radioactiveOverflowDecayTimer = 0;
     const HEALTH_REGEN_INTERVAL = 10;
     const HEALTH_REGEN_AMOUNT = 1;
     let scorePopupLayer = null;
@@ -2853,8 +2858,25 @@ export default function FpsGame() {
             playerHealthRef.current = newHp;
             setPlayerHealth(newHp);
           }
+          radioactiveOverflowDecayTimer = 0;
+        } else if (playerHealthRef.current > 100) {
+          healthRegenTimer = 0;
+          radioactiveOverflowDecayTimer += dt;
+          if (radioactiveOverflowDecayTimer >= RADIOACTIVE_OVERFLOW_DECAY_INTERVAL_SEC) {
+            radioactiveOverflowDecayTimer -= RADIOACTIVE_OVERFLOW_DECAY_INTERVAL_SEC;
+            const newHp = Math.max(
+              100,
+              playerHealthRef.current - RADIOACTIVE_OVERFLOW_DECAY_PCT
+            );
+            if (newHp !== playerHealthRef.current) {
+              playerHealthRef.current = newHp;
+              player.syncStaminaMaxFromHp();
+              setPlayerHealth(newHp);
+            }
+          }
         } else {
           healthRegenTimer = 0;
+          radioactiveOverflowDecayTimer = 0;
         }
 
         updateTargetsRepair(level.targets, dt);
@@ -2918,6 +2940,7 @@ export default function FpsGame() {
           hpOrbs, dt, camera.position,
           (value) => {
             playerHealthRef.current += value;
+            player.syncStaminaMaxFromHp();
             pickupFlashLayerRef.current?.show("hp");
             sounds.playHpPickup();
             scheduleGameplayHudSyncRef.current();

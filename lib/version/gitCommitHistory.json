@@ -1,8 +1,23 @@
 {
-  "generatedAt": "2026-06-04T23:14:29.118Z",
-  "head": "091643d",
-  "count": 96,
+  "generatedAt": "2026-06-04T23:41:11.548Z",
+  "head": "89f385d",
+  "count": 99,
   "commits": [
+    {
+      "sha": "89f385d",
+      "date": "2026-06-05",
+      "subject": "Fix v0.1.21 release commit hash in version history."
+    },
+    {
+      "sha": "7b07a8a",
+      "date": "2026-06-05",
+      "subject": "Release v0.1.21: Control panel polish, SE barrel pile, lighting and hurt audio."
+    },
+    {
+      "sha": "1575ba5",
+      "date": "2026-06-05",
+      "subject": "Refresh git commit history after v0.1.20 release."
+    },
     {
       "sha": "091643d",
       "date": "2026-06-05",

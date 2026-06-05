@@ -1,7 +1,7 @@
 {
   "name": "game-engine2-fps",
   "private": true,
-  "version": "0.1.21",
+  "version": "0.1.22",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:http": "node scripts/dev.mjs --http",

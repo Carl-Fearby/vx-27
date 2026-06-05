@@ -190,6 +190,7 @@ import {
   preloadBulletHoleTextures,
   updateBulletHoles,
 } from "@/lib/combat/BulletHoles";
+import { createLaserTracerSystem } from "@/lib/combat/LaserTracers.js";
 import { hasLineOfSightToPoint } from "@/lib/combat/LineOfSight";
 import {
   DEFAULT_ADS_POSE,
@@ -1128,6 +1129,7 @@ export default function FpsGame() {
     /** Kill-shot blood — waits for ragdoll, then spawns next frame. */
     let pendingKillBlood = [];
     let bloodAfterRagdoll = [];
+    let laserTracers = null;
     let gameReady = false;
     let healthRegenTimer = 0;
     const HEALTH_REGEN_INTERVAL = 10;
@@ -1657,6 +1659,14 @@ export default function FpsGame() {
       let _lastHostileCount = -1;
       let _radarFrameSkip = 0;
       const BULLET_MAX_RANGE = 55;
+      const _muzzlePos = new THREE.Vector3();
+      const _muzzleDir = new THREE.Vector3();
+      const _tracerEnd = new THREE.Vector3();
+      laserTracers = createLaserTracerSystem(scene);
+      laserTracers.setResolution(
+        renderer.domElement.width,
+        renderer.domElement.height,
+      );
       const targetConfig = level.targetConfig;
 
       const liveTargetsScratch = [];
@@ -2013,6 +2023,7 @@ export default function FpsGame() {
         roundsInMagRef.current -= 1;
         scheduleGameplayHudSyncRef.current();
 
+        weapon.getMuzzleWorld(_muzzlePos, _muzzleDir, camera);
         hitRaycaster.setFromCamera(screenCenter, camera);
 
         const camDir = hitRaycaster.ray.direction.clone();
@@ -2037,6 +2048,7 @@ export default function FpsGame() {
         );
         const bestHit = pickClosestBulletHit(targetHits, surfaceHits);
         if (bestHit) {
+          _tracerEnd.copy(bestHit.point);
           let targetNode = bestHit.object;
           while (targetNode && !targetNode.userData?.isTarget) {
             targetNode = targetNode.parent;
@@ -2046,7 +2058,15 @@ export default function FpsGame() {
           } else {
             applyBulletSurfaceHit(bestHit, camDir, radioactive);
           }
+        } else {
+          _tracerEnd.copy(_muzzlePos).addScaledVector(camDir, BULLET_MAX_RANGE);
         }
+        // Line leaves the barrel along the aim vector (not camera origin).
+        const along = _tracerEnd.subVectors(_tracerEnd, _muzzlePos).dot(camDir);
+        if (along > 0.02) {
+          _tracerEnd.copy(_muzzlePos).addScaledVector(camDir, along);
+        }
+        laserTracers?.spawn(_muzzlePos, _tracerEnd, { radioactive });
         return true;
       }
 
@@ -2488,10 +2508,6 @@ export default function FpsGame() {
           canUseWeapons &&
           isBindingDown(input, bindingsRef.current, "shoot");
 
-        if (canUseWeapons && (locked || keyboardShoot)) {
-          processWeaponFire(dt);
-        }
-
         if (!frozen) {
           weapon?.update(camera, aimTarget, dt, weaponTuningRef, {
             snapAim: !locked,
@@ -2507,6 +2523,10 @@ export default function FpsGame() {
         const targetFov = THREE.MathUtils.lerp(HIP_FOV, ADS_FOV, aimBlend);
         camera.fov += (targetFov - camera.fov) * (1 - Math.exp(-12 * dt));
         camera.updateProjectionMatrix();
+
+        if (canUseWeapons && (locked || keyboardShoot)) {
+          processWeaponFire(dt);
+        }
 
         if (
           !rebindActionRef.current &&
@@ -2633,6 +2653,7 @@ export default function FpsGame() {
         refreshLiveTargets();
         updateBloodSplatters(bloodSplatters, dt, scene);
         updateBulletHoles(dt);
+        laserTracers?.update(dt);
 
         updateGrenades(
           grenades,
@@ -3044,6 +3065,7 @@ export default function FpsGame() {
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(effectivePixelRatio(renderScaleRef.current));
         renderer.setSize(w, h);
+        laserTracers?.setResolution(renderer.domElement.width, renderer.domElement.height);
       };
 
       canvas.addEventListener("click", onCanvasClick);
@@ -3241,6 +3263,8 @@ export default function FpsGame() {
       disposeAllGrenadeDrops(grenadeDrops);
       disposeAllBloodSplatters(bloodSplatters, scene);
       disposeAllBulletHoles();
+      laserTracers?.dispose();
+      laserTracers = null;
       disposePreview();
       setHealthBarOccluders(null);
       setSunOcclusionRoot(null);

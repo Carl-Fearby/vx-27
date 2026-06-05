@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-05T01:29:45.122Z",
-  "head": "8928cac",
-  "count": 109,
+  "generatedAt": "2026-06-05T01:51:01.373Z",
+  "head": "b57e21f",
+  "count": 111,
   "commits": [
+    {
+      "sha": "b57e21f",
+      "date": "2026-06-05",
+      "subject": "Release v0.1.26: Radioactive HP and stamina overflow rules."
+    },
+    {
+      "sha": "5dfa59e",
+      "date": "2026-06-05",
+      "subject": "Fix v0.1.25 release commit hash in version history."
+    },
     {
       "sha": "8928cac",
       "date": "2026-06-05",

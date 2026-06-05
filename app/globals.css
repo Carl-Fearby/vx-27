@@ -293,7 +293,9 @@ body {
 
 /* Desaturate HUD chrome in night mode (crosshair and modal settings stay full colour). */
 .gameRoot .hudBottomBar,
+.gameRoot .hudStaminaCluster,
 .gameRoot .hudStaminaBar,
+.gameRoot .hudScorePanel,
 .gameRoot .hudCompass,
 .gameRoot .hudBarCompass,
 .gameRoot .hudRadar,
@@ -307,14 +309,17 @@ body {
 .gameRoot .hudCompassPointer,
 .gameRoot .doorInteractPrompt,
 .gameRoot .demoBtnGroup,
-.gameRoot .gameplayHint {
+.gameRoot .gameplayHint,
+.gameRoot .killCalloutLayer {
   filter: grayscale(var(--hud-night-grayscale))
     brightness(calc(1 - 0.75 * var(--hud-night-grayscale)));
 }
 
 /* Dev toggle: hide in-game HUD chrome for clean captures (crosshair stays). */
 .gameHudHidden .hudBottomBar,
+.gameHudHidden .hudStaminaCluster,
 .gameHudHidden .hudStaminaBar,
+.gameHudHidden .hudScorePanel,
 .gameHudHidden .hudCompass,
 .gameHudHidden .hudBarCompass,
 .gameHudHidden .hudRadar,
@@ -323,6 +328,7 @@ body {
 .gameHudHidden .hudDamageVignette,
 .gameHudHidden .hudSecondWeapon,
 .gameHudHidden .topRightHud,
+.gameHudHidden .killCalloutLayer,
 .gameHudHidden .hudPlayerCoords,
 .gameHudHidden .demoBtnGroup,
 .gameHudHidden .pickupOverlayRow,
@@ -713,6 +719,50 @@ body {
   font-weight: 700;
   color: rgba(94, 170, 255, 0.9);
   font-variant-numeric: tabular-nums;
+}
+
+/* === Kill callouts — short labels at hit point (below death overlay) ====== */
+.killCalloutLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 14;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.killCallout {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-futuristic), "Orbitron", "Eurostile", "Rajdhani", sans-serif;
+  font-size: clamp(0.55rem, 1.1vw, 0.78rem);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+  color: rgba(200, 225, 255, 0.92);
+}
+
+.killCallout--head {
+  font-size: clamp(0.62rem, 1.25vw, 0.88rem);
+  color: #ff6b55;
+  text-shadow: 0 0 8px rgba(255, 60, 40, 0.6), 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.killCallout--neck,
+.killCallout--upper_chest {
+  color: #ffb84d;
+}
+
+.killCallout--grenade {
+  color: #ff9a3c;
+}
+
+.killCallout--foot {
+  color: rgba(160, 175, 210, 0.8);
+  font-style: italic;
 }
 
 .hudDamageVignette {
@@ -1944,16 +1994,50 @@ body {
   margin: 0 auto;
 }
 
-/* === Top-left stamina bar ================================================= */
-.hudStaminaBar {
+/* === Top-left stamina bar + score ========================================= */
+.hudStaminaCluster {
   position: fixed;
   top: 1rem;
   left: 1rem;
   z-index: 15;
   width: min(22rem, 36vw);
-  aspect-ratio: 3185 / 543;
   pointer-events: none;
+}
+
+.hudStaminaBar {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3185 / 543;
   visibility: hidden;
+}
+
+.hudScorePanel {
+  position: fixed;
+  top: calc(1rem + min(5rem, 8vw) + 0.4rem);
+  left: 1rem;
+  z-index: 15;
+  display: flex;
+  align-items: baseline;
+  gap: 0.55em;
+  padding-left: 0.1rem;
+  pointer-events: none;
+  font-family: var(--font-futuristic), "Orbitron", "Eurostile", "Rajdhani", sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hudScoreLabel {
+  font-size: clamp(0.84rem, 1.7vw, 1.24rem);
+  font-weight: 500;
+  color: rgba(94, 170, 255, 0.6);
+}
+
+.hudScoreValue {
+  font-size: clamp(1.16rem, 2.3vw, 1.64rem);
+  font-weight: 700;
+  color: rgba(220, 235, 255, 0.95);
+  text-shadow: 0 0 10px rgba(59, 123, 255, 0.45);
+  font-variant-numeric: tabular-nums;
 }
 
 .settingsDevCoords {
@@ -2835,7 +2919,8 @@ body {
   transform-origin: bottom right;
 }
 
-.gameRoot--touch .hudStaminaBar {
+.gameRoot--touch .hudStaminaCluster {
+  top: auto;
   left: max(0.65rem, env(safe-area-inset-left, 0px));
   bottom: max(5rem, calc(env(safe-area-inset-bottom, 0px) + 4.5rem));
   transform: scale(0.82);

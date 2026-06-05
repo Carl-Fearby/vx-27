@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-05T00:58:11.623Z",
-  "head": "a8d797f",
-  "count": 106,
+  "generatedAt": "2026-06-05T01:18:15.301Z",
+  "head": "20c4587",
+  "count": 108,
   "commits": [
+    {
+      "sha": "20c4587",
+      "date": "2026-06-05",
+      "subject": "Update marketing homepage for v0.1.24 features."
+    },
+    {
+      "sha": "cc0e04a",
+      "date": "2026-06-05",
+      "subject": "Fix v0.1.24 release commit hash in version history."
+    },
     {
       "sha": "a8d797f",
       "date": "2026-06-05",

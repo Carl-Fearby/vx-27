@@ -158,6 +158,8 @@ import {
   GPU_PRELOAD_READY_LABEL,
 } from "@/lib/dev/GpuPreload";
 import { resetArenaCeilingDayNightCache } from "@/lib/lighting/ArenaCeilingDayNight";
+import { applyCombatScore, formatKillCallout } from "@/lib/combat/Score";
+import { createScorePopupLayer } from "@/lib/combat/ScorePopups";
 import {
   applyTargetHit,
   activateTargetAt,
@@ -573,6 +575,12 @@ function updateHostileCountHud(el, count) {
   if (el.textContent !== text) el.textContent = text;
 }
 
+function updateScoreHud(el, score) {
+  if (!el) return;
+  const text = String(score);
+  if (el.textContent !== text) el.textContent = text;
+}
+
 function updateWalkPowerHud(el, stamina, staminaMax, playerHealth, visible) {
   if (!el) return;
   if (!visible || playerHealth <= 0) {
@@ -722,6 +730,8 @@ export default function FpsGame() {
   const doorInteractPromptRef = useRef(null);
   const missionTimerHudRef = useRef(null);
   const hostileCountHudRef = useRef(null);
+  const scoreHudRef = useRef(null);
+  const playerScoreRef = useRef(0);
   const playerCoordsMenuRef = useRef(null);
   const showHudRef = useRef(true);
   const gameRootRef = useRef(null);
@@ -1188,6 +1198,8 @@ export default function FpsGame() {
     let healthRegenTimer = 0;
     const HEALTH_REGEN_INTERVAL = 10;
     const HEALTH_REGEN_AMOUNT = 1;
+    let scorePopupLayer = null;
+    let scorePopupContainer = null;
     let onCanvasClick = null;
     let onPointerLockChange = null;
     let onKeyDown = null;
@@ -1977,10 +1989,33 @@ export default function FpsGame() {
         sounds.playHoleFallDeathWorld(scene, pos);
       }
 
+      function awardCombatScoreAt(mesh, hitResult, hitPoint) {
+        const scoreResult = applyCombatScore(mesh, hitResult);
+        if (scoreResult.score <= 0) return;
+
+        playerScoreRef.current += scoreResult.score;
+        if (showHudRef.current) {
+          updateScoreHud(scoreHudRef.current, playerScoreRef.current);
+        }
+
+        if (hitResult.killed && hitPoint && scorePopupLayer && !deathStateRef.current) {
+          scorePopupLayer.spawn({
+            point: hitPoint,
+            text: formatKillCallout(
+              hitResult.zone,
+              scoreResult.score,
+              mesh.id,
+            ),
+            zone: hitResult.zone,
+          });
+        }
+      }
+
       function applyHit(hit, bulletDirection, targetMesh) {
         const mesh = targetMesh ?? hit.object;
         const { killed, zone, damage } = applyTargetHit(mesh, hit.point, bulletDirection);
         if (zone !== "miss") {
+          awardCombatScoreAt(mesh, { zone, damage, killed }, hit.point);
           playTargetHitSound(mesh, hit.point, zone);
           if (killed) {
             playTargetDeathSound(mesh, hit.point, zone);
@@ -2032,6 +2067,7 @@ export default function FpsGame() {
         ud.repairCooldown = ud.repairDelayAfterHit ?? 3;
         const ratio = ud.health / ud.maxHealth;
         const killed = ud.health <= 0;
+        awardCombatScoreAt(mesh, { zone: "grenade", damage, killed }, hitPoint);
         if (killed) {
           scheduleGrenadeKillDrops(mesh.position.clone());
         }
@@ -2727,6 +2763,7 @@ export default function FpsGame() {
 
         refreshLiveTargets();
         updateBloodSplatters(bloodSplatters, dt, scene);
+        scorePopupLayer?.update(camera, dt);
         updateBulletHoles(dt);
         laserTracers?.update(dt);
 
@@ -3281,6 +3318,12 @@ export default function FpsGame() {
       beginShadowStartupWindow();
       reportLoad(99, GPU_PRELOAD_READY_LABEL);
 
+      scorePopupContainer = document.createElement("div");
+      scorePopupContainer.className = "killCalloutLayer";
+      scorePopupContainer.setAttribute("aria-hidden", "true");
+      gameRootRef.current?.appendChild(scorePopupContainer);
+      scorePopupLayer = createScorePopupLayer(scorePopupContainer);
+
       gameReady = true;
       gameRootRef.current?.style.setProperty(
         "--hud-night-grayscale",
@@ -3337,6 +3380,10 @@ export default function FpsGame() {
       disposeAllGrenades(grenades, scene);
       disposeAllGrenadeDrops(grenadeDrops);
       disposeAllBloodSplatters(bloodSplatters, scene);
+      scorePopupLayer?.dispose();
+      scorePopupLayer = null;
+      scorePopupContainer?.remove();
+      scorePopupContainer = null;
       disposeAllBulletHoles();
       laserTracers?.dispose();
       laserTracers = null;
@@ -3610,57 +3657,64 @@ export default function FpsGame() {
         <HudBarCompass />
       </div>
 
-      {/* Stamina bar — top left */}
-      <div
-        ref={walkPowerRef}
-        className="hudStaminaBar"
-        role="status"
-        aria-label="Sprint stamina"
-        style={{
-          "--sb-icon-x": `${hudBarLayout.hbLivesX}%`,
-          "--sb-icon-y": `${hudBarLayout.hbLivesY}%`,
-          "--sb-bar-x": `${hudBarLayout.sbBarX}%`,
-          "--sb-bar-y": `${hudBarLayout.sbBarY}%`,
-          "--sb-bar-w": `${hudBarLayout.sbBarW}%`,
-          "--sb-bar-h": `${hudBarLayout.sbBarH}%`,
-          "--hb-corner": `${hbCorner}px`,
-        }}
-      >
-        <div className="hudStaminaIcon" aria-hidden="true">
-          <img src="/ui/stamina-icon.webp" className="hudStaminaFist" alt="" />
-        </div>
-        <div className="hudStaminaTrack">
-          <div
-            className="hudWalkPowerFill"
-            style={{
-              width: "100%",
-              "--orange-op": 0,
-              "--red-op": 0,
-              "--hb-corner": `${hbCorner}px`,
-            }}
-          >
-            <div className="hudHealthLayer hudHealthBlue" />
-            <div
-              className="hudHealthLayer hudHealthOrange"
-              style={{ opacity: "var(--orange-op)" }}
-            />
-            <div
-              className="hudHealthLayer hudHealthRed"
-              style={{ opacity: "var(--red-op)" }}
-            />
-            <div
-              className="hudHealthLayer hudHealthFillRadioactive hudWalkPowerRadioactiveLayer"
-              style={{ opacity: 0 }}
-            />
+      {/* Stamina bar + score — top left */}
+      <div className="hudStaminaCluster">
+        <div
+          ref={walkPowerRef}
+          className="hudStaminaBar"
+          role="status"
+          aria-label="Sprint stamina"
+          style={{
+            "--sb-icon-x": `${hudBarLayout.hbLivesX}%`,
+            "--sb-icon-y": `${hudBarLayout.hbLivesY}%`,
+            "--sb-bar-x": `${hudBarLayout.sbBarX}%`,
+            "--sb-bar-y": `${hudBarLayout.sbBarY}%`,
+            "--sb-bar-w": `${hudBarLayout.sbBarW}%`,
+            "--sb-bar-h": `${hudBarLayout.sbBarH}%`,
+            "--hb-corner": `${hbCorner}px`,
+          }}
+        >
+          <div className="hudStaminaIcon" aria-hidden="true">
+            <img src="/ui/stamina-icon.webp" className="hudStaminaFist" alt="" />
           </div>
-          <span className="hudHealthText hudHealthTextWhite hudStaminaTextWhite">100%</span>
-          <span
-            className="hudHealthText hudHealthTextBlack hudStaminaTextBlack"
-            style={{ width: "100%" }}
-          >
-            100%
-          </span>
+          <div className="hudStaminaTrack">
+            <div
+              className="hudWalkPowerFill"
+              style={{
+                width: "100%",
+                "--orange-op": 0,
+                "--red-op": 0,
+                "--hb-corner": `${hbCorner}px`,
+              }}
+            >
+              <div className="hudHealthLayer hudHealthBlue" />
+              <div
+                className="hudHealthLayer hudHealthOrange"
+                style={{ opacity: "var(--orange-op)" }}
+              />
+              <div
+                className="hudHealthLayer hudHealthRed"
+                style={{ opacity: "var(--red-op)" }}
+              />
+              <div
+                className="hudHealthLayer hudHealthFillRadioactive hudWalkPowerRadioactiveLayer"
+                style={{ opacity: 0 }}
+              />
+            </div>
+            <span className="hudHealthText hudHealthTextWhite hudStaminaTextWhite">100%</span>
+            <span
+              className="hudHealthText hudHealthTextBlack hudStaminaTextBlack"
+              style={{ width: "100%" }}
+            >
+              100%
+            </span>
+          </div>
         </div>
+      </div>
+
+      <div className="hudScorePanel" role="status" aria-label="Combat score">
+        <span className="hudScoreLabel">SCORE</span>
+        <strong ref={scoreHudRef} className="hudScoreValue">0</strong>
       </div>
 
       {/* Compass — top centre, aligned with stamina / health bars */}

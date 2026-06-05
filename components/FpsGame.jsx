@@ -65,6 +65,14 @@ import {
 } from "@/lib/audio/Sound";
 import LoadingAudioViz from "@/components/LoadingAudioViz";
 import PickupFlashLayer from "@/components/PickupFlashLayer";
+import {
+  clearGameplayHintPulse,
+  createGameplayHintRuntime,
+  dismissGameplayHint,
+  hintMessageForId,
+  pulseGameplayHint,
+  tickGameplayHintDisplay,
+} from "@/lib/ui/GameplayHints.js";
 import { initPickupPreviewEngine } from "@/lib/pickups/PickupPreviewEngine";
 import { getLaserPalette, loadViewWeapon } from "@/lib/weapons/ViewWeapon";
 import {
@@ -803,6 +811,11 @@ export default function FpsGame() {
   const [radarScale] = useState(11);
   const sceneRef = useRef(null);
   const [bindings, setBindings] = useState(() => loadBindings());
+  const gameplayHintsDismissedRef = useRef(new Set());
+  const gameplayHintRef = useRef(null);
+  const gameplayHintRuntimeRef = useRef(createGameplayHintRuntime());
+  const [flashlightOn, setFlashlightOn] = useState(false);
+  const flashlightOnRef = useRef(false);
   const [rebindAction, setRebindAction] = useState(null);
   const bindingsRef = useRef(loadBindings());
   const settingsOpenRef = useRef(false);
@@ -1101,8 +1114,30 @@ export default function FpsGame() {
   maxLookRateRef.current = maxLookRate;
   playerHeightRef.current = playerHeight;
   sunIsDayRef.current = sunIsDay;
+  flashlightOnRef.current = flashlightOn;
   settingsOpenRef.current = settingsOpen;
   controlsOpenRef.current = controlsOpen;
+
+  const refreshGameplayHintHudRef = useRef(() => {});
+  const refreshGameplayHintHud = () => {
+    tickGameplayHintDisplay(
+      gameplayHintRef.current ?? document.getElementById("gameplayHint"),
+      gameplayHintRuntimeRef.current,
+      {
+        now: performance.now(),
+        loadDone: loadDoneRef.current,
+        showHud: showHudRef.current,
+        settingsOpen: settingsOpenRef.current,
+        controlsOpen: controlsOpenRef.current,
+        isDay: sunIsDayRef.current,
+        flashlightOn: flashlightOnRef.current,
+        bindings: bindingsRef.current,
+        dismissed: gameplayHintsDismissedRef.current,
+        dayNightEnabled: DAY_NIGHT_SWITCHER_ENABLED,
+      },
+    );
+  };
+  refreshGameplayHintHudRef.current = refreshGameplayHintHud;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -2491,6 +2526,13 @@ export default function FpsGame() {
           wasBindingPressed(input, bindingsRef.current, "flashlight")
         ) {
           const nowOn = weapon?.toggleFlashlight();
+          if (nowOn !== undefined) {
+            flashlightOnRef.current = nowOn;
+            setFlashlightOn(nowOn);
+            dismissGameplayHint(gameplayHintsDismissedRef.current, "flashlight");
+            clearGameplayHintPulse(gameplayHintRuntimeRef.current);
+            refreshGameplayHintHudRef.current();
+          }
           if (nowOn && rendererRef.current) {
             requestShadowMapUpdate(rendererRef.current);
           }
@@ -2502,6 +2544,7 @@ export default function FpsGame() {
           wasBindingPressed(input, bindingsRef.current, "dayNightToggle")
         ) {
           dayNightToggleRef.current?.(!sunIsDayRef.current);
+          refreshGameplayHintHudRef.current();
         }
 
         const keyboardShoot =
@@ -2649,6 +2692,8 @@ export default function FpsGame() {
             });
           }
         }
+
+        refreshGameplayHintHudRef.current();
 
         refreshLiveTargets();
         updateBloodSplatters(bloodSplatters, dt, scene);
@@ -3291,6 +3336,25 @@ export default function FpsGame() {
 
   const handleDayNightChange = (isDay, { persist = true } = {}) => {
     if (!DAY_NIGHT_SWITCHER_ENABLED) return;
+    const wasDay = sunIsDayRef.current;
+    if (wasDay !== isDay) {
+      dismissGameplayHint(
+        gameplayHintsDismissedRef.current,
+        wasDay ? "dayNight-night" : "dayNight-day",
+      );
+      if (
+        !isDay &&
+        !flashlightOnRef.current &&
+        !gameplayHintsDismissedRef.current.has("flashlight")
+      ) {
+        pulseGameplayHint(
+          gameplayHintRuntimeRef.current,
+          hintMessageForId(bindingsRef.current, "flashlight"),
+          performance.now(),
+        );
+      }
+      gameplayHintRuntimeRef.current.lastIsDay = isDay;
+    }
     setSunIsDay(isDay);
     sunIsDayRef.current = isDay;
     if (persist) saveSunDayMode(isDay);
@@ -3300,6 +3364,7 @@ export default function FpsGame() {
     dayNightTargetNightnessRef.current = isDay ? 0 : 1;
     if (isDay) refitSunShadowRef.current?.();
     else refitMoonShadowRef.current?.();
+    refreshGameplayHintHudRef.current();
   };
   // Keep the ref pointing at the current closure so the animate loop and
   // any keypress handler can always call the latest version (without
@@ -3344,6 +3409,7 @@ export default function FpsGame() {
   const handleStartGame = () => {
     if (loadDone || !assetsReady) return;
     gameSessionStarted = true;
+    loadDoneRef.current = true;
     soundsRef.current?.resume();
     setLoadDone(true);
     safeRequestPointerLock(canvasRef.current);
@@ -4001,6 +4067,14 @@ export default function FpsGame() {
         layoutStyle={weaponSlotLayoutStyle}
       />
       <div ref={crosshairRef} className="crosshair crosshairVisible" />
+      <div
+        id="gameplayHint"
+        ref={gameplayHintRef}
+        className="gameplayHint"
+        role="status"
+        aria-live="polite"
+        aria-hidden="true"
+      />
       <div
         ref={doorInteractPromptRef}
         className="doorInteractPrompt"

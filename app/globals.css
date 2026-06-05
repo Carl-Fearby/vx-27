@@ -306,7 +306,8 @@ body {
 .gameRoot .pickupOverlayRow,
 .gameRoot .hudCompassPointer,
 .gameRoot .doorInteractPrompt,
-.gameRoot .demoBtnGroup {
+.gameRoot .demoBtnGroup,
+.gameRoot .gameplayHint {
   filter: grayscale(var(--hud-night-grayscale))
     brightness(calc(1 - 0.75 * var(--hud-night-grayscale)));
 }
@@ -324,7 +325,8 @@ body {
 .gameHudHidden .topRightHud,
 .gameHudHidden .hudPlayerCoords,
 .gameHudHidden .demoBtnGroup,
-.gameHudHidden .pickupOverlayRow {
+.gameHudHidden .pickupOverlayRow,
+.gameHudHidden .gameplayHint {
   visibility: hidden !important;
   pointer-events: none !important;
 }
@@ -1696,6 +1698,57 @@ body {
   to {
     opacity: 0;
   }
+}
+
+/* ── Contextual gameplay hints (day/night, flashlight, …) ─────────── */
+.gameplayHint {
+  position: fixed;
+  left: 50%;
+  top: calc(50% + 2.75rem);
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  background: rgba(6, 12, 24, 0.92);
+  border: 1px solid rgba(94, 170, 255, 0.55);
+  border-radius: 3px;
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.55);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: clamp(0.72rem, 1.6vw, 0.88rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(230, 242, 255, 0.95);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  white-space: nowrap;
+  transition: opacity 0.25s ease;
+}
+
+.gameplayHintVisible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.gameplayHintKey {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.65rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 3px;
+  border: 1px solid rgba(94, 170, 255, 0.55);
+  background: rgba(30, 80, 160, 0.35);
+  color: rgba(180, 220, 255, 1);
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.gameplayHintText {
+  color: rgba(180, 210, 255, 0.72);
 }
 
 /* ── Pickup overlay (power pack collect) ─────────────────────────── */

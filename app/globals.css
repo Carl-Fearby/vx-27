@@ -80,6 +80,65 @@ body {
   text-transform: uppercase;
 }
 
+.loadingLevelSelect {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+  max-width: min(520px, 92vw);
+}
+
+.loadingLevelBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-width: 9.5rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(94, 170, 255, 0.28);
+  background: rgba(12, 16, 24, 0.92);
+  color: rgba(200, 220, 255, 0.9);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+}
+
+.loadingLevelBtn:hover:not(:disabled) {
+  border-color: rgba(94, 170, 255, 0.55);
+  background: rgba(18, 26, 38, 0.96);
+}
+
+.loadingLevelBtn.active {
+  border-color: rgba(70, 200, 255, 0.75);
+  background: linear-gradient(
+    180deg,
+    rgba(30, 120, 200, 0.28) 0%,
+    rgba(12, 20, 32, 0.95) 100%
+  );
+  box-shadow: 0 0 14px rgba(30, 160, 255, 0.22);
+}
+
+.loadingLevelBtn:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.loadingLevelBtnNum {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(140, 190, 255, 0.82);
+}
+
+.loadingLevelBtnLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #e8f0ff;
+}
+
 .loadingStartBtn {
   padding: 0.75rem 2.4rem;
   border-radius: 8px;
@@ -944,6 +1003,18 @@ body {
   width: 1rem;
   height: 1rem;
   accent-color: #c44a3a;
+  cursor: pointer;
+}
+
+.settingsSelect {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #3a3a48;
+  background: rgba(12, 12, 18, 0.96);
+  color: #e8e8ec;
+  font-size: 0.85rem;
+  font-family: inherit;
   cursor: pointer;
 }
 
@@ -2447,6 +2518,47 @@ body {
 .devTuneStack .hudBarTunePanel {
   max-height: min(70vh, calc(100vh - 2rem));
   overflow-y: auto;
+}
+
+/* Gameplay HUD: control panel screen C + shelf D brightness (top-left) */
+.controlPanelScreenTuneHud {
+  bottom: auto;
+  top: 5.5rem;
+  left: 1rem;
+  width: 15.5rem;
+  z-index: 25;
+}
+
+.controlPanelScreenSliderRow {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+  margin-bottom: 0.35rem;
+}
+
+.controlPanelScreenSliderLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: #b8c8d8;
+}
+
+.controlPanelScreenSliderLabel output {
+  font-variant-numeric: tabular-nums;
+  color: #8ec8ff;
+}
+
+.controlPanelScreenTuneHud .hudTuneHeader output {
+  font-variant-numeric: tabular-nums;
+  color: #8ec8ff;
+}
+
+.controlPanelScreenTuneHud .sliderRow {
+  margin: 0;
+}
+
+.controlPanelScreenTuneHud input[type="range"] {
+  width: 100%;
 }
 
 .controlPanelTuneStack {

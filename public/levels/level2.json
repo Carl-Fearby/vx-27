@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "number": 2,
+    "id": "level2",
+    "name": "VX-27 Passage",
+    "objective": "REACH BULKHEAD",
+    "description": "Long modular sci-fi corridor — interior lighting only, no exterior sun."
+  },
+  "levelType": "corridor",
+  "environment": {
+    "mode": "space",
+    "sky": false,
+    "sun": false,
+    "dayNight": false,
+    "clearColor": "#080c14",
+    "ambientIntensity": 0.1
+  },
+  "stairs": false,
+  "wallStandoff": 0.45,
+  "playerSpawn": {
+    "x": 0,
+    "z": 38,
+    "yaw": 3.14159265,
+    "note": "South end of corridor, facing the bulkhead at −Z"
+  },
+  "corridor": {
+    "width": 4,
+    "height": 3.6,
+    "wallThickness": 0.14,
+    "chamfer": 0.38,
+    "segmentLength": 8,
+    "segmentCount": 10,
+    "textures": {
+      "floor": "floor_metal_grate_rusty",
+      "wall": "ground_smooth_concrete_worn",
+      "ceiling": "ground_smooth_concrete_worn"
+    },
+    "lights": {
+      "color": "#e8f4ff",
+      "intensity": 14,
+      "distance": 11,
+      "decay": 2
+    }
+  },
+  "textures": {
+    "floor": "floor_metal_grate_rusty",
+    "wall": "ground_smooth_concrete_worn",
+    "ceiling": "ground_smooth_concrete_worn",
+    "pillar": "ground_smooth_concrete_worn"
+  },
+  "target": {
+    "count": 4,
+    "radius": 0.45,
+    "height": 1.75,
+    "maxHealth": 30,
+    "respawnDelay": 2.5,
+    "repairPerSecond": 0.63,
+    "repairDelayAfterHit": 1.25,
+    "spawnPoints": [
+      { "x": 0, "z": 20, "yaw": 3.14, "note": "Mid corridor" },
+      { "x": 1.2, "z": 4, "yaw": -2.4, "note": "Forward section starboard" },
+      { "x": -1.1, "z": -12, "yaw": 0.5, "note": "Aft section port" },
+      { "x": 0, "z": -30, "yaw": 0, "note": "Near bulkhead" }
+    ]
+  },
+  "props": [
+    {
+      "id": "corridor_console_port",
+      "type": "controlPanel",
+      "x": -1.65,
+      "z": 12,
+      "y": 0,
+      "rotationY": 1.5708,
+      "panelWidth": 1.4,
+      "note": "Port-side console mid-run"
+    }
+  ],
+  "collectibles": [
+    {
+      "id": "corridor_ammo_mid",
+      "type": "ammo",
+      "x": 1.3,
+      "z": -8,
+      "surface": "floor",
+      "floorY": 0,
+      "value": 10,
+      "note": "Ammo crate on corridor floor"
+    }
+  ]
+}

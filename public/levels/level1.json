@@ -158,6 +158,75 @@
       "note": "Standing console — baked side profile (10 corners; front step at 9)"
     },
     {
+      "id": "control_panel_service_west",
+      "type": "controlPanel",
+      "x": -1.708,
+      "z": -22.62,
+      "y": 0,
+      "rotationY": 1.5708,
+      "roomId": "service_room",
+      "panelWidth": 1.708,
+      "sideProfile": [
+        [1, 0],
+        [1, 1],
+        [0.73, 1],
+        [0.43, 0.68],
+        [0, 0.65],
+        [0.06, 0.56],
+        [0.385, 0.49],
+        [0.77, 0.12],
+        [0.03, 0.04],
+        [0, 0]
+      ],
+      "note": "Service room back wall — west console (row of three, flush center)"
+    },
+    {
+      "id": "control_panel_service_center",
+      "type": "controlPanel",
+      "x": 0,
+      "z": -22.62,
+      "y": 0,
+      "rotationY": 1.5708,
+      "roomId": "service_room",
+      "panelWidth": 1.708,
+      "sideProfile": [
+        [1, 0],
+        [1, 1],
+        [0.73, 1],
+        [0.43, 0.68],
+        [0, 0.65],
+        [0.06, 0.56],
+        [0.385, 0.49],
+        [0.77, 0.12],
+        [0.03, 0.04],
+        [0, 0]
+      ],
+      "note": "Service room back wall — center console (row of three)"
+    },
+    {
+      "id": "control_panel_service_east",
+      "type": "controlPanel",
+      "x": 1.708,
+      "z": -22.62,
+      "y": 0,
+      "rotationY": 1.5708,
+      "roomId": "service_room",
+      "panelWidth": 1.708,
+      "sideProfile": [
+        [1, 0],
+        [1, 1],
+        [0.73, 1],
+        [0.43, 0.68],
+        [0, 0.65],
+        [0.06, 0.56],
+        [0.385, 0.49],
+        [0.77, 0.12],
+        [0.03, 0.04],
+        [0, 0]
+      ],
+      "note": "Service room back wall — east console (row of three, flush center)"
+    },
+    {
       "id": "vx27_cargo_module_qa",
       "type": "vx27Container",
       "x": -3.3,

@@ -3,13 +3,30 @@
 import Link from "next/link";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { createLevelFromArena, disposeLevelGroup } from "@/lib/level/Level";
+import { disposeLevelGroup } from "@/lib/level/Level";
+import { createLevelFromConfig } from "@/lib/level/createLevelFromConfig";
+import {
+  getInteriorAmbientIntensity,
+  getInteriorClearColor,
+  isInteriorEnvironmentLevel,
+  shouldAutoDayNight,
+  shouldLoadSky,
+  shouldUseOutdoorSun,
+} from "@/lib/level/InteriorEnvironment";
 import {
   collectArenaTextureIds,
   getLevelMeta,
   isArenaLoadAbortError,
   loadArenaConfig,
+  levelConfigUrl,
 } from "@/lib/level/loadArena";
+import {
+  AVAILABLE_LEVELS,
+  isPlayableLevel,
+  LEVEL_SELECT_OPTIONS,
+  resolvePlayLevelNumber,
+  saveSelectedLevel,
+} from "@/lib/LevelSelectTuning";
 import { loadLevelTextureLibrary, initLevelTexturesOnGpu } from "@/lib/level/LevelTextures";
 import {
   createSkyDome,
@@ -268,7 +285,10 @@ import {
   preloadControlPanelBodyTextures,
   resetControlPanelBodyTextureCache,
 } from "@/lib/control-panel/ControlPanelBody";
-import { syncControlPanelScreenMaterials } from "@/lib/control-panel/ControlPanel";
+import {
+  syncControlPanelScreenMaterials,
+  updateControlPanelMaterialsLive,
+} from "@/lib/control-panel/ControlPanel";
 import {
   applyShadowMapTypeToRenderer,
   enableRendererShadowPipeline,
@@ -786,6 +806,7 @@ export default function FpsGame() {
   const initialWalkBobTuning = loadWalkBobTuning();
   const initialStairWalkTuning = loadStairWalkTuning();
   const hudBarLayout = loadHudBarTuning();
+  const [selectedLevel, setSelectedLevel] = useState(() => resolvePlayLevelNumber());
   const [levelMeta, setLevelMeta] = useState({
     number: 1,
     id: "level1",
@@ -1278,7 +1299,7 @@ export default function FpsGame() {
       const sfxPromise = sounds.preloadSfx();
 
       reportLoad(18, "Arena config");
-      const arena = await loadArenaConfig(undefined, {
+      const arena = await loadArenaConfig(levelConfigUrl(selectedLevel), {
         signal: arenaAbort.signal,
       });
       if (!isActive()) return;
@@ -1323,14 +1344,28 @@ export default function FpsGame() {
       reportLoad(59, "Pickup preview ready");
 
       reportLoad(60, "Building level");
-      const sheltered = (arena.ceilingThickness ?? 0) > 0;
+      const interiorLevel = isInteriorEnvironmentLevel(arena);
+      const sheltered =
+        interiorLevel || (arena.ceilingThickness ?? 0) > 0;
       const { sun, moon, hemi, outdoorLights } = createOutdoorLights(scene, {
         sheltered,
       });
+      if (interiorLevel && !shouldUseOutdoorSun(arena)) {
+        sun.intensity = 0;
+        sun.castShadow = false;
+        moon.intensity = 0;
+        moon.castShadow = false;
+        hemi.intensity = getInteriorAmbientIntensity(arena);
+        for (const light of outdoorLights) {
+          light.intensity = 0;
+        }
+        scene.background = new THREE.Color(getInteriorClearColor(arena));
+        renderer.setClearColor(getInteriorClearColor(arena), 1);
+      }
       hemiRef.current = hemi;
       registerOutdoorLightsForDayNight(outdoorLights);
       const attachWall = getArenaAttachWall(arena);
-      const arenaHalf = arena.size / 2;
+      const arenaHalf = arena.size ? arena.size / 2 : 14;
       const roomLights = addRoomLights(
         scene,
         arena.rooms,
@@ -1343,13 +1378,17 @@ export default function FpsGame() {
       initCandleFlicker(roomLights);
       roomLightsRef.current = roomLights;
       ensureRoomInteriorAmbient(scene);
-      syncLightLayersForZone(scene, false, outdoorLights, roomLights);
+      syncLightLayersForZone(scene, interiorLevel, outdoorLights, roomLights);
       const stairParams = loadStairTuning(arena.stairs, arena);
       stairParamsRef.current = stairParams;
       const arenaLive = { ...arena, stairs: stairParams };
       arenaLiveRef.current = arenaLive;
-      level = createLevelFromArena(scene, arenaLive, levelTextures);
+      level = createLevelFromConfig(scene, arenaLive, levelTextures);
       levelRef.current = level;
+      if (level.interiorLights?.length) {
+        roomLights.push(...level.interiorLights);
+        roomLightsRef.current = roomLights;
+      }
       if (!isActive()) {
         if (level?.group) disposeLevelGroup(level.group);
         resetArenaCeilingDayNightCache();
@@ -1357,7 +1396,9 @@ export default function FpsGame() {
         return;
       }
       enableShadowsOn(level.group);
-      assignWorldLayers(level.group);
+      if (!interiorLevel) {
+        assignWorldLayers(level.group);
+      }
       disableInteriorCastShadows(level.group);
       setHealthBarOccluders(level.group);
       setSunOcclusionRoot(level.group);
@@ -1526,6 +1567,11 @@ export default function FpsGame() {
           },
           { sheltered }
         );
+
+        updateControlPanelMaterialsLive({
+          nightness,
+          groups: controlPanelsRef.current,
+        });
       };
       refitSunShadowRef.current = () => {
         if (!level?.group) return;
@@ -1628,7 +1674,16 @@ export default function FpsGame() {
         level?.resyncOilBarrelColliders?.();
         syncInteriorLighting();
       };
+      const playerSpawn = arena.playerSpawn;
       player = createPlayerController(camera, level.bounds, level.floorY, {
+        initialPosition: playerSpawn
+          ? {
+              x: playerSpawn.x ?? 0,
+              y: playerSpawn.y,
+              z: playerSpawn.z ?? 6,
+            }
+          : undefined,
+        initialYaw: playerSpawn?.yaw,
         getColliders: () => allColliders,
         getGroundSurfaces: () => level.groundSurfaces,
         getFloorHoles: () => level.floorHoles ?? [],
@@ -3120,35 +3175,41 @@ export default function FpsGame() {
           arena.wallThickness ?? 0.5
         );
 
-        const inRoomBody = isIndoorLightingZone(
-          player.getX(),
-          player.getZ(),
-          player.getFootY(),
-          arena.rooms,
-          arenaHalf,
-          attachWall,
-          level.catwalkDeckY,
-          level.doorwayOpenings ?? [],
-          arena.wallThickness ?? 0.5,
-          arena.floorExtensions ?? []
-        );
+        const interiorLevelFrame = isInteriorEnvironmentLevel(arenaLiveRef.current);
+        const inRoomBody =
+          interiorLevelFrame ||
+          isIndoorLightingZone(
+            player.getX(),
+            player.getZ(),
+            player.getFootY(),
+            arena.rooms,
+            arenaHalf,
+            attachWall,
+            level.catwalkDeckY,
+            level.doorwayOpenings ?? [],
+            arena.wallThickness ?? 0.5,
+            arena.floorExtensions ?? []
+          );
         // Room pass follows camera frustum (+ body-in-room). Viewmodel lighting follows
         // feet / door threshold only — not raw frustum (service-room bbox is huge).
-        const inRoomPass = inRoomBody || visibleRoomCount > 0;
-        const inRoomViewmodel = resolveViewmodelIndoorLightingZone(
-          inRoomBody,
-          visibleRoomCount,
-          player.getX(),
-          player.getZ(),
-          arena.rooms,
-          arena.floorExtensions ?? [],
-          arenaHalf,
-          attachWall,
-          arena.wallThickness ?? 0.5,
-          undefined,
-          player.getFootY(),
-          level.catwalkDeckY
-        );
+        const inRoomPass =
+          interiorLevelFrame || inRoomBody || visibleRoomCount > 0;
+        const inRoomViewmodel =
+          interiorLevelFrame ||
+          resolveViewmodelIndoorLightingZone(
+            inRoomBody,
+            visibleRoomCount,
+            player.getX(),
+            player.getZ(),
+            arena.rooms,
+            arena.floorExtensions ?? [],
+            arenaHalf,
+            attachWall,
+            arena.wallThickness ?? 0.5,
+            undefined,
+            player.getFootY(),
+            level.catwalkDeckY
+          );
         syncLightLayersForZone(
           scene,
           inRoomViewmodel,
@@ -3252,31 +3313,35 @@ export default function FpsGame() {
       if (level?.group && !level.group.parent) {
         scene.add(level.group);
       }
-      reportLoad(85, "Sky dome textures");
-      try {
-        const loaded = await createSkyDome(scene, { renderer });
-        if (!isActive()) {
-          loaded.dispose();
-          return;
+      if (shouldLoadSky(arena)) {
+        reportLoad(85, "Sky dome textures");
+        try {
+          const loaded = await createSkyDome(scene, { renderer });
+          if (!isActive()) {
+            loaded.dispose();
+            return;
+          }
+          sky = loaded;
+          skyRef.current = loaded;
+          loaded.update(camera);
+          applyDayNightAtmosphere(
+            scene,
+            renderer,
+            loaded,
+            sunIsDayRef.current
+          );
+          // Sky was loaded after the first applyDayNightRef pass, so the sun
+          // and moon discs are still at the origin / fully transparent. Re-run
+          // the applier with the current nightness so they snap into place.
+          applyDayNightRef.current?.(dayNightCurNightnessRef.current);
+        } catch (err) {
+          console.error("Sky dome failed to load:", err);
         }
-        sky = loaded;
-        skyRef.current = loaded;
-        loaded.update(camera);
-        applyDayNightAtmosphere(
-          scene,
-          renderer,
-          loaded,
-          sunIsDayRef.current
-        );
-        // Sky was loaded after the first applyDayNightRef pass, so the sun
-        // and moon discs are still at the origin / fully transparent. Re-run
-        // the applier with the current nightness so they snap into place.
-        applyDayNightRef.current?.(dayNightCurNightnessRef.current);
-      } catch (err) {
-        console.error("Sky dome failed to load:", err);
+        if (!isActive()) return;
+        reportLoad(88, "Sky dome");
+      } else {
+        reportLoad(88, "Interior environment");
       }
-      if (!isActive()) return;
-      reportLoad(88, "Sky dome");
 
       await weaponPromise;
       if (!isActive()) return;
@@ -3468,10 +3533,24 @@ export default function FpsGame() {
       resetArenaCeilingDayNightCache();
       safeExitPointerLock();
     };
-  }, []);
+  }, [selectedLevel]);
+
+  const handleLoadingLevelSelect = useCallback(
+    (levelNumber) => {
+      if (loadDoneRef.current || !isPlayableLevel(levelNumber)) return;
+      if (levelNumber === selectedLevel) return;
+      saveSelectedLevel(levelNumber);
+      setSelectedLevel(levelNumber);
+      setAssetsReady(false);
+      setLoadProgress(0);
+      setLoadAssetLabel("Switching level…");
+    },
+    [selectedLevel]
+  );
 
   const handleDayNightChange = (isDay, { persist = true } = {}) => {
     if (!DAY_NIGHT_SWITCHER_ENABLED) return;
+    if (!shouldAutoDayNight(arenaLiveRef.current)) return;
     const wasDay = sunIsDayRef.current;
     if (wasDay !== isDay) {
       dismissGameplayHint(
@@ -3574,6 +3653,28 @@ export default function FpsGame() {
         <div className="loadingHeroStack">
           <img src="/ui/logo.png" alt="VX-27" className="loadingLogo" />
         </div>
+        {!loadDone ? (
+          <div
+            className="loadingLevelSelect"
+            role="group"
+            aria-label="Select level"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {LEVEL_SELECT_OPTIONS.map(({ number, label }) => (
+              <button
+                key={number}
+                type="button"
+                className={`loadingLevelBtn${selectedLevel === number ? " active" : ""}`}
+                aria-pressed={selectedLevel === number}
+                disabled={selectedLevel === number}
+                onClick={() => handleLoadingLevelSelect(number)}
+              >
+                <span className="loadingLevelBtnNum">Level {number}</span>
+                <span className="loadingLevelBtnLabel">{label}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
         {assetsReady ? (
           <button
             type="button"
@@ -3934,7 +4035,8 @@ export default function FpsGame() {
               </p>
             </SettingsSection>
 
-            {DAY_NIGHT_SWITCHER_ENABLED && (
+            {DAY_NIGHT_SWITCHER_ENABLED &&
+              shouldAutoDayNight(arenaLiveRef.current) && (
               <SettingsSection title="Time of Day">
                 <div
                   className="settingRow settingRowButtons"
@@ -4156,6 +4258,37 @@ export default function FpsGame() {
             </SettingsSection>
 
             <SettingsSection title="Development">
+              <p className="settingsGroupLabel">Level</p>
+              <div className="sliderRow">
+                <span className="sliderLabel">Arena config</span>
+                <select
+                  className="settingsSelect"
+                  value={selectedLevel}
+                  onChange={(e) => {
+                    const next = parseInt(e.target.value, 10);
+                    if (!AVAILABLE_LEVELS.includes(next)) return;
+                    saveSelectedLevel(next);
+                    if (loadDoneRef.current) {
+                      window.location.reload();
+                      return;
+                    }
+                    setSelectedLevel(next);
+                    setAssetsReady(false);
+                    setLoadProgress(0);
+                    setLoadAssetLabel("Switching level…");
+                  }}
+                >
+                  {AVAILABLE_LEVELS.map((n) => (
+                    <option key={n} value={n}>
+                      Level {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Also on the loading screen. In-game changes reload the page; on the
+                loading screen the selected level re-warms without a full refresh.
+              </p>
               <p className="settingsGroupLabel">Player position</p>
               <p className="settingsHint" style={{ marginTop: 0 }}>
                 Live readout while settings are open. Stand at a spot and copy coordinates

@@ -1,8 +1,13 @@
 {
-  "generatedAt": "2026-06-05T00:55:41.561Z",
-  "head": "ff68ed3",
-  "count": 105,
+  "generatedAt": "2026-06-05T00:58:11.623Z",
+  "head": "a8d797f",
+  "count": 106,
   "commits": [
+    {
+      "sha": "a8d797f",
+      "date": "2026-06-05",
+      "subject": "Release v0.1.24: iPad touch controls and credits section."
+    },
     {
       "sha": "ff68ed3",
       "date": "2026-06-05",

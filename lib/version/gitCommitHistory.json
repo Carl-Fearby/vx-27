@@ -1,8 +1,13 @@
 {
-  "generatedAt": "2026-06-05T00:31:37.031Z",
-  "head": "457f51c",
-  "count": 103,
+  "generatedAt": "2026-06-05T00:33:38.700Z",
+  "head": "bcaffe8",
+  "count": 104,
   "commits": [
+    {
+      "sha": "bcaffe8",
+      "date": "2026-06-05",
+      "subject": "Fix v0.1.23 release commit hash in version history."
+    },
     {
       "sha": "457f51c",
       "date": "2026-06-05",

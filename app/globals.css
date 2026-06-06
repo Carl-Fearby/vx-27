@@ -367,6 +367,7 @@ body {
 .gameRoot .pickupOverlayRow,
 .gameRoot .hudCompassPointer,
 .gameRoot .doorInteractPrompt,
+.gameRoot .consoleHackPrompt,
 .gameRoot .demoBtnGroup,
 .gameRoot .gameplayHint,
 .gameRoot .killCalloutLayer {
@@ -394,6 +395,10 @@ body {
 .gameHudHidden .gameplayHint {
   visibility: hidden !important;
   pointer-events: none !important;
+}
+
+.gameHudHidden .consoleHackPrompt {
+  visibility: visible !important;
 }
 
 .gameHudHidden .hudCompassPointer {
@@ -2422,6 +2427,10 @@ body {
 
 .doorInteractPromptVisible {
   opacity: 1;
+}
+
+.consoleHackBackdrop {
+  z-index: 22;
 }
 
 .crosshair::before,

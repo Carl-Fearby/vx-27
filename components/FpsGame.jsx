@@ -5,6 +5,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { disposeLevelGroup } from "@/lib/level/Level";
 import { createLevelFromConfig } from "@/lib/level/createLevelFromConfig";
+import { spawnFootYContextFromLevel } from "@/lib/physics/Collision";
 import {
   getInteriorAmbientIntensity,
   getInteriorClearColor,
@@ -130,6 +131,12 @@ import {
   pickVx27DoorUnderCrosshair,
   toggleVx27ContainerDoorLeaf,
 } from "@/lib/vx27-container/Vx27ContainerDoorInteract";
+import {
+  findNearestHackableControlPanel,
+  getControlPanelHackLabel,
+  updateControlPanelHackPrompt,
+} from "@/lib/control-panel/ControlPanelHackInteract";
+import ConsoleHackScreen from "@/components/ConsoleHackScreen";
 import {
   loadVx27ContainerMaterialTuning,
   normalizeVx27ContainerMaterialTuning,
@@ -865,6 +872,14 @@ export default function FpsGame() {
   const [touchControlsActive, setTouchControlsActive] = useState(false);
   const [touchShowInteract, setTouchShowInteract] = useState(false);
   const touchShowInteractRef = useRef(false);
+  const [touchShowHack, setTouchShowHack] = useState(false);
+  const touchShowHackRef = useRef(false);
+  const [consoleHackOpen, setConsoleHackOpen] = useState(false);
+  const [consoleHackPanelId, setConsoleHackPanelId] = useState(null);
+  const [consoleHackPanelLabel, setConsoleHackPanelLabel] = useState(null);
+  const consoleHackOpenRef = useRef(false);
+  const consoleHackPanelRef = useRef(null);
+  const consoleHackPromptRef = useRef(null);
   const [rebindAction, setRebindAction] = useState(null);
   const bindingsRef = useRef(loadBindings());
   const settingsOpenRef = useRef(false);
@@ -1075,7 +1090,7 @@ export default function FpsGame() {
       const tag = e.target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-      if (e.code === "KeyH") {
+      if (e.code === "KeyU") {
         const next = !showHudRef.current;
         showHudRef.current = next;
         localStorage.setItem(SHOW_HUD_KEY, String(next));
@@ -1166,6 +1181,7 @@ export default function FpsGame() {
   flashlightOnRef.current = flashlightOn;
   settingsOpenRef.current = settingsOpen;
   controlsOpenRef.current = controlsOpen;
+  consoleHackOpenRef.current = consoleHackOpen;
   touchControlsGateRef.current = touchControlsActive;
 
   useEffect(() => {
@@ -1639,6 +1655,7 @@ export default function FpsGame() {
         );
       }
       syncAllColliders();
+      const targetSpawnCtx = spawnFootYContextFromLevel(level);
       syncControlPanelCollidersRef.current = () => {
         const arena = arenaLiveRef.current;
         const lvl = levelRef.current;
@@ -1869,6 +1886,7 @@ export default function FpsGame() {
               config: targetConfig,
               skip: mesh,
               spawnPoint: fixed,
+              spawnCtx: targetSpawnCtx,
             });
             if (!pos) return;
             activateTargetAt(
@@ -1888,6 +1906,7 @@ export default function FpsGame() {
             config: targetConfig,
             skip: mesh,
             floorHoles: level.floorHoles,
+            spawnCtx: targetSpawnCtx,
           });
           if (!pos) return;
           activateTargetAt(mesh, pos.x, pos.z, targetConfig, pos.y);
@@ -2343,9 +2362,10 @@ export default function FpsGame() {
           !frozen &&
           !rebindActionRef.current &&
           !settingsOpenRef.current &&
-          !controlsOpenRef.current;
+          !controlsOpenRef.current &&
+          !consoleHackOpenRef.current;
 
-        if (!frozen) {
+        if (!frozen && !consoleHackOpenRef.current) {
           player.update(input, dt);
           playerPlacementRef.current = {
             x: player.getX(),
@@ -2620,7 +2640,8 @@ export default function FpsGame() {
           !frozen &&
           !rebindActionRef.current &&
           !settingsOpenRef.current &&
-          !controlsOpenRef.current;
+          !controlsOpenRef.current &&
+          !consoleHackOpenRef.current;
         let doorTarget = null;
         if (canInteract && vx27DoorInteractMeshesCache.length > 0) {
           hitRaycaster.setFromCamera(screenCenter, camera);
@@ -2663,6 +2684,48 @@ export default function FpsGame() {
             doorTarget.end,
             doorTarget.side
           );
+        }
+
+        let hackTarget = null;
+        if (
+          !consoleHackOpenRef.current &&
+          !settingsOpenRef.current &&
+          !controlsOpenRef.current &&
+          !frozen &&
+          controlPanelsRef.current.length > 0
+        ) {
+          hackTarget = findNearestHackableControlPanel(
+            camera,
+            controlPanelsRef.current
+          );
+        }
+        const showHackPrompt = Boolean(hackTarget) && !doorTarget;
+        updateControlPanelHackPrompt(
+          consoleHackPromptRef.current,
+          bindingsRef.current,
+          showHackPrompt
+        );
+        if (touchMode) {
+          const showHack = showHackPrompt && canInteract;
+          if (showHack !== touchShowHackRef.current) {
+            touchShowHackRef.current = showHack;
+            setTouchShowHack(showHack);
+          }
+        }
+        if (
+          hackTarget &&
+          showHackPrompt &&
+          canInteract &&
+          wasBindingPressed(input, bindingsRef.current, "hack")
+        ) {
+          consoleHackPanelRef.current = hackTarget.group;
+          setConsoleHackPanelId(
+            hackTarget.group.userData.controlPanelPropId ?? null
+          );
+          setConsoleHackPanelLabel(getControlPanelHackLabel(hackTarget.group));
+          setConsoleHackOpen(true);
+          updateControlPanelHackPrompt(consoleHackPromptRef.current, bindingsRef.current, false);
+          safeExitPointerLock();
         }
 
         if (
@@ -3266,6 +3329,11 @@ export default function FpsGame() {
             setSettingsOpen(false);
           } else if (controlsOpenRef.current) {
             setControlsOpen(false);
+          } else if (consoleHackOpenRef.current) {
+            consoleHackPanelRef.current = null;
+            setConsoleHackPanelId(null);
+            setConsoleHackPanelLabel(null);
+            setConsoleHackOpen(false);
           } else {
             safeExitPointerLock();
           }
@@ -3698,10 +3766,24 @@ export default function FpsGame() {
           touchControlsActive &&
           loadDone &&
           !settingsOpen &&
-          !controlsOpen
+          !controlsOpen &&
+          !consoleHackOpen
         }
         inputRef={inputRef}
         showInteract={touchShowInteract}
+        showHack={touchShowHack}
+      />
+      <ConsoleHackScreen
+        open={consoleHackOpen}
+        panelId={consoleHackPanelId}
+        panelLabel={consoleHackPanelLabel}
+        onClose={() => {
+          consoleHackPanelRef.current = null;
+          setConsoleHackPanelId(null);
+          setConsoleHackPanelLabel(null);
+          setConsoleHackOpen(false);
+          safeRequestPointerLock(canvasRef.current);
+        }}
       />
       <div
         ref={flashbangOverlayRef}
@@ -4271,7 +4353,7 @@ export default function FpsGame() {
               <p className="settingsGroupLabel">Player position</p>
               <p className="settingsHint" style={{ marginTop: 0 }}>
                 Live readout while settings are open. Stand at a spot and copy coordinates
-                below. Toggle the gameplay HUD with <strong>H</strong>.
+                below. Toggle the gameplay HUD with <strong>U</strong>.
               </p>
               <div
                 ref={playerCoordsMenuRef}
@@ -4321,7 +4403,7 @@ export default function FpsGame() {
             }
           }}
         >
-          Show HUD (H)
+          Show HUD (U)
         </button>
       )}
       <PickupFlashLayer ref={pickupFlashLayerRef} />
@@ -4346,6 +4428,13 @@ export default function FpsGame() {
       <div
         ref={doorInteractPromptRef}
         className="doorInteractPrompt"
+        aria-hidden="true"
+      />
+      <div
+        ref={consoleHackPromptRef}
+        className="gameplayHint consoleHackPrompt"
+        role="status"
+        aria-live="polite"
         aria-hidden="true"
       />
       <div

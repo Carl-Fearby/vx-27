@@ -11,9 +11,14 @@ const TOUCH_LOOK_SCALE = 1.35;
 
 /**
  * On-screen twin-stick + action buttons for iPad / touch browsers.
- * @param {{ active?: boolean, inputRef: import("react").RefObject<import("@/lib/player/Input.js").ReturnType<typeof import("@/lib/player/Input.js").createInput> | null>, showInteract?: boolean }} props
+ * @param {{ active?: boolean, inputRef: import("react").RefObject<import("@/lib/player/Input.js").ReturnType<typeof import("@/lib/player/Input.js").createInput> | null>, showInteract?: boolean, showHack?: boolean }} props
  */
-export default function TouchControls({ active = false, inputRef, showInteract = false }) {
+export default function TouchControls({
+  active = false,
+  inputRef,
+  showInteract = false,
+  showHack = false,
+}) {
   const moveRef = useRef(null);
   const lookRef = useRef(null);
   const movePointerId = useRef(null);
@@ -220,6 +225,18 @@ export default function TouchControls({ active = false, inputRef, showInteract =
             }}
           >
             USE
+          </button>
+        ) : showHack ? (
+          <button
+            type="button"
+            className="touchBtn touchBtn--interact touchBtn--interactVisible"
+            aria-label="Hack console"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              input()?.injectVirtualPress("hack");
+            }}
+          >
+            HACK
           </button>
         ) : (
           <button

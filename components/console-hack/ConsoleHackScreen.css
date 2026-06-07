@@ -1,0 +1,1066 @@
+/* NODE BREACH — layout from lib/console-hack/ConsoleHackLayoutTuning.js (1024×576 art). */
+
+.consoleHackBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 22;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  pointer-events: auto;
+}
+
+.consoleHackShell {
+  width: min(96vw, 1024px);
+  aspect-ratio: 1024 / 576;
+  max-height: 92vh;
+  container-type: size;
+  container-name: hack-console;
+}
+
+.consoleHackFrame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: url("/ui/hack-console.png") center / 100% 100% no-repeat;
+  color: #8fe0ff;
+  /* Scale type with frame width — not viewport (fixes misalignment on wide screens). */
+  font-size: clamp(6px, 1.05cqw, 10.5px);
+  font-family: var(--font-futuristic), "Orbitron", "Eurostile", "Rajdhani", sans-serif;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.consoleHackOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.consoleHackSlot {
+  position: absolute;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.consoleHackSlotInner {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.22em;
+  overflow: hidden;
+}
+
+.consoleHackLabel {
+  font-size: 0.92em;
+  font-weight: 600;
+  color: rgba(120, 200, 255, 0.78);
+  line-height: 1.15;
+  flex-shrink: 0;
+}
+
+.consoleHackValue {
+  font-size: 1.05em;
+  font-weight: 700;
+  color: #9ee8ff;
+  line-height: 1.2;
+}
+
+.consoleHackValue--lg {
+  font-size: 1.55em;
+  letter-spacing: 0.1em;
+  line-height: 1.1;
+}
+
+.consoleHackValue--sub {
+  font-size: 0.88em;
+  font-weight: 600;
+  color: rgba(158, 232, 255, 0.82);
+  line-height: 1.15;
+}
+
+.consoleHackValue--list {
+  display: block;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.15;
+  text-wrap: pretty;
+}
+
+.consoleHackHeader {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+}
+
+.consoleHackTitle {
+  margin: 0;
+  font-size: 2.05em;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #b4ecff;
+  text-shadow: 0 0 10px rgba(80, 190, 255, 0.4);
+  line-height: 1.05;
+}
+
+.consoleHackSubtitle {
+  margin: 0.28em 0 0;
+  font-size: 0.95em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: rgba(158, 232, 255, 0.88);
+  line-height: 1.1;
+}
+
+.consoleHackObjectiveCount {
+  position: absolute;
+  right: 8%;
+  bottom: 14%;
+  font-size: 1.05em;
+  font-weight: 700;
+  color: #9ee8ff;
+}
+
+.consoleHackObjectiveLines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12em;
+}
+
+.consoleHackRewardSub {
+  margin-top: 0.08em;
+  letter-spacing: 0.04em;
+}
+
+.consoleHackSecureChannel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28em;
+  margin-top: 0.35em;
+}
+
+.consoleHackLabel--inline {
+  font-size: 0.92em;
+}
+
+.consoleHackLine.consoleHackPulseLine {
+  display: flex;
+  align-items: center;
+  color: var(--hack-value-color, #00c3ff);
+}
+
+.consoleHackStatusPulse {
+  display: grid;
+  grid-template-columns: repeat(44, minmax(0, 1fr));
+  align-items: center;
+  gap: 1px 1px;
+  width: 100%;
+  height: 100%;
+  min-height: 0.32em;
+}
+
+.consoleHackStatusPulse__dot {
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: 100%;
+  justify-self: stretch;
+  align-self: center;
+  background: currentColor;
+  border-radius: 0;
+  opacity: var(--noise-idle, 0.12);
+  box-shadow: 0 0 3px color-mix(in srgb, currentColor 70%, transparent);
+}
+
+.consoleHackStatusPulse--live .consoleHackStatusPulse__dot {
+  animation-duration: var(--noise-dur, 0.16s);
+  animation-delay: var(--noise-delay, 0s);
+  animation-timing-function: steps(1, end);
+  animation-iteration-count: infinite;
+}
+
+.consoleHackStatusPulse--live .consoleHackStatusPulse__dot--v0 {
+  animation-name: consoleHackNoiseFlickerA;
+}
+
+.consoleHackStatusPulse--live .consoleHackStatusPulse__dot--v1 {
+  animation-name: consoleHackNoiseFlickerB;
+}
+
+.consoleHackStatusPulse--live .consoleHackStatusPulse__dot--v2 {
+  animation-name: consoleHackNoiseFlickerC;
+}
+
+.consoleHackStatusPulse--live .consoleHackStatusPulse__dot--v3 {
+  animation-name: consoleHackNoiseFlickerD;
+}
+
+@keyframes consoleHackNoiseFlickerA {
+  0%,
+  62% {
+    opacity: var(--noise-idle, 0.08);
+  }
+  63%,
+  68% {
+    opacity: var(--noise-bright, 1);
+  }
+  69%,
+  84% {
+    opacity: calc(var(--noise-idle, 0.08) * 0.6);
+  }
+  85%,
+  88% {
+    opacity: var(--noise-bright, 1);
+  }
+  89%,
+  100% {
+    opacity: var(--noise-idle, 0.08);
+  }
+}
+
+@keyframes consoleHackNoiseFlickerB {
+  0%,
+  38% {
+    opacity: var(--noise-idle, 0.08);
+  }
+  39%,
+  44% {
+    opacity: var(--noise-bright, 1);
+  }
+  45%,
+  71% {
+    opacity: calc(var(--noise-idle, 0.08) * 1.4);
+  }
+  72%,
+  76% {
+    opacity: var(--noise-bright, 1);
+  }
+  77%,
+  100% {
+    opacity: var(--noise-idle, 0.08);
+  }
+}
+
+@keyframes consoleHackNoiseFlickerC {
+  0%,
+  18% {
+    opacity: var(--noise-bright, 1);
+  }
+  19%,
+  52% {
+    opacity: var(--noise-idle, 0.08);
+  }
+  53%,
+  57% {
+    opacity: var(--noise-bright, 1);
+  }
+  58%,
+  91% {
+    opacity: calc(var(--noise-idle, 0.08) * 0.35);
+  }
+  92%,
+  96% {
+    opacity: var(--noise-bright, 1);
+  }
+  97%,
+  100% {
+    opacity: var(--noise-idle, 0.08);
+  }
+}
+
+@keyframes consoleHackNoiseFlickerD {
+  0%,
+  44% {
+    opacity: calc(var(--noise-idle, 0.08) * 0.45);
+  }
+  45%,
+  49% {
+    opacity: var(--noise-bright, 1);
+  }
+  50%,
+  66% {
+    opacity: var(--noise-idle, 0.08);
+  }
+  67%,
+  73% {
+    opacity: var(--noise-bright, 1);
+  }
+  74%,
+  100% {
+    opacity: calc(var(--noise-idle, 0.08) * 0.8);
+  }
+}
+
+.consoleHackSecureBarsWrap {
+  align-items: flex-end;
+}
+
+.consoleHackSecureBars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: stretch;
+  gap: 0.5px;
+  width: 100%;
+  height: 100%;
+}
+
+.consoleHackSecureBars__bar {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--hack-accent-color, #5ed4ff) 98%, white) 0%,
+    color-mix(in srgb, var(--hack-value-color, #00c3ff) 92%, transparent) 55%,
+    color-mix(in srgb, var(--hack-value-color, #00c3ff) 45%, transparent) 100%
+  );
+  box-shadow: 0 0 3px color-mix(in srgb, var(--hack-value-color, #00c3ff) 45%, transparent);
+  transform-origin: bottom center;
+  transform: scaleY(var(--bar-level, 0.5));
+}
+
+.consoleHackSecureBars--live .consoleHackSecureBars__bar {
+  animation: consoleHackSecureBarDance var(--bar-dur, 0.22s) ease-in-out var(--bar-delay, 0s)
+    infinite alternate;
+}
+
+@keyframes consoleHackSecureBarDance {
+  0% {
+    transform: scaleY(var(--bar-min, 0.2));
+    opacity: 0.5;
+  }
+  100% {
+    transform: scaleY(calc(var(--bar-level) * 1.08));
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .consoleHackStatusPulse--live .consoleHackStatusPulse__dot,
+  .consoleHackSecureBars--live .consoleHackSecureBars__bar {
+    animation: none;
+  }
+}
+
+.consoleHackProgressRow {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  margin-top: auto;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.consoleHackProgressTrack {
+  flex: 1;
+  height: 0.55em;
+  min-height: 3px;
+  background: rgba(0, 40, 70, 0.88);
+  border: 1px solid rgba(94, 200, 255, 0.38);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.consoleHackProgressFill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgb(30, 160, 255) 0%,
+    rgb(90, 210, 255) 50%,
+    rgb(30, 160, 255) 100%
+  );
+  box-shadow: 0 0 6px rgba(70, 200, 255, 0.5);
+}
+
+.consoleHackProgressPct {
+  flex-shrink: 0;
+  font-size: 1em;
+  font-weight: 700;
+  min-width: 2.5em;
+  text-align: right;
+}
+
+.consoleHackGridLabel {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1em;
+  font-weight: 700;
+  color: rgba(176, 236, 255, 0.9);
+  letter-spacing: 0.1em;
+  text-align: center;
+  line-height: 1.08;
+  overflow: hidden;
+  white-space: normal;
+  word-break: break-word;
+  text-wrap: balance;
+}
+
+.consoleHackGridLabel--reward {
+  justify-content: center;
+  text-align: center;
+}
+
+.consoleHackGridArea {
+  position: absolute;
+  right: auto;
+  bottom: auto;
+  box-sizing: border-box;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.consoleHackGridArea--tune {
+  pointer-events: auto;
+  border: 1px dashed var(--hack-accent-color, rgba(120, 200, 255, 0.55));
+  background: var(--hack-value-color, rgba(120, 200, 255, 0.08));
+}
+
+.consoleHackGridArea--selected {
+  z-index: 2;
+}
+
+.consoleHackGridCell {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px dashed rgba(120, 200, 255, 0.16);
+  pointer-events: none;
+}
+
+.consoleHackNodeSprite {
+  position: absolute;
+  right: auto;
+  bottom: auto;
+  box-sizing: border-box;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.consoleHackOverlay--tune .consoleHackNodeSprite.consoleHackTuneBox--interactive {
+  pointer-events: auto;
+}
+
+.consoleHackNodeSprite__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center center;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.consoleHackNodeSprite__zapWrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+/* 360° radial glow — subtle halo behind live nodes */
+.consoleHackNodeSprite__glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    circle,
+    rgba(100, 220, 255, 0.4) 0%,
+    rgba(60, 180, 255, 0.15) 42%,
+    transparent 70%
+  );
+  transform: translate(-50%, -50%) scale(0.92);
+  transform-origin: center center;
+  animation-name: consoleHackNodeGlowPulse;
+  animation-duration: var(--pulse-dur, 2.8s);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-delay: var(--pulse-delay, 0s);
+  will-change: opacity, transform;
+}
+
+.consoleHackNodeSprite__zapWrap .consoleHackNodeSprite__img--pulse {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+}
+
+.consoleHackNodeSprite__bolt {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  width: 54%;
+  height: 84%;
+  margin-left: -27%;
+  margin-top: -42%;
+  color: #b8f0ff;
+  pointer-events: none;
+  opacity: 0;
+  transform: rotate(var(--lightning-rot, -18deg)) scale(0.48);
+  transform-origin: center center;
+  filter: drop-shadow(0 0 3px rgba(120, 220, 255, 0.85))
+    drop-shadow(0 0 7px rgba(70, 180, 255, 0.5));
+  animation: consoleHackNodeBoltStrike var(--lightning-dur, 8s) linear infinite;
+  animation-delay: var(--lightning-delay, 0s);
+  will-change: opacity, transform;
+}
+
+.consoleHackNodeSprite__img--pulse {
+  animation-name: consoleHackNodeZapLive;
+  animation-duration: var(--pulse-dur, 2.8s);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-delay: var(--pulse-delay, 0s);
+  will-change: transform, opacity, filter;
+}
+
+.consoleHackNodeSprite__img--fade {
+  animation-name: consoleHackNodeDeadFade;
+  animation-duration: 6s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: opacity;
+}
+
+@keyframes consoleHackNodeGlowPulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translate(-50%, -50%) scale(0.88);
+  }
+  50% {
+    opacity: 0.65;
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+}
+
+@keyframes consoleHackNodeZapLive {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(0.96);
+    filter: drop-shadow(0 0 2px rgba(70, 190, 255, 0.28))
+      drop-shadow(0 0 6px rgba(60, 180, 255, 0.14));
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px rgba(100, 220, 255, 0.56))
+      drop-shadow(0 0 12px rgba(60, 180, 255, 0.28));
+  }
+}
+
+@keyframes consoleHackNodeBoltStrike {
+  0%,
+  77%,
+  100% {
+    opacity: 0;
+    transform: rotate(var(--lightning-rot, -18deg)) scale(0.48) translateY(6%);
+  }
+  78% {
+    opacity: 1;
+    transform: rotate(var(--lightning-rot, -18deg)) scale(0.82) translateY(0);
+  }
+  79% {
+    opacity: 0.08;
+    transform: rotate(var(--lightning-rot, -18deg)) scale(0.76) translateY(1%);
+  }
+  80% {
+    opacity: 1;
+    transform: rotate(var(--lightning-rot, -18deg)) scale(0.86) translateY(-2%);
+  }
+  82% {
+    opacity: 0;
+    transform: rotate(var(--lightning-rot, -18deg)) scale(0.7) translateY(2%);
+  }
+}
+
+@keyframes consoleHackNodeDeadFade {
+  0%,
+  100% {
+    opacity: 0.68;
+  }
+  50% {
+    opacity: 0.92;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .consoleHackNodeSprite__glow,
+  .consoleHackNodeSprite__bolt,
+  .consoleHackNodeSprite__img--pulse,
+  .consoleHackNodeSprite__img--fade {
+    animation: none;
+  }
+}
+
+.consoleHackRewardList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.38em;
+}
+
+.consoleHackRewardList li {
+  font-size: 1em;
+  font-weight: 700;
+  color: #9ee8ff;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.consoleHackFooter {
+  position: absolute;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  align-content: center;
+  gap: 0.35em 0.65em;
+  overflow: hidden;
+}
+
+.consoleHackFooterGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  font-size: 0.88em;
+  font-weight: 600;
+  color: rgba(158, 232, 255, 0.85);
+  white-space: nowrap;
+}
+
+.consoleHackKey {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35em;
+  padding: 0.06em 0.24em;
+  border: 1px solid rgba(94, 200, 255, 0.42);
+  border-radius: 2px;
+  background: rgba(20, 60, 90, 0.55);
+  color: #c8f2ff;
+  font-size: 0.95em;
+  line-height: 1.15;
+}
+
+/* —— Per-line overlay —— */
+
+.consoleHackLine {
+  position: absolute;
+  right: auto;
+  bottom: auto;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.consoleHackLine--center {
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+}
+
+.consoleHackLine.consoleHackTitle {
+  text-shadow: 0 0 10px rgba(80, 190, 255, 0.4);
+  letter-spacing: 0.16em;
+  line-height: 1.05;
+}
+
+.consoleHackLine.consoleHackSubtitle {
+  letter-spacing: 0.12em;
+  line-height: 1.1;
+}
+
+.consoleHackLine.consoleHackFooterGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  white-space: nowrap;
+}
+
+.consoleHackLine.consoleHackProgressRow {
+  display: flex;
+  align-items: center;
+}
+
+.consoleHackLine.consoleHackProgressRow .consoleHackProgressTrack {
+  width: 100%;
+}
+
+.consoleHackLine.consoleHackSecureBarsWrap {
+  display: flex;
+  align-items: flex-end;
+}
+
+.consoleHackLine.consoleHackIconLine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hack-value-color, #00c3ff);
+}
+
+.consoleHackIcon {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.consoleHackTuneTextBlock.consoleHackIconLine {
+  color: var(--hack-value-color, #00c3ff);
+}
+
+.consoleHackRewardsGrid--tune {
+  display: contents;
+}
+
+.consoleHackRewardsGrid--flow {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.28em;
+  container-type: inline-size;
+  container-name: hack-rewards;
+}
+
+.consoleHackRewardsGrid__label {
+  width: 100%;
+  text-align: center;
+  justify-content: center;
+}
+
+.consoleHackRewardsGrid__items {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.24em;
+  width: 100%;
+}
+
+.consoleHackRewardRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28em 0.4em;
+  width: 100%;
+}
+
+.consoleHackRewardsGrid--tune .consoleHackRewardRow {
+  display: contents;
+}
+
+.consoleHackLine--flow {
+  position: static;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  top: auto;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  white-space: normal;
+}
+
+.consoleHackLine--flow.consoleHackRewardIconLine {
+  width: 1.15em;
+  height: 1.15em;
+  flex-shrink: 0;
+}
+
+.consoleHackLine--flow.consoleHackValue--list {
+  flex: 1 1 6em;
+  min-width: 0;
+  text-align: center;
+}
+
+.consoleHackLine.consoleHackGridLabel {
+  white-space: normal;
+  text-align: center;
+  justify-content: center;
+}
+
+@container hack-rewards (max-width: 7.5em) {
+  .consoleHackRewardsGrid__items {
+    align-items: center;
+  }
+
+  .consoleHackRewardRow {
+    justify-content: center;
+  }
+
+  .consoleHackLine--flow.consoleHackValue--list {
+    flex-basis: 100%;
+    text-align: center;
+  }
+}
+
+.consoleHackLine.consoleHackRewardIconLine {
+  color: var(--hack-value-color, #ffd84a);
+}
+
+.consoleHackRewardIcon {
+  filter: drop-shadow(0 0 3px rgba(255, 210, 60, 0.45));
+}
+
+/* —— Layout tuning wizard —— */
+
+.consoleHackOverlay--tune {
+  pointer-events: auto;
+}
+
+.consoleHackTuneBox {
+  position: absolute;
+  right: auto;
+  bottom: auto;
+  box-sizing: border-box;
+}
+
+.consoleHackTuneBox--interactive {
+  cursor: move;
+  pointer-events: auto;
+  outline: 1px dashed rgba(140, 210, 255, 0.18);
+  outline-offset: 0;
+}
+
+.consoleHackTuneBox--selected {
+  outline: 1px dashed rgba(160, 225, 255, 0.38);
+  outline-offset: 0;
+  z-index: 3;
+}
+
+.consoleHackResizeHandle {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+  background: rgba(140, 210, 255, 0.45);
+  border: 1px solid rgba(160, 225, 255, 0.35);
+  cursor: nwse-resize;
+  z-index: 4;
+  pointer-events: auto;
+}
+
+.consoleHackTuneTextBlock {
+  font-size: calc(1em * var(--hack-font-scale, 1));
+}
+
+.consoleHackTuneTextBlock.consoleHackLabel,
+.consoleHackTuneTextBlock .consoleHackLabel {
+  color: var(--hack-label-color, rgba(120, 200, 255, 0.78));
+}
+
+.consoleHackTuneTextBlock.consoleHackValue,
+.consoleHackTuneTextBlock.consoleHackProgressPct,
+.consoleHackTuneTextBlock .consoleHackValue,
+.consoleHackTuneTextBlock .consoleHackProgressPct {
+  color: var(--hack-value-color, #9ee8ff);
+}
+
+.consoleHackTuneTextBlock.consoleHackValue--sub,
+.consoleHackTuneTextBlock .consoleHackValue--sub {
+  color: var(--hack-value-color, rgba(158, 232, 255, 0.82));
+}
+
+.consoleHackTuneTextBlock.consoleHackTitle,
+.consoleHackTuneTextBlock .consoleHackTitle {
+  color: var(--hack-accent-color, #b4ecff);
+}
+
+.consoleHackTuneTextBlock.consoleHackSubtitle,
+.consoleHackTuneTextBlock .consoleHackSubtitle {
+  color: var(--hack-value-color, rgba(158, 232, 255, 0.88));
+}
+
+.consoleHackTuneTextBlock.consoleHackGridLabel,
+.consoleHackTuneTextBlock .consoleHackGridLabel {
+  color: var(--hack-value-color, rgba(176, 236, 255, 0.9));
+}
+
+.consoleHackTuneTextBlock.consoleHackFooterGroup,
+.consoleHackTuneTextBlock .consoleHackFooterGroup {
+  color: var(--hack-label-color, rgba(158, 232, 255, 0.85));
+}
+
+.consoleHackTuneTextBlock .consoleHackKey {
+  color: var(--hack-accent-color, #c8f2ff);
+}
+
+.consoleHackTuneTextBlock.consoleHackPulseLine {
+  color: var(--hack-value-color, #00c3ff);
+}
+
+aside.consoleHackTunePanel.weaponTunePanel {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  left: auto;
+  bottom: auto;
+  z-index: 130;
+  max-height: min(92vh, calc(100vh - 2rem));
+  overflow-y: auto;
+}
+
+.consoleHackTunePanel .poseControl {
+  padding: 0.3rem 0.4rem;
+}
+
+.consoleHackTunePanel .poseNumber,
+.consoleHackTunePanel .poseRange {
+  touch-action: manipulation;
+}
+
+.consoleHackTunePanelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.consoleHackTunePanelHead--draggable {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.consoleHackTunePanel--dragging .consoleHackTunePanelHead--draggable {
+  cursor: grabbing;
+}
+
+.consoleHackTunePanelHead h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.consoleHackTuneClose {
+  flex-shrink: 0;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid #4a4a58;
+  background: #2a2a34;
+  color: #eee;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+
+.consoleHackTuneHint {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: rgba(210, 210, 220, 0.82);
+}
+
+.consoleHackTuneField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.78rem;
+}
+
+.consoleHackTuneField span em {
+  font-style: normal;
+  opacity: 0.75;
+}
+
+.consoleHackTuneField select,
+.consoleHackTuneText {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid #4a4a58;
+  background: #1e1e28;
+  color: #eee;
+  font-size: 0.78rem;
+}
+
+.consoleHackTuneColorRow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.consoleHackTuneColorRow input[type="color"] {
+  width: 2rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 1px solid #4a4a58;
+  background: transparent;
+  cursor: pointer;
+}
+
+.consoleHackTuneSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid #3a3a48;
+}
+
+.consoleHackTuneSection h3 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.consoleHackTuneActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #3a3a48;
+}
+
+.consoleHackTuneBtn {
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #4a4a58;
+  background: #2a2a34;
+  color: #eee;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+
+.consoleHackTuneBtn--danger {
+  border-color: rgba(180, 70, 70, 0.55);
+  color: #ffb0b0;
+}

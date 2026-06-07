@@ -1,8 +1,33 @@
 {
-  "generatedAt": "2026-06-07T01:31:01.995Z",
-  "head": "8fd17ed",
-  "count": 137,
+  "generatedAt": "2026-06-07T19:41:49.246Z",
+  "head": "934eafa",
+  "count": 142,
   "commits": [
+    {
+      "sha": "934eafa",
+      "date": "2026-06-07",
+      "subject": "Fix v0.1.36 release commit hash in version history."
+    },
+    {
+      "sha": "58ace08",
+      "date": "2026-06-07",
+      "subject": "Release v0.1.36: Viewmodel receives world shadows."
+    },
+    {
+      "sha": "bb3110a",
+      "date": "2026-06-07",
+      "subject": "Fix v0.1.35 release commit hash in version history."
+    },
+    {
+      "sha": "cd97cd8",
+      "date": "2026-06-07",
+      "subject": "Release v0.1.35: Container viewmodel lighting zones."
+    },
+    {
+      "sha": "1a0e8bd",
+      "date": "2026-06-07",
+      "subject": "Refresh git commit history after deploy prebuild."
+    },
     {
       "sha": "8fd17ed",
       "date": "2026-06-07",

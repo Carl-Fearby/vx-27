@@ -166,6 +166,11 @@ import {
 } from "@/lib/control-panel/ControlPanelHackInteract";
 import ConsoleHackScreen from "@/components/ConsoleHackScreen";
 import {
+  loadConsoleHackLayout,
+  loadConsoleHackTuneEnabled,
+  saveConsoleHackTuneEnabled,
+} from "@/lib/console-hack/ConsoleHackLayoutTuning.js";
+import {
   loadVx27ContainerMaterialTuning,
   normalizeVx27ContainerMaterialTuning,
 } from "@/lib/vx27-container/Vx27ContainerMaterialTuning";
@@ -876,6 +881,11 @@ export default function FpsGame() {
   const consoleHackOpenRef = useRef(false);
   const consoleHackPanelRef = useRef(null);
   const consoleHackPromptRef = useRef(null);
+  const consoleHackLayoutRef = useRef(loadConsoleHackLayout());
+  const [consoleHackLayout, setConsoleHackLayout] = useState(() => loadConsoleHackLayout());
+  const [consoleHackTuneEnabled, setConsoleHackTuneEnabled] = useState(() =>
+    loadConsoleHackTuneEnabled()
+  );
   const [rebindAction, setRebindAction] = useState(null);
   const bindingsRef = useRef(loadBindings());
   const settingsOpenRef = useRef(false);
@@ -2846,6 +2856,9 @@ export default function FpsGame() {
             hackTarget.group.userData.controlPanelPropId ?? null
           );
           setConsoleHackPanelLabel(getControlPanelHackLabel(hackTarget.group));
+          const hackLayout = loadConsoleHackLayout();
+          consoleHackLayoutRef.current = hackLayout;
+          setConsoleHackLayout(hackLayout);
           setConsoleHackOpen(true);
           updateControlPanelHackPrompt(consoleHackPromptRef.current, bindingsRef.current, false);
           safeExitPointerLock();
@@ -4061,6 +4074,16 @@ export default function FpsGame() {
         )}
       <ConsoleHackScreen
         open={consoleHackOpen}
+        tuneEnabled={consoleHackTuneEnabled}
+        layout={consoleHackLayout}
+        onLayoutChange={(next) => {
+          consoleHackLayoutRef.current = next;
+          setConsoleHackLayout(next);
+        }}
+        onTuneClose={() => {
+          setConsoleHackTuneEnabled(false);
+          saveConsoleHackTuneEnabled(false);
+        }}
         panelId={consoleHackPanelId}
         panelLabel={consoleHackPanelLabel}
         onClose={() => {
@@ -4659,6 +4682,23 @@ export default function FpsGame() {
               <p className="settingsHint" style={{ marginTop: 0 }}>
                 Align the magazine round counter on the receiver blank. Copy JSON
                 when positioned, then turn off the wizard.
+              </p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={consoleHackTuneEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setConsoleHackTuneEnabled(enabled);
+                    saveConsoleHackTuneEnabled(enabled);
+                  }}
+                />
+                Console hack layout wizard
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Open the NODE BREACH console at a control panel (H), then click
+                individual text lines to move, resize, and recolour them. Copy JSON when
+                aligned.
               </p>
               <p className="settingsGroupLabel">Level</p>
               <div className="sliderRow">

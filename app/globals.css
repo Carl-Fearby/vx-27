@@ -2597,11 +2597,6 @@ body {
   opacity: 1;
 }
 
-.consoleHackBackdrop {
-  z-index: 22;
-}
-
-
 .weaponRoundDisplayTunePanel {
   top: 1rem;
   right: calc(1rem + min(17.5rem, calc(100vw - 2rem)) + 0.75rem);

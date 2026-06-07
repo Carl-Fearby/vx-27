@@ -68,8 +68,10 @@ import {
   findFloorExtensionFootprintAtZ,
   FLOOR_EXTENSION_WALK_PAD,
   isIndoorLightingZone,
-  resolveViewmodelIndoorLightingZone,
 } from "@/lib/rooms/RoomPlacement";
+import {
+  resolveViewmodelLightingZone,
+} from "@/lib/lighting/LightingZones";
 import { buildRoomCullables, updateRoomCulling } from "@/lib/rooms/RoomCulling";
 import {
   initCandleFlicker,
@@ -3424,31 +3426,29 @@ export default function FpsGame() {
         // feet / door threshold only — not raw frustum (service-room bbox is huge).
         const inRoomPass =
           interiorLevelFrame || inRoomBody || visibleRoomCount > 0;
-        const inRoomViewmodel =
-          interiorLevelFrame ||
-          resolveViewmodelIndoorLightingZone(
-            inRoomBody,
-            visibleRoomCount,
-            player.getX(),
-            player.getZ(),
-            arena.rooms,
-            arena.floorExtensions ?? [],
-            arenaHalf,
-            attachWall,
-            arena.wallThickness ?? 0.5,
-            undefined,
-            player.getFootY(),
-            level.catwalkDeckY
-          );
+        const viewmodelLightingZone =
+          interiorLevelFrame
+            ? "room"
+            : resolveViewmodelLightingZone({
+                x: player.getX(),
+                z: player.getZ(),
+                footY: player.getFootY(),
+                rooms: arena.rooms,
+                arenaHalf,
+                attachWall,
+                arenaWallThickness: arena.wallThickness ?? 0.5,
+                catwalkDeckY: level.catwalkDeckY,
+                colliders: allColliders,
+              });
         syncLightLayersForZone(
           scene,
-          inRoomViewmodel,
+          viewmodelLightingZone,
           outdoorLights,
           roomLightsRef.current
         );
         syncOilBarrelFireLightLayers(
           oilBarrelFireLightsRef.current,
-          inRoomViewmodel
+          viewmodelLightingZone === "room"
         );
 
         const barrelFireShadowCount = updateOilBarrelFireShadowBudget(

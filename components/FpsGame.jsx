@@ -113,7 +113,10 @@ import {
   PRIMARY_WEAPONS,
   resolveFireModeForWeapon,
 } from "@/lib/weapons/PrimaryWeapons";
-import { wasPrimaryTogglePressed } from "@/lib/weapons/PrimaryWeaponSlots";
+import {
+  getPrimaryWeaponIdFromSlotInput,
+  wasPrimarySwapPressed,
+} from "@/lib/weapons/PrimaryWeaponSlots";
 import {
   DEFAULT_PISTOL_ADS_POSE,
   DEFAULT_PISTOL_HIP_POSE,
@@ -2884,6 +2887,7 @@ export default function FpsGame() {
             persistActiveAmmo();
             setActivePrimaryWeaponView(id);
             loadActiveAmmo(id);
+            primaryWeapons[id]?.replayRaise?.();
           });
 
           const cfg = getActiveWeaponConfig();
@@ -2897,6 +2901,8 @@ export default function FpsGame() {
             roundCount: rounds,
             roundDisplayLow:
               rounds < cfg.lowAmmoThreshold || (rounds === 0 && spare === 0),
+            roundDisplayHp: playerHealthRef.current,
+            roundDisplayStamina: player.getStamina(),
             roundDisplayTuningRef,
           });
           for (const id of ["rifle", "pistol"]) {
@@ -2964,11 +2970,14 @@ export default function FpsGame() {
           !controlsOpenRef.current &&
           !weaponSwap.isBusy()
         ) {
-          const togglePrimary =
-            wasPrimaryTogglePressed(input) ||
-            wasBindingPressed(input, bindingsRef.current, "swapWeapon");
-          if (togglePrimary) {
-            const nextId = getOtherPrimaryWeaponId(activePrimaryId);
+          const slotPick = getPrimaryWeaponIdFromSlotInput(input);
+          const swapToggle =
+            wasBindingPressed(input, bindingsRef.current, "swapWeapon") ||
+            wasPrimarySwapPressed(input);
+          const nextId =
+            slotPick ??
+            (swapToggle ? getOtherPrimaryWeaponId(activePrimaryId) : null);
+          if (nextId && nextId !== activePrimaryId) {
             persistActiveAmmo();
             weaponSwap.requestSwap(nextId, activePrimaryId, primaryWeapons);
           }

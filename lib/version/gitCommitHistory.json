@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-06T23:33:11.938Z",
-  "head": "85f5f6c",
-  "count": 130,
+  "generatedAt": "2026-06-07T00:47:48.923Z",
+  "head": "90e73c9",
+  "count": 132,
   "commits": [
+    {
+      "sha": "90e73c9",
+      "date": "2026-06-07",
+      "subject": "Fix v0.1.32 release commit hash in version history."
+    },
+    {
+      "sha": "63caa9e",
+      "date": "2026-06-07",
+      "subject": "Release v0.1.32: Primary weapons, pistol swap, and HUD weapon stack."
+    },
     {
       "sha": "85f5f6c",
       "date": "2026-06-06",

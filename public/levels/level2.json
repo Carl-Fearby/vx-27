@@ -18,10 +18,11 @@
   "stairs": false,
   "wallStandoff": 0.45,
   "playerSpawn": {
-    "x": 0,
-    "z": 38,
-    "yaw": 3.14159265,
-    "note": "South end of corridor, facing the bulkhead at −Z"
+    "x": 0.8,
+    "z": 3.906,
+    "y": 1.65,
+    "yaw": 0.842719,
+    "note": "Corridor start — foot Y 0, eye 1.65, yaw 48.3°"
   },
   "corridor": {
     "width": 4,

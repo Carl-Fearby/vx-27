@@ -361,6 +361,7 @@ body {
 .gameRoot .hudHealthBar,
 .gameRoot .hudMissionInfo,
 .gameRoot .hudDamageVignette,
+.gameRoot .hudPrimaryWeapon,
 .gameRoot .hudSecondWeapon,
 .gameRoot .topRightHud,
 .gameRoot .hudPlayerCoords,
@@ -386,6 +387,7 @@ body {
 .gameHudHidden .hudHealthBar,
 .gameHudHidden .hudMissionInfo,
 .gameHudHidden .hudDamageVignette,
+.gameHudHidden .hudPrimaryWeapon,
 .gameHudHidden .hudSecondWeapon,
 .gameHudHidden .topRightHud,
 .gameHudHidden .killCalloutLayer,
@@ -448,7 +450,8 @@ body {
   position: fixed;
   bottom: 0.8rem;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) scale(var(--hud-bar-scale, 1));
+  transform-origin: center bottom;
   z-index: 15;
   width: min(44rem, 76vw);
   aspect-ratio: 2178 / 405;
@@ -495,7 +498,7 @@ body {
 
 .hudAmmoLabel {
   font-family: var(--font-futuristic), "Orbitron", "Eurostile", "Rajdhani", sans-serif;
-  font-size: clamp(0.5rem, 1.1vw, 0.8rem);
+  font-size: calc(clamp(0.5rem, 1.1vw, 0.8rem) * var(--hud-label-scale, 1));
   transform: translateY(var(--hud-label-y, 0px));
   font-weight: 700;
   letter-spacing: 0.2em;
@@ -1633,7 +1636,7 @@ body {
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
 }
 
-/* === Radar — bottom left ================================================== */
+/* === Radar — removed (was bottom left) ================================== */
 .hudRadar {
   position: fixed;
   bottom: 1.5rem;
@@ -1705,6 +1708,7 @@ body {
   background: rgba(120, 200, 255, 0.9);
 }
 
+/* Hip — simple white cross (rifle ADS swaps to WebGL gun reticule; pistol keeps this). */
 .crosshair {
   position: fixed;
   left: 50%;
@@ -2393,6 +2397,147 @@ body {
 .hudSecondWeaponEmpty {
 }
 
+/* === Primary weapons — bottom left (mirror of .hudSecondWeapon) ========= */
+.hudPrimaryWeapon {
+  position: fixed;
+  left: 2.4rem;
+  bottom: 2.2rem;
+  z-index: 15;
+  pointer-events: none;
+  transform: translate(var(--grenade-frame-x, -17px), var(--grenade-frame-y, 15px));
+}
+
+.hudPrimaryWeaponSlots {
+  position: relative;
+  width: var(--grenade-frame-w, min(12.3rem, 27.5vw));
+  --weapon-slot-h: calc(var(--grenade-frame-w, min(12.3rem, 27.5vw)) * 180 / 600);
+  min-height: var(--weapon-slot-h);
+  overflow: visible;
+  transform: scale(var(--grenade-frame-scale, 1));
+  transform-origin: bottom left;
+}
+
+.hudPrimaryWeaponFrame {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  aspect-ratio: 600 / 180;
+  transform-origin: bottom left;
+  transform: translate(var(--slot-x, 0px), var(--slot-y, 0px))
+    scale(var(--slot-scale, 1));
+  z-index: var(--slot-z, 1);
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hudPrimaryWeaponFrame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/ui/second-weapon.webp") center / 100% 100% no-repeat;
+  transform: scaleX(-1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hudPrimaryWeaponFrame--selected {
+  z-index: 4;
+}
+
+.hudPrimaryWeaponKey {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 22%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-futuristic), "Orbitron", "Eurostile", "Rajdhani", sans-serif;
+  font-size: clamp(0.94rem, 2vw, 1.25rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  transform: translate(calc(-1 * var(--grenade-key-x, 2px)), var(--grenade-key-y, 0px))
+    scale(var(--grenade-key-scale, 1.49));
+  transform-origin: center;
+  color: #7ec8ff;
+  z-index: 1;
+}
+
+.hudPrimaryWeaponBody {
+  position: absolute;
+  left: 2%;
+  right: 22%;
+  top: 8%;
+  bottom: 8%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: 1fr 1fr;
+  align-items: center;
+  column-gap: 0.35rem;
+  z-index: 1;
+}
+
+.hudPrimaryWeaponIcon {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  width: clamp(1.25rem, 2.5vw, 1.7rem);
+  height: clamp(1.25rem, 2.5vw, 1.7rem);
+  object-fit: contain;
+  transform: translate(calc(-1 * var(--grenade-icon-x, 11px)), var(--grenade-icon-y, 1px))
+    scale(var(--grenade-icon-scale, 0.91));
+  transform-origin: center right;
+}
+
+.hudPrimaryWeaponIcon--placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.hudPrimaryWeaponLabel {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  justify-self: start;
+  text-align: left;
+  font-family: var(--font-futuristic), "Orbitron", "Eurostile", "Rajdhani", sans-serif;
+  font-size: clamp(0.4rem, 0.8vw, 0.56rem);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transform: translate(calc(-1 * var(--grenade-label-x, -13px)), var(--grenade-label-y, 10px))
+    scale(var(--grenade-label-scale, 1));
+  transform-origin: left top;
+  color: rgba(180, 210, 240, 0.85);
+}
+
+.hudPrimaryWeaponCount {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: end;
+  justify-self: start;
+  text-align: left;
+  font-family: var(--font-futuristic), "Orbitron", "Eurostile", "Rajdhani", sans-serif;
+  font-size: clamp(0.9rem, 1.9vw, 1.2rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  transform: translate(calc(-1 * var(--grenade-count-x, -10px)), var(--grenade-count-y, -6px))
+    scale(var(--grenade-count-scale, 1.15));
+  transform-origin: left bottom;
+  color: #8fd0ff;
+}
+
+.hudPrimaryWeaponEmpty .hudPrimaryWeaponKey,
+.hudPrimaryWeaponEmpty .hudPrimaryWeaponCount {
+  color: rgb(255, 90, 70);
+}
+
+.hudPrimaryWeaponEmpty .hudPrimaryWeaponIcon {
+  opacity: 0.65;
+}
+
 .crosshairVisible {
   opacity: 0.85;
 }
@@ -2405,6 +2550,29 @@ body {
 .crosshairDoorTarget::after {
   background: rgba(120, 230, 255, 1);
   box-shadow: 0 0 8px rgba(80, 200, 255, 0.85);
+}
+
+.crosshair::before,
+.crosshair::after {
+  content: "";
+  position: absolute;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.crosshair::before {
+  left: 50%;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  margin-left: -1px;
+}
+
+.crosshair::after {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  margin-top: -1px;
 }
 
 .doorInteractPrompt {
@@ -2433,45 +2601,83 @@ body {
   z-index: 22;
 }
 
-.crosshair::before,
-.crosshair::after {
-  content: "";
-  position: absolute;
-  background: rgba(255, 255, 255, 0.9);
+
+.weaponRoundDisplayTunePanel {
+  top: 1rem;
+  right: calc(1rem + min(17.5rem, calc(100vw - 2rem)) + 0.75rem);
 }
 
-.crosshair::before {
-  left: 50%;
-  top: 0;
-  width: 2px;
-  height: 100%;
-  margin-left: -1px;
-}
-
-.crosshair::after {
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  margin-top: -1px;
+@media (max-width: 720px) {
+  .weaponRoundDisplayTunePanel {
+    top: auto;
+    bottom: 1rem;
+    right: 1rem;
+    max-height: min(42vh, calc(50vh - 1rem));
+  }
 }
 
 .weaponTunePanel {
   position: fixed;
   top: 1rem;
   right: 1rem;
-  z-index: 15;
+  z-index: 120;
   pointer-events: auto;
-  width: min(14.5rem, calc(100vw - 2rem));
-  max-height: calc(100vh - 2rem);
-  overflow-y: auto;
+  touch-action: pan-y;
+  width: min(17.5rem, calc(100vw - 2rem));
+  max-height: min(88vh, calc(100vh - 2rem));
+  overflow: hidden;
   padding: 0.65rem;
   border-radius: 10px;
   background: rgba(18, 18, 24, 0.98);
   border: 1px solid #3a3a48;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.35rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+.pistolTunePanel {
+  top: auto;
+  bottom: 1rem;
+  max-height: min(72vh, calc(100vh - 2rem));
+}
+
+.weaponTunePanelHeader {
+  flex-shrink: 0;
+}
+
+.weaponTunePanelScroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-right: 0.15rem;
+}
+
+.weaponTunePanelScroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.weaponTunePanelScroll::-webkit-scrollbar-thumb {
+  background: rgba(120, 120, 140, 0.45);
+  border-radius: 3px;
+}
+
+.weaponTunePanelFooter {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.weaponTunePanel .poseNumber,
+.weaponTunePanel input[type="range"] {
+  touch-action: manipulation;
+  user-select: auto;
+  -webkit-user-select: auto;
 }
 
 
@@ -2732,31 +2938,52 @@ body {
   background: rgba(12, 12, 18, 0.94);
 }
 
-.hudTunePanel--bottomDock .hudTuneHeader {
+.hudTunePanel--topDock {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
+  width: 100%;
+  max-width: none;
+  z-index: 90;
+  border-radius: 0 0 10px 10px;
+  border-top: none;
+  padding: max(0.5rem, env(safe-area-inset-top, 0px)) 0.65rem 0.45rem;
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.5);
+  background: rgba(12, 12, 18, 0.94);
+}
+
+.hudTunePanel--bottomDock .hudTuneHeader,
+.hudTunePanel--topDock .hudTuneHeader {
   margin-bottom: 0.2rem;
 }
 
-.hudTunePanel--bottomDock .hudTuneBody {
+.hudTunePanel--bottomDock .hudTuneBody,
+.hudTunePanel--topDock .hudTuneBody {
   max-height: min(34vh, 260px);
   overflow-x: auto;
   overflow-y: auto;
 }
 
-.hudTunePanel--bottomDock .hudTuneBody--row {
+.hudTunePanel--bottomDock .hudTuneBody--row,
+.hudTunePanel--topDock .hudTuneBody--row {
   flex-wrap: nowrap;
   align-items: stretch;
   width: max-content;
   min-width: 100%;
 }
 
-.hudTunePanel--bottomDock .hudTuneBody--row .hudTuneGroup {
+.hudTunePanel--bottomDock .hudTuneBody--row .hudTuneGroup,
+.hudTunePanel--topDock .hudTuneBody--row .hudTuneGroup {
   flex: 0 0 auto;
   min-width: 10.5rem;
   max-height: min(30vh, 220px);
   overflow-y: auto;
 }
 
-.hudTunePanel--bottomDock .hudTuneGroup--layers {
+.hudTunePanel--bottomDock .hudTuneGroup--layers,
+.hudTunePanel--topDock .hudTuneGroup--layers {
   min-width: 12.5rem;
 }
 
@@ -2864,7 +3091,8 @@ body {
 
 .stairTunePanel .poseControl,
 .walkBobTunePanel .poseControl,
-.stairWalkTunePanel .poseControl {
+.stairWalkTunePanel .poseControl,
+.weaponTunePanel .poseControl {
   padding: 0.35rem 0.45rem;
 }
 
@@ -3068,6 +3296,14 @@ body {
   bottom: max(5.25rem, calc(env(safe-area-inset-bottom, 0px) + 4.75rem));
   transform: translateX(-50%) scale(0.84);
   transform-origin: bottom center;
+}
+
+.gameRoot--touch .hudPrimaryWeapon {
+  left: max(0.65rem, env(safe-area-inset-left, 0px));
+  bottom: max(5rem, calc(env(safe-area-inset-bottom, 0px) + 4.5rem));
+  transform: translate(var(--grenade-frame-x, -17px), var(--grenade-frame-y, 15px))
+    scale(0.82);
+  transform-origin: bottom left;
 }
 
 .gameRoot--touch .hudSecondWeapon {

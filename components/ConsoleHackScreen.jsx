@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Full-screen console hack UI — logic TBD; opens from nearby control panels (H).
+ * Full-screen console hack UI — logic TBD; opens from nearby control panels (H key).
  */
 export default function ConsoleHackScreen({ open, panelId, panelLabel, onClose }) {
   if (!open) return null;

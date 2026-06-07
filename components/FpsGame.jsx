@@ -45,6 +45,8 @@ import {
   fitDirectionalLightShadow,
   fitMoonDirectionalLightShadow,
   registerOutdoorLightsForDayNight,
+  renderCrosshairPass,
+  renderViewmodelPass,
   renderSceneWithLayeredLighting,
   resetLightingZoneCache,
   resetCameraRenderLayers,
@@ -98,7 +100,28 @@ import {
   tickGameplayHintDisplay,
 } from "@/lib/ui/GameplayHints.js";
 import { initPickupPreviewEngine } from "@/lib/pickups/PickupPreviewEngine";
-import { getLaserPalette, loadViewWeapon } from "@/lib/weapons/ViewWeapon";
+import {
+  getLaserPalette,
+  loadViewWeapon,
+  resolveAimBlendSpeed,
+} from "@/lib/weapons/ViewWeapon";
+import {
+  createDefaultAmmoPool,
+  createDefaultFireModePool,
+  getOtherPrimaryWeaponId,
+  getPrimaryWeaponConfig,
+  PRIMARY_WEAPONS,
+  resolveFireModeForWeapon,
+} from "@/lib/weapons/PrimaryWeapons";
+import { wasPrimaryTogglePressed } from "@/lib/weapons/PrimaryWeaponSlots";
+import {
+  DEFAULT_PISTOL_ADS_POSE,
+  DEFAULT_PISTOL_HIP_POSE,
+  loadPistolTuneEnabled,
+  loadPistolTuning,
+  savePistolTuneEnabled,
+} from "@/lib/weapons/PistolTuning";
+import { createWeaponSwapController } from "@/lib/weapons/WeaponSwap";
 import {
   spawnAmmoDrop, updateAmmoDrops,
   disposeAllAmmoDrops,
@@ -240,10 +263,29 @@ import {
   DEFAULT_BODY_LOOK_DOWN_AMOUNT,
   DEFAULT_BODY_LOOK_UP_AMOUNT,
   DEFAULT_HIP_POSE,
-  loadBodyLookDownAmount,
-  loadBodyLookUpAmount,
+  DEFAULT_MAX_LOOK_RATE,
+  LOOK_MAX_RATE_KEY,
+  loadLookTuning,
+  loadWeaponTuneEnabled,
   loadWeaponTuning,
+  saveWeaponTuneEnabled,
 } from "@/lib/weapons/WeaponTuning";
+import { createScreenCrosshair } from "@/lib/ui/ScreenCrosshair";
+import {
+  DEFAULT_CROSSHAIR_TUNING,
+  loadCrosshairTuning,
+} from "@/lib/weapons/CrosshairTuning";
+import PistolTunePanel from "@/components/tuning-panels/PistolTunePanel";
+import WeaponTunePanel from "@/components/tuning-panels/WeaponTunePanel";
+import WeaponRoundDisplayTunePanel from "@/components/tuning-panels/WeaponRoundDisplayTunePanel";
+import {
+  DEFAULT_AIM_ROUND_DISPLAY,
+  DEFAULT_HIP_ROUND_DISPLAY,
+  loadWeaponRoundDisplayTuneEnabled,
+  loadWeaponRoundDisplayTuning,
+  saveWeaponRoundDisplayTuneEnabled,
+  saveWeaponRoundDisplayTuning,
+} from "@/lib/weapons/WeaponRoundDisplayTuning";
 import {
   shouldDropAmmoCrate,
   loadAmmoDropSpareThreshold,
@@ -253,6 +295,12 @@ import {
 } from "@/lib/pickups/RewardDropSettings";
 import HudCompass from "@/components/HudCompass";
 import HudBarCompass from "@/components/HudBarCompass";
+import HudPrimaryWeaponStack from "@/components/HudPrimaryWeaponStack";
+import {
+  getStackDepthInOrder,
+  getStackFrameStyleFromDepth,
+  resolveStackSelection,
+} from "@/lib/ui/WeaponStackLayout";
 import { SettingsSection } from "@/components/SettingsSection";
 import {
   DEFAULT_HEMI_DAY,
@@ -278,6 +326,7 @@ import {
 import { loadWalkBobTuning, resolveWalkBobTuning } from "@/lib/player/WalkBobTuning";
 import { loadStairWalkTuning, normalizeStairWalkTuning } from "@/lib/stairs/StairWalkTuning";
 import { loadHudBarTuning } from "@/lib/ui/HudBarTuning";
+import { loadHudBottomBarTuning } from "@/lib/ui/HudBottomBarTuning";
 import ControlsPanel from "@/components/ControlsPanel";
 import {
   preloadControlPanelScreenCTextures,
@@ -318,14 +367,12 @@ import {
   wasBindingPressed,
 } from "@/lib/player/KeyBindings";
 
-const _radarScratch = new Array(64);
-
 const WEAPON_SLOT_IDS = [1, 2, 3, 4];
 const GRENADE_WEAPON_SLOT = 1;
 const FLASHBANG_WEAPON_SLOT = 2;
 const DEFAULT_FLASHBANG_COUNT = 4;
 
-/** HUD-only secondary weapons (gameplay not wired yet). */
+/** Bottom-right super-weapon stack — keys 1–4 (slots 3–4 reserved). */
 const SECONDARY_WEAPON_UI = {
   [GRENADE_WEAPON_SLOT]: {
     label: "GRANADE",
@@ -346,35 +393,15 @@ const DEFAULT_WEAPON_STACK_TUNE = {
   3: { x: -12, y: -52, scale: 0.8 },
 };
 
-/** Steps from selected slot forward in cyclic order 1→2→3→4→1. */
-function getWeaponStackDepth(slotId, selectedSlot) {
-  if (slotId === selectedSlot) return 0;
-  let depth = 0;
-  let current = selectedSlot;
-  while (current !== slotId) {
-    current = current === 4 ? 1 : current + 1;
-    depth += 1;
-  }
-  return depth;
-}
-
-function getWeaponStackFrameStyle(slotId, selectedSlot, tune) {
-  const depth = getWeaponStackDepth(slotId, selectedSlot);
-  if (depth === 0) {
-    return {
-      "--slot-x": "0px",
-      "--slot-y": "0px",
-      "--slot-scale": "1",
-      "--slot-z": 4,
-    };
-  }
-  const t = tune[depth];
-  return {
-    "--slot-x": `${t.x}px`,
-    "--slot-y": `${t.y}px`,
-    "--slot-scale": String(t.scale),
-    "--slot-z": 4 - depth,
-  };
+/** Super-weapon slots with stock > 0 (hides empty reserved slots). */
+function getVisibleSecondarySlotIds(grenadeCount, flashbangCount) {
+  return WEAPON_SLOT_IDS.filter((slotId) => {
+    const ui = SECONDARY_WEAPON_UI[slotId];
+    if (!ui) return false;
+    if (slotId === GRENADE_WEAPON_SLOT) return grenadeCount > 0;
+    if (slotId === FLASHBANG_WEAPON_SLOT) return flashbangCount > 0;
+    return false;
+  });
 }
 
 const INVERT_Y_KEY = "fps-invert-y";
@@ -382,7 +409,6 @@ const KEYBOARD_LOOK_KEY = "fps-keyboard-look";
 const KEYBOARD_EASE_KEY = "fps-keyboard-ease";
 const MOUSE_LOOK_KEY = "fps-mouse-look";
 const MOUSE_EASE_KEY = "fps-mouse-ease";
-const LOOK_MAX_RATE_KEY = "fps-look-max-rate";
 const LEGACY_LOOK_SPEED_KEY = "fps-look-speed";
 const LEGACY_LOOK_EASE_KEY = "fps-look-ease";
 const RENDER_SCALE_KEY = "fps-render-scale";
@@ -393,7 +419,6 @@ const DEFAULT_KEYBOARD_LOOK = 5;
 const DEFAULT_KEYBOARD_EASE = 0;
 const DEFAULT_MOUSE_LOOK = 7;
 const DEFAULT_MOUSE_EASE = 1;
-const DEFAULT_MAX_LOOK_RATE = 2.5;
 const DEFAULT_PLAYER_HEIGHT = 1.65;
 /** Multiplier on `min(devicePixelRatio, 2)` — 1.0 = full quality, 0.5 = quarter pixel count. */
 const DEFAULT_RENDER_SCALE = 0.4;
@@ -447,8 +472,6 @@ const DEATH_FADE_MS = 1200;
 /** Brief pulse of the death-screen vignette (open centre) when the player takes damage. */
 const HURT_VIGNETTE_FLASH_MS = 720;
 const HURT_VIGNETTE_PEAK_OPACITY = 1;
-const MAGAZINE_SIZE = 80;
-const SPARE_MAGAZINES = 4;
 /** Shrink HUD ammo digits when a stat exceeds two digits. */
 function hudAmmoValueClass(value) {
   return value >= 100 ? " hudAmmoValueCompact" : "";
@@ -456,7 +479,6 @@ function hudAmmoValueClass(value) {
 const BURST_SHOT_COUNT = 3;
 const BURST_INTERVAL = 0.085;
 const AUTO_FIRE_INTERVAL = 0.1;
-const FIRE_MODE_ORDER = ["auto", "burst", "single"];
 /** Grenade drop chance when player has 0, 1, 2, 3, 4, or 5+ grenades. */
 const GRENADE_DROP_CHANCE_BY_COUNT = [0.7, 0.5, 0.3, 0.25, 0.05, 0];
 
@@ -691,6 +713,11 @@ const WeaponSlotStack = memo(function WeaponSlotStack({
   frameY,
   layoutStyle,
 }) {
+  const visibleSlots = getVisibleSecondarySlotIds(grenadeCount, flashbangCount);
+  const stackSelected = resolveStackSelection(selectedWeaponSlot, visibleSlots);
+
+  if (visibleSlots.length === 0) return null;
+
   return (
     <div
       className="hudSecondWeapon"
@@ -701,17 +728,11 @@ const WeaponSlotStack = memo(function WeaponSlotStack({
       }}
     >
       <div className="hudWeaponSlots">
-        {WEAPON_SLOT_IDS.map((slotId) => {
+        {visibleSlots.map((slotId) => {
           const weaponUi = SECONDARY_WEAPON_UI[slotId];
-          const isSelected = slotId === selectedWeaponSlot;
-          const count = weaponUi
-            ? slotId === GRENADE_WEAPON_SLOT
-              ? grenadeCount
-              : slotId === FLASHBANG_WEAPON_SLOT
-                ? flashbangCount
-                : 0
-            : 0;
-          const isEmpty = weaponUi ? count === 0 : true;
+          const isSelected = slotId === stackSelected;
+          const count =
+            slotId === GRENADE_WEAPON_SLOT ? grenadeCount : flashbangCount;
 
           return (
             <div
@@ -719,35 +740,25 @@ const WeaponSlotStack = memo(function WeaponSlotStack({
               className={[
                 "hudSecondWeaponFrame",
                 isSelected ? "hudSecondWeaponFrame--selected" : "",
-                isEmpty ? "hudSecondWeaponEmpty" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
-              style={getWeaponStackFrameStyle(
-                slotId,
-                selectedWeaponSlot,
-                weaponStackTune
+              style={getStackFrameStyleFromDepth(
+                getStackDepthInOrder(slotId, stackSelected, visibleSlots),
+                weaponStackTune,
+                visibleSlots.length,
               )}
             >
               <span className="hudSecondWeaponKey">{slotId}</span>
               <div className="hudSecondWeaponBody">
-                {weaponUi ? (
-                  <img
-                    src={weaponUi.icon}
-                    className="hudSecondWeaponIcon"
-                    alt=""
-                  />
-                ) : (
-                  <span
-                    className="hudSecondWeaponIcon hudSecondWeaponIcon--placeholder"
-                    aria-hidden="true"
-                  />
-                )}
-                <span className="hudSecondWeaponLabel">
-                  {weaponUi?.label ?? "EMPTY"}
-                </span>
+                <img
+                  src={weaponUi.icon}
+                  className="hudSecondWeaponIcon"
+                  alt=""
+                />
+                <span className="hudSecondWeaponLabel">{weaponUi.label}</span>
                 <span className="hudSecondWeaponCount">
-                  {weaponUi ? String(count).padStart(2, "0") : "00"}
+                  {String(count).padStart(2, "0")}
                 </span>
               </div>
             </div>
@@ -760,7 +771,7 @@ const WeaponSlotStack = memo(function WeaponSlotStack({
 
 export default function FpsGame() {
   const canvasRef = useRef(null);
-  const crosshairRef = useRef(null);
+  const screenCrosshairRef = useRef(null);
   const doorInteractPromptRef = useRef(null);
   const missionTimerHudRef = useRef(null);
   const hostileCountHudRef = useRef(null);
@@ -773,9 +784,6 @@ export default function FpsGame() {
   const compassViewportRef = useRef(null);
   const compassMarkersRef = useRef(null);
   const compassBlipsRef = useRef(null);
-  const radarRef = useRef(null);
-  const radarSweepRef = useRef(null);
-  const radarDotsRef = useRef(null);
   const deathOverlayRef = useRef(null);
   const flashbangOverlayRef = useRef(null);
   const flashbangBlindStartRef = useRef(0);
@@ -839,28 +847,11 @@ export default function FpsGame() {
   const ammoDropSpareThresholdRef = useRef(DEFAULT_AMMO_DROP_SPARE_THRESHOLD);
   const loadingMusicTrackIdRef = useRef(loadStoredLoadingTrackId());
   const levelMusicTrackIdRef = useRef(DEFAULT_LEVEL_TRACK_ID);
-  const hudCogX = 4;
-  const hudCogY = 32;
-  const hudCogSize = 8;
-  const hudRoundsX = 33;
-  const hudRoundsY = 10;
-  const hudMagX = 50;
-  const hudMagY = 10;
-  const hudMagsX = 67;
-  const hudMagsY = 10;
-  const hudValueFont = 2.97;
-  const hudLabelY = 8;
-  const hudFireModeY = 14.5;
+  const hudBottomBarTuning = loadHudBottomBarTuning();
   const hudBarCompassX = 92;
   const hudBarCompassY = 21;
   const hudBarCompassSize = 6.3;
   const hbCorner = 3;
-  const [radarInnerX] = useState(49);
-  const [radarInnerY] = useState(50);
-  const [radarInnerSize] = useState(80);
-  const [radarLeft] = useState(1.5);
-  const [radarBottom] = useState(1.5);
-  const [radarScale] = useState(11);
   const sceneRef = useRef(null);
   const [bindings, setBindings] = useState(() => loadBindings());
   const gameplayHintsDismissedRef = useRef(new Set());
@@ -963,8 +954,19 @@ export default function FpsGame() {
   const hemiDayRef = useRef(loadHemiDay());
   const hemiNightRef = useRef(loadHemiNight());
   const [fireMode, setFireMode] = useState("auto");
-  const [roundsInMag, setRoundsInMag] = useState(MAGAZINE_SIZE);
-  const [spareMags, setSpareMags] = useState(SPARE_MAGAZINES);
+  const [activePrimaryWeapon, setActivePrimaryWeapon] = useState("rifle");
+  const [activeMagazineSize, setActiveMagazineSize] = useState(
+    PRIMARY_WEAPONS.rifle.magazineSize,
+  );
+  const [activeLowAmmoThreshold, setActiveLowAmmoThreshold] = useState(
+    PRIMARY_WEAPONS.rifle.lowAmmoThreshold,
+  );
+  const [roundsInMag, setRoundsInMag] = useState(
+    PRIMARY_WEAPONS.rifle.magazineSize,
+  );
+  const [spareMags, setSpareMags] = useState(
+    PRIMARY_WEAPONS.rifle.spareMagazines,
+  );
   const [playerHealth, setPlayerHealth] = useState(100);
   const pickupFlashLayerRef = useRef(null);
   const hudSyncPendingRef = useRef(false);
@@ -998,6 +1000,8 @@ export default function FpsGame() {
   };
   const [selectedWeaponSlot, setSelectedWeaponSlot] = useState(GRENADE_WEAPON_SLOT);
   const selectedWeaponSlotRef = useRef(GRENADE_WEAPON_SLOT);
+  const [primaryAmmo, setPrimaryAmmo] = useState(() => createDefaultAmmoPool());
+  const ammoPoolSnapshotRef = useRef(createDefaultAmmoPool());
   selectedWeaponSlotRef.current = selectedWeaponSlot;
   const [playerLives, setPlayerLives] = useState(3);
   const missionTimeRef = useRef(0);
@@ -1005,25 +1009,146 @@ export default function FpsGame() {
   const playerHealthRef = useRef(100);
   const playerLivesRef = useRef(3);
   const fireModeRef = useRef("auto");
-  const roundsInMagRef = useRef(MAGAZINE_SIZE);
-  const spareMagsRef = useRef(SPARE_MAGAZINES);
+  const fireModeByWeaponRef = useRef(createDefaultFireModePool());
+  const activePrimaryIdRef = useRef("rifle");
+  const roundsInMagRef = useRef(PRIMARY_WEAPONS.rifle.magazineSize);
+  const spareMagsRef = useRef(PRIMARY_WEAPONS.rifle.spareMagazines);
   const setAmmoStateRef = useRef(null);
+  const [weaponTuneEnabled, setWeaponTuneEnabled] = useState(() =>
+    loadWeaponTuneEnabled()
+  );
+  const weaponTuneEnabledRef = useRef(false);
+  const [weaponPoseMode, setWeaponPoseMode] = useState("hip");
+  const weaponPoseModeRef = useRef("hip");
+  const [hipWeaponPose, setHipWeaponPose] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_HIP_POSE;
+    return loadWeaponTuning().hip;
+  });
+  const [adsWeaponPose, setAdsWeaponPose] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_ADS_POSE;
+    return loadWeaponTuning().ads;
+  });
+  const [bodyLookUpAmount, setBodyLookUpAmount] = useState(
+    DEFAULT_BODY_LOOK_UP_AMOUNT
+  );
+  const [bodyLookDownAmount, setBodyLookDownAmount] = useState(
+    DEFAULT_BODY_LOOK_DOWN_AMOUNT
+  );
   const weaponTuningRef = useRef({
     hip: DEFAULT_HIP_POSE,
     ads: DEFAULT_ADS_POSE,
     bodyLookUpAmount: DEFAULT_BODY_LOOK_UP_AMOUNT,
     bodyLookDownAmount: DEFAULT_BODY_LOOK_DOWN_AMOUNT,
   });
+  const [pistolTuneEnabled, setPistolTuneEnabled] = useState(() =>
+    loadPistolTuneEnabled(),
+  );
+  const pistolTuneEnabledRef = useRef(false);
+  const pendingPistolTuneSwapRef = useRef(false);
+  const [pistolPoseMode, setPistolPoseMode] = useState("hip");
+  const pistolPoseModeRef = useRef("hip");
+  const [pistolHipPose, setPistolHipPose] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_PISTOL_HIP_POSE;
+    return loadPistolTuning().hip;
+  });
+  const [pistolAdsPose, setPistolAdsPose] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_PISTOL_ADS_POSE;
+    return loadPistolTuning().ads;
+  });
+  const pistolTuningRef = useRef({
+    hip: DEFAULT_PISTOL_HIP_POSE,
+    ads: DEFAULT_PISTOL_ADS_POSE,
+    bodyLookUpAmount: DEFAULT_BODY_LOOK_UP_AMOUNT,
+    bodyLookDownAmount: DEFAULT_BODY_LOOK_DOWN_AMOUNT,
+  });
+  const [crosshairTuning, setCrosshairTuning] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_CROSSHAIR_TUNING;
+    return loadCrosshairTuning();
+  });
+  const crosshairTuningRef = useRef(
+    typeof window === "undefined"
+      ? DEFAULT_CROSSHAIR_TUNING
+      : loadCrosshairTuning(),
+  );
+  const [roundDisplayTuneEnabled, setRoundDisplayTuneEnabled] = useState(() =>
+    loadWeaponRoundDisplayTuneEnabled()
+  );
+  const roundDisplayTuneEnabledRef = useRef(false);
+  const [roundDisplayPreviewAim, setRoundDisplayPreviewAim] = useState(false);
+  const roundDisplayPreviewAimRef = useRef(false);
+  const [roundDisplayHip, setRoundDisplayHip] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_HIP_ROUND_DISPLAY;
+    return loadWeaponRoundDisplayTuning().hip;
+  });
+  const [roundDisplayAim, setRoundDisplayAim] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_AIM_ROUND_DISPLAY;
+    return loadWeaponRoundDisplayTuning().aim;
+  });
+  const roundDisplayTuningRef = useRef(
+    typeof window === "undefined"
+      ? { hip: DEFAULT_HIP_ROUND_DISPLAY, aim: DEFAULT_AIM_ROUND_DISPLAY }
+      : loadWeaponRoundDisplayTuning()
+  );
   const rebindActionRef = useRef(null);
 
   useEffect(() => {
     const tuning = loadWeaponTuning();
+    setHipWeaponPose(tuning.hip);
+    setAdsWeaponPose(tuning.ads);
+    const look = loadLookTuning();
+    setBodyLookUpAmount(look.bodyLookUpAmount);
+    setBodyLookDownAmount(look.bodyLookDownAmount);
+    setMaxLookRate(look.maxLookRate);
+    maxLookRateRef.current = look.maxLookRate;
     weaponTuningRef.current = {
-      ...tuning,
-      bodyLookUpAmount: loadBodyLookUpAmount(),
-      bodyLookDownAmount: loadBodyLookDownAmount(),
+      hip: tuning.hip,
+      ads: tuning.ads,
+      bodyLookUpAmount: look.bodyLookUpAmount,
+      bodyLookDownAmount: look.bodyLookDownAmount,
+    };
+
+    const roundTuning = loadWeaponRoundDisplayTuning();
+    roundDisplayTuningRef.current = roundTuning;
+    setRoundDisplayHip(roundTuning.hip);
+    setRoundDisplayAim(roundTuning.aim);
+
+    const crosshair = loadCrosshairTuning();
+    crosshairTuningRef.current = crosshair;
+    setCrosshairTuning(crosshair);
+
+    const pistolTuning = loadPistolTuning();
+    setPistolHipPose(pistolTuning.hip);
+    setPistolAdsPose(pistolTuning.ads);
+    pistolTuningRef.current = {
+      hip: pistolTuning.hip,
+      ads: pistolTuning.ads,
+      bodyLookUpAmount: look.bodyLookUpAmount,
+      bodyLookDownAmount: look.bodyLookDownAmount,
     };
   }, []);
+  weaponTuningRef.current = {
+    hip: hipWeaponPose,
+    ads: adsWeaponPose,
+    bodyLookUpAmount,
+    bodyLookDownAmount,
+  };
+  pistolTuningRef.current = {
+    hip: pistolHipPose,
+    ads: pistolAdsPose,
+    bodyLookUpAmount,
+    bodyLookDownAmount,
+  };
+  weaponTuneEnabledRef.current = weaponTuneEnabled;
+  weaponPoseModeRef.current = weaponPoseMode;
+  pistolTuneEnabledRef.current = pistolTuneEnabled;
+  pistolPoseModeRef.current = pistolPoseMode;
+  roundDisplayTuneEnabledRef.current = roundDisplayTuneEnabled;
+  roundDisplayPreviewAimRef.current = roundDisplayPreviewAim;
+  roundDisplayTuningRef.current = {
+    hip: roundDisplayHip,
+    aim: roundDisplayAim,
+  };
+  crosshairTuningRef.current = crosshairTuning;
   bindingsRef.current = bindings;
   rebindActionRef.current = rebindAction;
   fireModeRef.current = fireMode;
@@ -1043,12 +1168,16 @@ export default function FpsGame() {
       setGrenadeCount(grenadeCountRef.current);
       setRoundsInMag(roundsInMagRef.current);
       setSpareMags(spareMagsRef.current);
+      setPrimaryAmmo({
+        rifle: { ...ammoPoolSnapshotRef.current.rifle },
+        pistol: { ...ammoPoolSnapshotRef.current.pistol },
+      });
     });
   };
 
-  roundsInMagRef.current = roundsInMag;
-  spareMagsRef.current = spareMags;
   setAmmoStateRef.current = (rounds, spare) => {
+    roundsInMagRef.current = rounds;
+    spareMagsRef.current = spare;
     setRoundsInMag(rounds);
     setSpareMags(spare);
   };
@@ -1090,7 +1219,7 @@ export default function FpsGame() {
       const tag = e.target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-      if (e.code === "KeyU") {
+      if (e.code === "KeyI") {
         const next = !showHudRef.current;
         showHudRef.current = next;
         localStorage.setItem(SHOW_HUD_KEY, String(next));
@@ -1099,14 +1228,6 @@ export default function FpsGame() {
           setShowHud(next);
         }
         return;
-      }
-      if (e.code === "KeyI") {
-        setInvertYLook((prev) => {
-          const next = !prev;
-          invertYRef.current = next;
-          localStorage.setItem(INVERT_Y_KEY, String(next));
-          return next;
-        });
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -1134,7 +1255,8 @@ export default function FpsGame() {
     const kbEase = read(KEYBOARD_EASE_KEY, easeFallback);
     const mLook = read(MOUSE_LOOK_KEY, DEFAULT_MOUSE_LOOK);
     const mEase = read(MOUSE_EASE_KEY, mouseEaseFallback);
-    const maxRate = read(LOOK_MAX_RATE_KEY, DEFAULT_MAX_LOOK_RATE);
+    const look = loadLookTuning();
+    const maxRate = look.maxLookRate;
 
     setInvertYLook(storedInvert);
     const storedScale = loadRenderScale();
@@ -1215,8 +1337,7 @@ export default function FpsGame() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const crosshair = crosshairRef.current;
-    if (!canvas || !crosshair) return;
+    if (!canvas) return;
 
     let sky = null;
     let scene = null;
@@ -1227,6 +1348,10 @@ export default function FpsGame() {
     let player = null;
     let input = null;
     let weapon = null;
+    const primaryWeapons = { rifle: null, pistol: null };
+    let activePrimaryId = "rifle";
+    const ammoPool = createDefaultAmmoPool();
+    const weaponSwap = createWeaponSwapController();
     let weaponLoadId = 0;
     let flashTimeout = null;
     let hpOrbs = [];
@@ -1286,6 +1411,7 @@ export default function FpsGame() {
       camera.layers.enable(ROOM_INTERIOR_LAYER);
       camera.layers.enable(VIEWMODEL_LAYER);
       camera.layers.enable(HEALTH_BAR_LAYER);
+      screenCrosshairRef.current = createScreenCrosshair(scene);
       const sounds = createSoundManager(camera);
       soundsRef.current = sounds;
       const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -1768,6 +1894,7 @@ export default function FpsGame() {
 
       respawnCallbackRef.current = () => {
         player.respawn();
+        weapon?.replayRaise?.();
       };
 
       const shootRaycaster = new THREE.Raycaster();
@@ -1779,20 +1906,40 @@ export default function FpsGame() {
       const screenCenter = new THREE.Vector2(0, 0);
 
       const currentWeaponLoad = ++weaponLoadId;
-      reportLoad(74, "View weapon (rifle GLTF)");
-      const weaponPromise = loadViewWeapon(camera, scene, undefined, { maxAnisotropy })
-        .then((loaded) => {
+      reportLoad(74, "View weapons (rifle + pistol)");
+      const rifleCfg = PRIMARY_WEAPONS.rifle;
+      const pistolCfg = PRIMARY_WEAPONS.pistol;
+      const weaponPromise = Promise.all([
+        loadViewWeapon(camera, scene, rifleCfg.modelUrl, {
+          maxAnisotropy,
+          ...rifleCfg.viewOptions,
+          weaponId: "rifle",
+        }),
+        loadViewWeapon(camera, scene, pistolCfg.modelUrl, {
+          maxAnisotropy,
+          ...pistolCfg.viewOptions,
+          weaponId: "pistol",
+        }),
+      ])
+        .then(([rifle, pistol]) => {
           if (disposed || currentWeaponLoad !== weaponLoadId) {
-            loaded.dispose();
+            rifle?.dispose();
+            pistol?.dispose();
             return null;
           }
-          weapon = loaded;
-          weaponRef.current = loaded;
-          weapon.update(camera, 0, 0, weaponTuningRef);
-          return loaded;
+          primaryWeapons.rifle = rifle;
+          primaryWeapons.pistol = pistol;
+          rifle.holder.visible = true;
+          pistol.holder.visible = false;
+          weapon = rifle;
+          weaponRef.current = rifle;
+          rifle.update(camera, 0, 0, weaponTuningRef, {
+            roundDisplayTuningRef,
+          });
+          return { rifle, pistol };
         })
         .catch((err) => {
-          console.error("Rifle model failed to load:", err);
+          console.error("Primary weapon models failed to load:", err);
           return null;
         });
       hpOrbs = [];
@@ -1805,7 +1952,6 @@ export default function FpsGame() {
       let grenadeHeld = false;
       let simTime = 0;
       let _lastHostileCount = -1;
-      let _radarFrameSkip = 0;
       const BULLET_MAX_RANGE = 55;
       const _muzzlePos = new THREE.Vector3();
       const _muzzleDir = new THREE.Vector3();
@@ -2165,6 +2311,71 @@ export default function FpsGame() {
       let burstTimer = 0;
       let autoFireTimer = 0;
 
+      function getActiveWeaponConfig() {
+        return getPrimaryWeaponConfig(activePrimaryId);
+      }
+
+      function getActiveTuningRef() {
+        return activePrimaryId === "pistol" ? pistolTuningRef : weaponTuningRef;
+      }
+
+      function syncAmmoPoolSnapshot() {
+        ammoPoolSnapshotRef.current = {
+          rifle: {
+            rounds: ammoPool.rifle.rounds,
+            spare: ammoPool.rifle.spare,
+          },
+          pistol: {
+            rounds: ammoPool.pistol.rounds,
+            spare: ammoPool.pistol.spare,
+          },
+        };
+      }
+
+      function persistActiveAmmo() {
+        ammoPool[activePrimaryId].rounds = roundsInMagRef.current;
+        ammoPool[activePrimaryId].spare = spareMagsRef.current;
+        syncAmmoPoolSnapshot();
+      }
+
+      function applyFireModeForWeapon(id) {
+        const mode = resolveFireModeForWeapon(
+          id,
+          fireModeByWeaponRef.current[id],
+        );
+        fireModeByWeaponRef.current[id] = mode;
+        fireModeRef.current = mode;
+        setFireMode(mode);
+      }
+
+      function setFireModeForActiveWeapon(mode) {
+        const resolved = resolveFireModeForWeapon(activePrimaryId, mode);
+        fireModeByWeaponRef.current[activePrimaryId] = resolved;
+        fireModeRef.current = resolved;
+        setFireMode(resolved);
+      }
+
+      function loadActiveAmmo(id) {
+        const cfg = getPrimaryWeaponConfig(id);
+        const store = ammoPool[id];
+        roundsInMagRef.current = store.rounds;
+        spareMagsRef.current = store.spare;
+        activePrimaryIdRef.current = id;
+        setActivePrimaryWeapon(id);
+        setActiveMagazineSize(cfg.magazineSize);
+        setActiveLowAmmoThreshold(cfg.lowAmmoThreshold);
+        setRoundsInMag(store.rounds);
+        setSpareMags(store.spare);
+        applyFireModeForWeapon(id);
+      }
+
+      function setActivePrimaryWeaponView(id) {
+        activePrimaryId = id;
+        activePrimaryIdRef.current = id;
+        weapon = primaryWeapons[id];
+        weaponRef.current = weapon;
+      }
+
       function syncAmmoToUi() {
         setAmmoStateRef.current?.(
           roundsInMagRef.current,
@@ -2173,13 +2384,17 @@ export default function FpsGame() {
       }
 
       function tryReload(force) {
+        const cfg = getActiveWeaponConfig();
         if (spareMagsRef.current <= 0) return false;
-        if (!force && roundsInMagRef.current >= 15) return false;
+        if (!force && roundsInMagRef.current >= cfg.lowAmmoThreshold) {
+          return false;
+        }
         spareMagsRef.current -= 1;
         roundsInMagRef.current = Math.min(
-          roundsInMagRef.current + MAGAZINE_SIZE,
-          MAGAZINE_SIZE * 2
+          roundsInMagRef.current + cfg.magazineSize,
+          cfg.magazineSize * 2
         );
+        persistActiveAmmo();
         scheduleGameplayHudSyncRef.current();
         sounds.playSupplyPickup();
         return true;
@@ -2189,6 +2404,7 @@ export default function FpsGame() {
         if (roundsInMagRef.current <= 0 && !tryReload(true)) return false;
 
         roundsInMagRef.current -= 1;
+        persistActiveAmmo();
         scheduleGameplayHudSyncRef.current();
 
         weapon.getMuzzleWorld(_muzzlePos, _muzzleDir, camera);
@@ -2230,9 +2446,12 @@ export default function FpsGame() {
       }
 
       function processWeaponFire(dt) {
-        if (!weapon) return;
+        if (!weapon || weaponSwap.isBusy()) return;
+        if ((weapon.getHolsterAmount?.() ?? 0) > 0.02) return;
 
-        const mode = fireModeRef.current;
+        const cfg = getActiveWeaponConfig();
+        const mode =
+          cfg.fireModes.length === 1 ? cfg.fireModes[0] : fireModeRef.current;
         if (
           burstShotsLeft === 0 &&
           mode === "burst" &&
@@ -2320,7 +2539,32 @@ export default function FpsGame() {
         const aimHeld =
           !rebindActionRef.current &&
           isBindingDown(input, bindingsRef.current, "aim");
-        const aimTarget = aimHeld ? 1 : 0;
+        const weaponAimTabActive =
+          weaponTuneEnabledRef.current && weaponPoseModeRef.current === "ads";
+        const pistolAimTabActive =
+          pistolTuneEnabledRef.current &&
+          pistolPoseModeRef.current === "ads" &&
+          activePrimaryId === "pistol";
+        const roundDisplayAimTabActive =
+          roundDisplayTuneEnabledRef.current &&
+          roundDisplayPreviewAimRef.current;
+        const aimTarget =
+          aimHeld ||
+          weaponAimTabActive ||
+          pistolAimTabActive ||
+          roundDisplayAimTabActive
+            ? 1
+            : 0;
+
+        if (
+          pendingPistolTuneSwapRef.current &&
+          !weaponSwap.isBusy() &&
+          activePrimaryId !== "pistol"
+        ) {
+          pendingPistolTuneSwapRef.current = false;
+          persistActiveAmmo();
+          weaponSwap.requestSwap("pistol", activePrimaryId, primaryWeapons);
+        }
 
         // Death sequence (two phases):
         //   1. FREEZE  — overlay is fully opaque, player is not respawned,
@@ -2339,6 +2583,7 @@ export default function FpsGame() {
             const canRespawn = now >= deathState.minDisplayEnd;
             if (canRespawn && input.consumeShoot()) {
               player.respawn();
+              weapon?.replayRaise?.();
               deathState.respawned = true;
               playerHealthRef.current = 100;
               setPlayerHealth(100);
@@ -2507,132 +2752,6 @@ export default function FpsGame() {
             );
           }
         }
-        if (showHudRef.current && radarDotsRef.current && level?.targets) {
-          const px = camera.position.x;
-          const pz = camera.position.z;
-          const yaw = player.getYaw();
-          const RADAR_RANGE = 30;
-
-          if (radarSweepRef.current) {
-            const canvas = radarSweepRef.current;
-            const sweepSpeed = 90;
-            const prev = parseFloat(canvas.dataset.angle || "0");
-            const next = (prev + sweepSpeed * dt) % 360;
-            canvas.dataset.angle = next;
-
-            _radarFrameSkip = (_radarFrameSkip + 1) % 3;
-            if (_radarFrameSkip === 0) {
-              const ctx = canvas.getContext("2d", { alpha: true });
-              const cx = canvas.width / 2;
-              const cy = canvas.height / 2;
-              const r = cx - 2;
-              ctx.clearRect(0, 0, canvas.width, canvas.height);
-              const sweepRad = (next - 90) * (Math.PI / 180);
-              const tailSpan = 70 * (Math.PI / 180);
-              const slices = 12;
-              for (let s = 0; s < slices; s++) {
-                const t0 = s / slices;
-                const alpha = t0 * t0 * 0.85;
-                const a0 = sweepRad - tailSpan + (tailSpan * s) / slices;
-                const a1 = sweepRad - tailSpan + (tailSpan * (s + 1)) / slices;
-                ctx.beginPath();
-                ctx.moveTo(cx, cy);
-                ctx.arc(cx, cy, r, a0, a1);
-                ctx.closePath();
-                ctx.fillStyle = `rgba(30, 170, 255, ${alpha})`;
-                ctx.fill();
-              }
-              const ex = cx + Math.cos(sweepRad) * r;
-              const ey = cy + Math.sin(sweepRad) * r;
-              ctx.beginPath();
-              ctx.moveTo(cx, cy);
-              ctx.lineTo(ex, ey);
-              ctx.strokeStyle = "rgba(30, 160, 255, 0.35)";
-              ctx.lineWidth = 6;
-              ctx.stroke();
-              ctx.beginPath();
-              ctx.moveTo(cx, cy);
-              ctx.lineTo(ex, ey);
-              ctx.strokeStyle = "rgba(30, 170, 255, 1)";
-              ctx.lineWidth = 2;
-              ctx.stroke();
-            }
-          }
-
-          let radarTargetCount = 0;
-          for (const t of level.targets) {
-            if (!t.visible || t.userData.health <= 0) continue;
-            const dx = t.position.x - px;
-            const dz = t.position.z - pz;
-            if (dx * dx + dz * dz <= RADAR_RANGE * RADAR_RANGE) {
-              _radarScratch[radarTargetCount++] = t;
-            }
-          }
-          const container = radarDotsRef.current;
-          while (container.children.length > radarTargetCount) container.lastChild.remove();
-          while (container.children.length < radarTargetCount) {
-            const dot = document.createElement("div");
-            dot.className = "radarBlip";
-            container.appendChild(dot);
-          }
-          const sweepAngleDeg = parseFloat(radarSweepRef.current?.dataset.angle || "0");
-          const sweepRad = (sweepAngleDeg * Math.PI) / 180;
-          for (let i = 0; i < radarTargetCount; i++) {
-            const t = _radarScratch[i];
-            const dx = t.position.x - px;
-            const dz = t.position.z - pz;
-            const angle = Math.atan2(dx, -dz) + yaw;
-            const dist = Math.sqrt(dx * dx + dz * dz);
-            const r = (dist / RADAR_RANGE) * 44;
-            const dotX = 50 + Math.sin(angle) * r;
-            const dotY = 50 - Math.cos(angle) * r;
-            const dot = container.children[i];
-            dot.style.left = `${dotX}%`;
-            dot.style.top = `${dotY}%`;
-
-            let angleDiff = ((sweepRad - angle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-            const fade = angleDiff < Math.PI ? Math.max(0, 1 - angleDiff / Math.PI) : 0;
-            dot.style.opacity = Math.max(0.15, fade);
-          }
-
-          // Reward dots (blue) for HP orbs, ammo drops, grenade drops
-          const levelDrops = collectibleEntries
-            .filter((e) => !e.collected && e.drop?.mesh?.position)
-            .map((e) => e.drop);
-          const allDrops = [...hpOrbs, ...ammoDrops, ...grenadeDrops, ...levelDrops]
-            .filter(d => !d.collected && d.mesh?.position);
-          let rewardContainer = container.parentElement.querySelector(".radarRewardDots");
-          if (!rewardContainer) {
-            rewardContainer = document.createElement("div");
-            rewardContainer.className = "radarRewardDots";
-            rewardContainer.style.cssText = "position:absolute;inset:0;pointer-events:none";
-            container.parentElement.appendChild(rewardContainer);
-          }
-          while (rewardContainer.children.length > allDrops.length) rewardContainer.lastChild.remove();
-          while (rewardContainer.children.length < allDrops.length) {
-            const dot = document.createElement("div");
-            dot.style.cssText = "position:absolute;width:5px;height:5px;border-radius:50%;background:#3af;transform:translate(-50%,-50%)";
-            rewardContainer.appendChild(dot);
-          }
-          for (let i = 0; i < allDrops.length; i++) {
-            const d = allDrops[i];
-            const dx = d.mesh.position.x - px;
-            const dz = d.mesh.position.z - pz;
-            if (dx * dx + dz * dz > RADAR_RANGE * RADAR_RANGE) {
-              rewardContainer.children[i].style.opacity = "0";
-              continue;
-            }
-            const angle = Math.atan2(dx, -dz) + yaw;
-            const dist = Math.sqrt(dx * dx + dz * dz);
-            const r = (dist / RADAR_RANGE) * 44;
-            const dotX = 50 + Math.sin(angle) * r;
-            const dotY = 50 - Math.cos(angle) * r;
-            const rdot = rewardContainer.children[i];
-            rdot.style.left = `${dotX}%`;
-            rdot.style.top = `${dotY}%`;
-            rdot.style.opacity = "0.85";
-          }
-        }
         camera.updateMatrixWorld(true);
 
         const canInteract =
@@ -2650,7 +2769,6 @@ export default function FpsGame() {
             vx27DoorInteractMeshesCache
           );
         }
-        crosshair.classList.toggle("crosshairDoorTarget", Boolean(doorTarget));
         if (touchMode) {
           const showDoor = Boolean(doorTarget);
           if (showDoor !== touchShowInteractRef.current) {
@@ -2730,6 +2848,7 @@ export default function FpsGame() {
 
         if (
           canUseWeapons &&
+          activePrimaryId === "rifle" &&
           wasBindingPressed(input, bindingsRef.current, "flashlight")
         ) {
           const nowOn = weapon?.toggleFlashlight();
@@ -2759,19 +2878,56 @@ export default function FpsGame() {
           isBindingDown(input, bindingsRef.current, "shoot");
 
         if (!frozen) {
-          weapon?.update(camera, aimTarget, dt, weaponTuningRef, {
+          const rounds = roundsInMagRef.current;
+          const spare = spareMagsRef.current;
+          weaponSwap.update(dt, primaryWeapons, () => activePrimaryId, (id) => {
+            persistActiveAmmo();
+            setActivePrimaryWeaponView(id);
+            loadActiveAmmo(id);
+          });
+
+          const cfg = getActiveWeaponConfig();
+          weapon?.update(camera, aimTarget, dt, getActiveTuningRef(), {
             snapAim: !locked && !touchMode,
             moveSpeed: player.getHorizontalSpeed(),
             onStairs: player.isOnStairs(),
             walkBobTuning: resolveWalkBobTuning(walkBobTuningRef.current),
             stairWalkTuning: normalizeStairWalkTuning(stairWalkTuningRef.current),
             nightness: dayNightCurNightnessRef.current,
+            roundCount: rounds,
+            roundDisplayLow:
+              rounds < cfg.lowAmmoThreshold || (rounds === 0 && spare === 0),
+            roundDisplayTuningRef,
           });
+          for (const id of ["rifle", "pistol"]) {
+            const w = primaryWeapons[id];
+            if (!w || w === weapon || !w.holder.visible) continue;
+            w.update(camera, 0, dt, id === "pistol" ? pistolTuningRef : weaponTuningRef, {
+              snapAim: true,
+              roundDisplayTuningRef:
+                id === "rifle" ? roundDisplayTuningRef : undefined,
+            });
+          }
         }
 
         const aimBlend = weapon?.getAimBlend() ?? 0;
+        const activeWeaponCfg = getActiveWeaponConfig();
+        const showGunReticule = activeWeaponCfg.viewOptions.gunReticule;
+        const standardCrosshairOnly =
+          activeWeaponCfg.viewOptions.standardCrosshairOnly;
+        screenCrosshairRef.current?.update({
+          aimBlend,
+          tuning: crosshairTuningRef.current,
+          showGunReticule,
+          standardCrosshairOnly,
+          doorTarget: Boolean(doorTarget),
+          camera,
+          canvasHeight: canvas.clientHeight,
+        });
         const targetFov = THREE.MathUtils.lerp(HIP_FOV, ADS_FOV, aimBlend);
-        camera.fov += (targetFov - camera.fov) * (1 - Math.exp(-12 * dt));
+        const fovBlendSpeed = resolveAimBlendSpeed(aimTarget, aimBlend);
+        camera.fov +=
+          (targetFov - camera.fov) * (1 - Math.exp(-fovBlendSpeed * dt));
         camera.updateProjectionMatrix();
 
         if (canUseWeapons && (pointerActive || keyboardShoot)) {
@@ -2793,11 +2949,29 @@ export default function FpsGame() {
           !controlsOpenRef.current &&
           wasBindingPressed(input, bindingsRef.current, "cycleFireMode")
         ) {
-          const modes = FIRE_MODE_ORDER;
-          const i = modes.indexOf(fireModeRef.current);
-          const next = modes[(i + 1) % modes.length];
-          fireModeRef.current = next;
-          setFireMode(next);
+          const modes = getActiveWeaponConfig().fireModes;
+          if (modes.length > 1) {
+            const i = modes.indexOf(fireModeRef.current);
+            const next = modes[(i + 1) % modes.length];
+            setFireModeForActiveWeapon(next);
+          }
+        }
+
+        if (
+          !frozen &&
+          !rebindActionRef.current &&
+          !settingsOpenRef.current &&
+          !controlsOpenRef.current &&
+          !weaponSwap.isBusy()
+        ) {
+          const togglePrimary =
+            wasPrimaryTogglePressed(input) ||
+            wasBindingPressed(input, bindingsRef.current, "swapWeapon");
+          if (togglePrimary) {
+            const nextId = getOtherPrimaryWeaponId(activePrimaryId);
+            persistActiveAmmo();
+            weaponSwap.requestSwap(nextId, activePrimaryId, primaryWeapons);
+          }
         }
 
         if (
@@ -3092,6 +3266,7 @@ export default function FpsGame() {
               hideCompassCollectibleMarker(collectibleEntries, drop.compassMarkerId);
             }
             roundsInMagRef.current += value;
+            persistActiveAmmo();
             pickupFlashLayerRef.current?.show("ammo");
             sounds.playSupplyPickup();
             scheduleGameplayHudSyncRef.current();
@@ -3132,6 +3307,7 @@ export default function FpsGame() {
               sounds.playSupplyPickup();
             } else {
               roundsInMagRef.current += value ?? 10;
+              persistActiveAmmo();
               pickupFlashLayerRef.current?.show("ammo");
               sounds.playSupplyPickup();
             }
@@ -3297,7 +3473,8 @@ export default function FpsGame() {
         ) {
           renderTargetHealthBarsPass(renderer, scene, camera, level.targets);
         }
-        weapon?.renderViewmodel(renderer, scene, camera);
+        renderCrosshairPass(renderer, scene, camera);
+        renderViewmodelPass(renderer, scene, camera);
         } catch (err) {
           console.error("Frame render failed:", err);
         }
@@ -3312,6 +3489,7 @@ export default function FpsGame() {
         const ds = deathStateRef.current;
         if (ds && !ds.respawned && performance.now() >= ds.minDisplayEnd) {
           player.respawn();
+          weapon?.replayRaise?.();
           ds.respawned = true;
           ds.fadeEndTime = performance.now() + DEATH_FADE_MS;
           playerHealthRef.current = 100;
@@ -3562,8 +3740,14 @@ export default function FpsGame() {
       setSunOcclusionRoot(null);
       levelTextures?.dispose();
       levelTextures = null;
-      weapon?.dispose();
+      primaryWeapons.rifle?.dispose();
+      primaryWeapons.pistol?.dispose();
+      primaryWeapons.rifle = null;
+      primaryWeapons.pistol = null;
+      weapon = null;
       weaponRef.current = null;
+      screenCrosshairRef.current?.dispose();
+      screenCrosshairRef.current = null;
       soundsRef.current?.dispose();
       soundsRef.current = null;
       respawnCallbackRef.current = null;
@@ -3773,6 +3957,99 @@ export default function FpsGame() {
         showInteract={touchShowInteract}
         showHack={touchShowHack}
       />
+      {loadDone &&
+        weaponTuneEnabled &&
+        !settingsOpen &&
+        !controlsOpen &&
+        !consoleHackOpen && (
+          <WeaponTunePanel
+            poseMode={weaponPoseMode}
+            onPoseModeChange={setWeaponPoseMode}
+            onReleasePointer={safeExitPointerLock}
+            hipPose={hipWeaponPose}
+            adsPose={adsWeaponPose}
+            onHipChange={setHipWeaponPose}
+            onAdsChange={setAdsWeaponPose}
+            crosshairTuning={crosshairTuning}
+            onCrosshairTuningChange={(next) => {
+              setCrosshairTuning(next);
+              crosshairTuningRef.current = next;
+            }}
+            maxLookRate={maxLookRate}
+            onMaxLookRateChange={(value) => {
+              setMaxLookRate(value);
+              maxLookRateRef.current = value;
+              localStorage.setItem(LOOK_MAX_RATE_KEY, String(value));
+            }}
+            bodyLookUpAmount={bodyLookUpAmount}
+            onBodyLookUpAmountChange={setBodyLookUpAmount}
+            bodyLookDownAmount={bodyLookDownAmount}
+            onBodyLookDownAmountChange={setBodyLookDownAmount}
+            defaultMaxLookRate={DEFAULT_MAX_LOOK_RATE}
+            onClose={() => {
+              setWeaponTuneEnabled(false);
+              weaponTuneEnabledRef.current = false;
+              saveWeaponTuneEnabled(false);
+            }}
+          />
+        )}
+      {loadDone &&
+        pistolTuneEnabled &&
+        !settingsOpen &&
+        !controlsOpen &&
+        !consoleHackOpen && (
+          <PistolTunePanel
+            poseMode={pistolPoseMode}
+            onPoseModeChange={setPistolPoseMode}
+            onReleasePointer={safeExitPointerLock}
+            hipPose={pistolHipPose}
+            adsPose={pistolAdsPose}
+            onHipChange={setPistolHipPose}
+            onAdsChange={setPistolAdsPose}
+            onClose={() => {
+              setPistolTuneEnabled(false);
+              pistolTuneEnabledRef.current = false;
+              savePistolTuneEnabled(false);
+            }}
+          />
+        )}
+      {loadDone &&
+        roundDisplayTuneEnabled &&
+        !controlsOpen &&
+        !consoleHackOpen && (
+          <WeaponRoundDisplayTunePanel
+            previewAim={roundDisplayPreviewAim}
+            onPreviewAimChange={setRoundDisplayPreviewAim}
+            hipTuning={roundDisplayHip}
+            aimTuning={roundDisplayAim}
+            onHipChange={(next) => {
+              setRoundDisplayHip(next);
+              roundDisplayTuningRef.current = {
+                hip: next,
+                aim: roundDisplayAim,
+              };
+            }}
+            onAimChange={(next) => {
+              setRoundDisplayAim(next);
+              roundDisplayTuningRef.current = {
+                hip: roundDisplayHip,
+                aim: next,
+              };
+            }}
+            onSnapToReceiver={() =>
+              weaponRef.current?.getRoundDisplaySuggestedPose?.() ?? null
+            }
+            onReleasePointer={safeExitPointerLock}
+            onClose={() => {
+              saveWeaponRoundDisplayTuning(roundDisplayHip, roundDisplayAim);
+              setRoundDisplayPreviewAim(false);
+              setRoundDisplayTuneEnabled(false);
+              roundDisplayPreviewAimRef.current = false;
+              roundDisplayTuneEnabledRef.current = false;
+              saveWeaponRoundDisplayTuneEnabled(false);
+            }}
+          />
+        )}
       <ConsoleHackScreen
         open={consoleHackOpen}
         panelId={consoleHackPanelId}
@@ -3797,18 +4074,20 @@ export default function FpsGame() {
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         style={{
-          "--hud-cog-x": `${hudCogX}%`,
-          "--hud-cog-y": `${hudCogY}%`,
-          "--hud-cog-size": `${hudCogSize}%`,
-          "--hud-rounds-x": `${hudRoundsX}%`,
-          "--hud-rounds-y": `${hudRoundsY}%`,
-          "--hud-mag-x": `${hudMagX}%`,
-          "--hud-mag-y": `${hudMagY}%`,
-          "--hud-mags-x": `${hudMagsX}%`,
-          "--hud-mags-y": `${hudMagsY}%`,
-          "--hud-value-font": `${hudValueFont}vw`,
-          "--hud-label-y": `${hudLabelY}px`,
-          "--hud-firemode-y": `${hudFireModeY}%`,
+          "--hud-bar-scale": String(hudBottomBarTuning.barScale),
+          "--hud-cog-x": `${hudBottomBarTuning.cogX}%`,
+          "--hud-cog-y": `${hudBottomBarTuning.cogY}%`,
+          "--hud-cog-size": `${hudBottomBarTuning.cogSize}%`,
+          "--hud-rounds-x": `${hudBottomBarTuning.roundsX}%`,
+          "--hud-rounds-y": `${hudBottomBarTuning.roundsY}%`,
+          "--hud-mag-x": `${hudBottomBarTuning.magX}%`,
+          "--hud-mag-y": `${hudBottomBarTuning.magY}%`,
+          "--hud-mags-x": `${hudBottomBarTuning.magsX}%`,
+          "--hud-mags-y": `${hudBottomBarTuning.magsY}%`,
+          "--hud-value-font": `${hudBottomBarTuning.valueFont}vw`,
+          "--hud-label-scale": String(hudBottomBarTuning.labelScale),
+          "--hud-label-y": `${hudBottomBarTuning.labelY}px`,
+          "--hud-firemode-y": `${hudBottomBarTuning.fireModeY}%`,
           "--hud-bar-compass-x": `${hudBarCompassX}%`,
           "--hud-bar-compass-y": `${hudBarCompassY}%`,
           "--hud-bar-compass-size": `${hudBarCompassSize}vw`,
@@ -3829,7 +4108,7 @@ export default function FpsGame() {
         </button>
 
         {/* Left section — ROUNDS */}
-        <div className={`hudAmmoStat hudAmmoStatLeft${roundsInMag < 15 || (roundsInMag === 0 && spareMags === 0) ? " hudAmmoLow" : ""}`}>
+        <div className={`hudAmmoStat hudAmmoStatLeft${roundsInMag < activeLowAmmoThreshold || (roundsInMag === 0 && spareMags === 0) ? " hudAmmoLow" : ""}`}>
           <span className="hudAmmoLabel">ROUNDS</span>
           <span className={`hudAmmoValue${hudAmmoValueClass(roundsInMag)}`}>{String(roundsInMag).padStart(2, "0")}</span>
         </div>
@@ -3837,7 +4116,7 @@ export default function FpsGame() {
         {/* Centre section — MAG */}
         <div className={`hudAmmoStat hudAmmoStatCenter${roundsInMag === 0 && spareMags === 0 ? " hudAmmoLow" : ""}`}>
           <span className="hudAmmoLabel">MAG</span>
-          <span className={`hudAmmoValue${hudAmmoValueClass(MAGAZINE_SIZE)}`}>{String(MAGAZINE_SIZE).padStart(2, "0")}</span>
+          <span className={`hudAmmoValue${hudAmmoValueClass(activeMagazineSize)}`}>{String(activeMagazineSize).padStart(2, "0")}</span>
         </div>
 
         {/* Right section — MAGS */}
@@ -3846,33 +4125,53 @@ export default function FpsGame() {
           <span className={`hudAmmoValue${hudAmmoValueClass(spareMags)}`}>{String(spareMags).padStart(2, "0")}</span>
         </div>
 
-        {/* Fire mode indicator — auto | burst | single */}
-        <div className="hudFireMode">
-          <button
-            type="button"
-            className={`hudFireModeOption${fireMode === "auto" ? " hudFireModeActive" : ""}`}
-            onClick={() => { fireModeRef.current = "auto"; setFireMode("auto"); }}
-          >
-            <img src={fireMode === "auto" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
-            <span className="hudFireModeLabel">A</span>
-          </button>
-          <button
-            type="button"
-            className={`hudFireModeOption${fireMode === "burst" ? " hudFireModeActive" : ""}`}
-            onClick={() => { fireModeRef.current = "burst"; setFireMode("burst"); }}
-          >
-            <img src={fireMode === "burst" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
-            <img src={fireMode === "burst" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
-            <img src={fireMode === "burst" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
-          </button>
-          <button
-            type="button"
-            className={`hudFireModeOption${fireMode === "single" ? " hudFireModeActive" : ""}`}
-            onClick={() => { fireModeRef.current = "single"; setFireMode("single"); }}
-          >
-            <img src={fireMode === "single" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
-          </button>
-        </div>
+        {/* Fire mode — only modes supported by the active primary weapon */}
+        {PRIMARY_WEAPONS[activePrimaryWeapon].fireModes.length > 0 && (
+          <div className="hudFireMode">
+            {PRIMARY_WEAPONS[activePrimaryWeapon].fireModes.includes("auto") && (
+              <button
+                type="button"
+                className={`hudFireModeOption${fireMode === "auto" ? " hudFireModeActive" : ""}`}
+                onClick={() => {
+                  fireModeByWeaponRef.current[activePrimaryWeapon] = "auto";
+                  fireModeRef.current = "auto";
+                  setFireMode("auto");
+                }}
+              >
+                <img src={fireMode === "auto" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
+                <span className="hudFireModeLabel">A</span>
+              </button>
+            )}
+            {PRIMARY_WEAPONS[activePrimaryWeapon].fireModes.includes("burst") && (
+              <button
+                type="button"
+                className={`hudFireModeOption${fireMode === "burst" ? " hudFireModeActive" : ""}`}
+                onClick={() => {
+                  fireModeByWeaponRef.current[activePrimaryWeapon] = "burst";
+                  fireModeRef.current = "burst";
+                  setFireMode("burst");
+                }}
+              >
+                <img src={fireMode === "burst" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
+                <img src={fireMode === "burst" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
+                <img src={fireMode === "burst" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
+              </button>
+            )}
+            {PRIMARY_WEAPONS[activePrimaryWeapon].fireModes.includes("single") && (
+              <button
+                type="button"
+                className={`hudFireModeOption${fireMode === "single" ? " hudFireModeActive" : ""}`}
+                onClick={() => {
+                  fireModeByWeaponRef.current[activePrimaryWeapon] = "single";
+                  fireModeRef.current = "single";
+                  setFireMode("single");
+                }}
+              >
+                <img src={fireMode === "single" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
+              </button>
+            )}
+          </div>
+        )}
 
         <HudBarCompass />
       </div>
@@ -3944,27 +4243,6 @@ export default function FpsGame() {
         markersRef={compassMarkersRef}
         blipsRef={compassBlipsRef}
       />
-
-      {/* Radar — bottom left */}
-      <div className="hudRadar" ref={radarRef} style={{
-        left: `${radarLeft}rem`,
-        bottom: `${radarBottom}rem`,
-        width: `${radarScale}rem`,
-        height: `${radarScale}rem`,
-      }}>
-        <div className="radarRing">
-          <div className="radarInner" style={{
-            left: `${radarInnerX}%`,
-            top: `${radarInnerY}%`,
-            width: `${radarInnerSize}%`,
-            height: `${radarInnerSize}%`,
-          }}>
-            <canvas ref={radarSweepRef} className="radarSweepCanvas" width="200" height="200" />
-            <div ref={radarDotsRef} className="radarDots" />
-            <div className="radarCenter" />
-          </div>
-        </div>
-      </div>
 
       {/* Health bar — top right */}
       <div
@@ -4319,6 +4597,60 @@ export default function FpsGame() {
             </SettingsSection>
 
             <SettingsSection title="Development">
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={weaponTuneEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setWeaponTuneEnabled(enabled);
+                    weaponTuneEnabledRef.current = enabled;
+                    saveWeaponTuneEnabled(enabled);
+                  }}
+                />
+                Weapon pose tuning wizard
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                In-game panel — Hip, Aim, and Look tabs for pose, rotation, and
+                parallax. Aim tab previews down-sights while adjusting.
+              </p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={pistolTuneEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setPistolTuneEnabled(enabled);
+                    pistolTuneEnabledRef.current = enabled;
+                    savePistolTuneEnabled(enabled);
+                    if (enabled) {
+                      pendingPistolTuneSwapRef.current = true;
+                    }
+                  }}
+                />
+                Pistol pose tuning wizard
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Hip and Aim tabs for the Azure Pulse Pistol. Equips the pistol
+                automatically; Aim tab previews ADS while adjusting.
+              </p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={roundDisplayTuneEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setRoundDisplayTuneEnabled(enabled);
+                    roundDisplayTuneEnabledRef.current = enabled;
+                    saveWeaponRoundDisplayTuneEnabled(enabled);
+                  }}
+                />
+                Rifle round display tuning wizard
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Align the magazine round counter on the receiver blank. Copy JSON
+                when positioned, then turn off the wizard.
+              </p>
               <p className="settingsGroupLabel">Level</p>
               <div className="sliderRow">
                 <span className="sliderLabel">Arena config</span>
@@ -4353,7 +4685,7 @@ export default function FpsGame() {
               <p className="settingsGroupLabel">Player position</p>
               <p className="settingsHint" style={{ marginTop: 0 }}>
                 Live readout while settings are open. Stand at a spot and copy coordinates
-                below. Toggle the gameplay HUD with <strong>U</strong>.
+                below. Toggle the gameplay HUD with <strong>I</strong>.
               </p>
               <div
                 ref={playerCoordsMenuRef}
@@ -4403,10 +4735,17 @@ export default function FpsGame() {
             }
           }}
         >
-          Show HUD (U)
+          Show HUD (I)
         </button>
       )}
       <PickupFlashLayer ref={pickupFlashLayerRef} />
+      <HudPrimaryWeaponStack
+        activePrimaryWeapon={activePrimaryWeapon}
+        primaryAmmo={primaryAmmo}
+        frameX={grenFrameX}
+        frameY={grenFrameY}
+        layoutStyle={weaponSlotLayoutStyle}
+      />
       <WeaponSlotStack
         grenadeCount={grenadeCount}
         flashbangCount={flashbangCount}
@@ -4416,7 +4755,6 @@ export default function FpsGame() {
         frameY={grenFrameY}
         layoutStyle={weaponSlotLayoutStyle}
       />
-      <div ref={crosshairRef} className="crosshair crosshairVisible" />
       <div
         id="gameplayHint"
         ref={gameplayHintRef}

@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-07T19:41:49.246Z",
-  "head": "934eafa",
-  "count": 142,
+  "generatedAt": "2026-06-08T00:58:37.481Z",
+  "head": "8bec826",
+  "count": 144,
   "commits": [
+    {
+      "sha": "8bec826",
+      "date": "2026-06-08",
+      "subject": "Release v0.1.37: Console hack minigame."
+    },
+    {
+      "sha": "a04abb2",
+      "date": "2026-06-08",
+      "subject": "Add NODE BREACH console hack UI with animated grid nodes and layout wizard."
+    },
     {
       "sha": "934eafa",
       "date": "2026-06-07",

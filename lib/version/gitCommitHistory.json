@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-08T00:58:37.481Z",
-  "head": "8bec826",
-  "count": 144,
+  "generatedAt": "2026-06-08T01:01:19.153Z",
+  "head": "0a905e0",
+  "count": 146,
   "commits": [
+    {
+      "sha": "0a905e0",
+      "date": "2026-06-08",
+      "subject": "Expand v0.1.37 release notes for rain and snow modules."
+    },
+    {
+      "sha": "85a071d",
+      "date": "2026-06-08",
+      "subject": "Fix v0.1.37 release commit hash in version history."
+    },
     {
       "sha": "8bec826",
       "date": "2026-06-08",

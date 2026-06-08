@@ -9,13 +9,41 @@ import {
   saveConsoleHackLayout,
 } from "@/lib/console-hack/ConsoleHackLayoutTuning.js";
 import {
-  buildRandomHackGridNodes,
-  hackLightningTimingStyle,
-  hackNodeScreenFlashEnabled,
+  HACK_NODE_LIVE_SRC,
+  HACK_REWARD_CACHE_SRC,
+  hackConnectionNodeCenterInOverlay,
+  hackNodePulseTimingStyle,
+  hackPointerRingAngleBetweenOverlay,
 } from "@/lib/console-hack/ConsoleHackGrid.js";
+import { HackNodePointerRing } from "@/components/console-hack/ConsoleHackNodeDecor.jsx";
+import {
+  confirmSelectedNode,
+  createHackGameState,
+  formatHackGrantedRewards,
+  getHackObjectiveCount,
+  getHackRouteProgressPct,
+  getHackStatusText,
+  getNode,
+  HACK_DEFAULT_REWARDS,
+  HACK_SECURITY_ENABLED,
+  HACK_REWARD_NODE_ID,
+  HACK_START_NODE_ID,
+  getStartPointerTarget,
+  HACK_SECURITY_AUTO_RESET_MS,
+  HACK_SUCCESS_DISMISS_MS,
+  isHackSecurityFailure,
+  isHackTimerExpired,
+  isHackTimerTicking,
+  isSelectableNeighbor,
+  resetHack,
+  resetHackAfterSecurityDeath,
+  navigateHackSelection,
+  selectNodeByMouse,
+  startHack,
+  tickHackTimer,
+} from "@/lib/console-hack/ConsoleHackGame.js";
 import {
   formatHackTimer,
-  hackTimerProgressPct,
   HACK_TIMER_DEFAULT,
   parseHackTimer,
 } from "@/lib/console-hack/ConsoleHackTimer.js";
@@ -30,6 +58,7 @@ import {
 } from "@/components/console-hack/ConsoleHackIcons.jsx";
 import { HackSecureChannelBars, HackStatusPulse } from "@/components/console-hack/ConsoleHackPulse.jsx";
 import ConsoleHackGridArea from "@/components/console-hack/ConsoleHackGridArea.jsx";
+import { HackNodeSelectedRing } from "@/components/console-hack/ConsoleHackNodeDecor.jsx";
 import ConsoleHackTuneLine from "@/components/console-hack/ConsoleHackTuneLine.jsx";
 import "./console-hack/ConsoleHackScreen.css";
 
@@ -54,11 +83,10 @@ const HACK_UI = {
     { iconId: "rewardIcon3", lineId: "rewardLine3", text: "+ 1 MEDKIT", Icon: HackMedkitIcon },
   ],
   footer: [
-    { id: "footerMove", keys: ["WASD"], label: "MOVE" },
-    { id: "footerRotate", keys: ["E"], label: "ROTATE NODE" },
-    { id: "footerConfirm", keys: ["F"], label: "CONFIRM" },
+    { id: "footerMove", keys: ["W", "A", "S", "D"], label: "SELECT" },
+    { id: "footerConfirm", keys: ["SPACE"], label: "CONFIRM" },
     { id: "footerReset", keys: ["R"], label: "RESET" },
-    { id: "footerExit", keys: ["ESC"], label: "EXIT" },
+    { id: "footerEndHack", keys: ["H"], label: "End Hack" },
   ],
 };
 
@@ -72,6 +100,15 @@ const HACK_UI = {
  *   panelId?: string | null,
  *   panelLabel?: string | null,
  *   onClose?: () => void,
+ *   hackKeyCode?: string | string[],
+ *   onHackDismiss?: (timerRemainingMs: number) => void,
+ *   onHackComplete?: (rewards: typeof HACK_DEFAULT_REWARDS) => void,
+ *   onHackFailed?: () => void,
+ *   sounds?: {
+ *     playHackDeath?: () => void,
+ *     playHackConnect?: () => void,
+ *     playSupplyPickup?: () => void,
+ *   } | null,
  * }} props
  */
 export default function ConsoleHackScreen({
@@ -83,13 +120,31 @@ export default function ConsoleHackScreen({
   panelId,
   panelLabel,
   onClose,
+  hackKeyCode = "KeyH",
+  onHackDismiss,
+  onHackComplete,
+  onHackFailed,
+  sounds = null,
 }) {
   const frameRef = useRef(null);
   const [selectedId, setSelectedId] = useState(null);
   const [layout, setLayout] = useState(() => layoutProp ?? loadConsoleHackLayout());
   const hackTimerTotalMs = useMemo(() => parseHackTimer(HACK_UI.timer), []);
-  const [hackTimerMs, setHackTimerMs] = useState(hackTimerTotalMs);
+  const [gameState, setGameState] = useState(() => createHackGameState());
+  const completeHandledRef = useRef(false);
+  const timerExpiredHandledRef = useRef(false);
   const hackTimerRafRef = useRef(0);
+  const hackTimerLastRef = useRef(0);
+  const gameStateRef = useRef(gameState);
+  gameStateRef.current = gameState;
+
+  const hackKeyMatches = useCallback(
+    (code) => {
+      if (Array.isArray(hackKeyCode)) return hackKeyCode.includes(code);
+      return hackKeyCode === code;
+    },
+    [hackKeyCode]
+  );
 
   useEffect(() => {
     if (layoutProp) setLayout(layoutProp);
@@ -143,37 +198,113 @@ export default function ConsoleHackScreen({
     if (!open) setSelectedId(null);
   }, [open]);
 
-  useEffect(() => {
-    if (!open) {
-      setHackTimerMs(hackTimerTotalMs);
-      return undefined;
-    }
-    if (tuneEnabled) return undefined;
+  const gridArea = layout.gridArea;
+  const { cols: gridCols, rows: gridRows } = getHackGridDimensions(gridArea);
 
-    const endAt = performance.now() + hackTimerTotalMs;
-    const tick = () => {
-      const remaining = Math.max(0, endAt - performance.now());
-      setHackTimerMs(remaining);
-      if (remaining > 0) {
-        hackTimerRafRef.current = requestAnimationFrame(tick);
-      }
+  const beginHackSession = useCallback(() => {
+    const seed = Math.floor(Math.random() * 0xffffffff);
+    setGameState(
+      startHack(
+        createHackGameState({
+          rows: gridRows,
+          cols: gridCols,
+          seed,
+          timerMs: hackTimerTotalMs,
+        })
+      )
+    );
+    completeHandledRef.current = false;
+    timerExpiredHandledRef.current = false;
+    hackTimerLastRef.current = performance.now();
+  }, [gridCols, gridRows, hackTimerTotalMs]);
+
+  useEffect(() => {
+    if (open && !tuneEnabled) beginHackSession();
+  }, [open, tuneEnabled, beginHackSession]);
+
+  const hackTimerTicking = isHackTimerTicking(gameState);
+
+  useEffect(() => {
+    if (!open || tuneEnabled || !hackTimerTicking) return undefined;
+
+    const tick = (now) => {
+      const delta = now - hackTimerLastRef.current;
+      hackTimerLastRef.current = now;
+      setGameState((prev) => tickHackTimer(prev, delta));
+      hackTimerRafRef.current = requestAnimationFrame(tick);
     };
 
-    setHackTimerMs(hackTimerTotalMs);
+    hackTimerLastRef.current = performance.now();
     hackTimerRafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(hackTimerRafRef.current);
-  }, [open, tuneEnabled, hackTimerTotalMs]);
+  }, [open, tuneEnabled, hackTimerTicking]);
 
-  const hackTimerText = formatHackTimer(hackTimerMs);
-  const hackProgressPct = hackTimerProgressPct(hackTimerMs, hackTimerTotalMs);
-
-  const [gridSeed, setGridSeed] = useState(() => Math.floor(Math.random() * 0xffffffff));
-  const randomizeGridNodes = useCallback(() => {
-    setGridSeed(Math.floor(Math.random() * 0xffffffff));
-  }, []);
   useEffect(() => {
-    if (open) randomizeGridNodes();
-  }, [open, randomizeGridNodes]);
+    if (gameState.status !== "complete" || completeHandledRef.current) return;
+    completeHandledRef.current = true;
+    onHackComplete?.(HACK_DEFAULT_REWARDS);
+  }, [gameState.status, onHackComplete]);
+
+  useEffect(() => {
+    if (!open || tuneEnabled || gameState.status !== "complete") return undefined;
+    const id = window.setTimeout(() => onClose?.(), HACK_SUCCESS_DISMISS_MS);
+    return () => window.clearTimeout(id);
+  }, [open, tuneEnabled, gameState.status, onClose]);
+
+  useEffect(() => {
+    if (!isHackSecurityFailure(gameState) || !gameState.failureConnection) return;
+    sounds?.playHackDeath?.();
+    onHackFailed?.();
+  }, [gameState.failureConnection, gameState.failureKind, gameState.status, sounds, onHackFailed]);
+
+  useEffect(() => {
+    if (!isHackTimerExpired(gameState) || timerExpiredHandledRef.current) return;
+    timerExpiredHandledRef.current = true;
+    sounds?.playHackDeath?.();
+    onHackFailed?.();
+  }, [gameState.failureKind, gameState.status, sounds, onHackFailed]);
+
+  useEffect(() => {
+    if (!open || tuneEnabled || !isHackSecurityFailure(gameState)) return undefined;
+
+    const id = window.setTimeout(() => {
+      setGameState((prev) => resetHackAfterSecurityDeath(prev));
+      hackTimerLastRef.current = performance.now();
+    }, HACK_SECURITY_AUTO_RESET_MS);
+
+    return () => window.clearTimeout(id);
+  }, [
+    open,
+    tuneEnabled,
+    gameState.failureKind,
+    gameState.failureConnection,
+    gameState.status,
+  ]);
+
+  const hackTimerText = formatHackTimer(gameState.timerRemainingMs);
+  const hackProgressPct = getHackRouteProgressPct(gameState);
+  const hackStatusText = getHackStatusText(gameState);
+  const hackObjectiveCount = getHackObjectiveCount(gameState);
+  const showTimerExpiredOverlay = isHackTimerExpired(gameState);
+  const showSecurityFailure = isHackSecurityFailure(gameState);
+  const showSuccessOverlay = gameState.status === "complete";
+  const grantedRewards = showSuccessOverlay
+    ? formatHackGrantedRewards(HACK_DEFAULT_REWARDS)
+    : [];
+  const REWARD_ICONS = {
+    credits: HackCreditIcon,
+    ammo: HackAmmoIcon,
+    medkit: HackMedkitIcon,
+  };
+
+  const handleReset = useCallback(() => {
+    setGameState((prev) => {
+      const seed = Math.floor(Math.random() * 0xffffffff);
+      return resetHack({ ...prev, seed });
+    });
+    completeHandledRef.current = false;
+    hackTimerLastRef.current = performance.now();
+  }, []);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -182,19 +313,139 @@ export default function ConsoleHackScreen({
       const tag = e.target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-      if (e.key === "Escape") {
-        onClose?.();
-      } else if (e.key === "r" || e.key === "R") {
+      const state = gameStateRef.current;
+
+      if (hackKeyMatches(e.code)) {
         e.preventDefault();
-        randomizeGridNodes();
+        e.stopPropagation();
+        if (
+          !isHackTimerExpired(state) &&
+          state.status !== "complete"
+        ) {
+          onHackDismiss?.(state.timerRemainingMs);
+        }
+        return;
+      }
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isHackTimerExpired(state)) {
+          onClose?.();
+        }
+        return;
+      }
+
+      if (isHackTimerExpired(state)) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      if (key === "r") {
+        e.preventDefault();
+        handleReset();
+        return;
+      }
+
+      if (isHackSecurityFailure(state)) {
+        return;
+      }
+
+      if (state.status === "complete") {
+        return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        e.stopPropagation();
+        setGameState((prev) => {
+          const { state: next, event } = confirmSelectedNode(prev);
+          if (event === "power_connected" || event === "walked_back") {
+            sounds?.playHackConnect?.();
+          }
+          return next;
+        });
+        return;
+      }
+      if (e.code === "KeyW" || key === "w") {
+        e.preventDefault();
+        e.stopPropagation();
+        setGameState((prev) => navigateHackSelection(prev, "w"));
+      } else if (e.code === "KeyS" || key === "s") {
+        e.preventDefault();
+        e.stopPropagation();
+        setGameState((prev) => navigateHackSelection(prev, "s"));
+      } else if (e.code === "KeyA" || key === "a") {
+        e.preventDefault();
+        e.stopPropagation();
+        setGameState((prev) => navigateHackSelection(prev, "a"));
+      } else if (e.code === "KeyD" || key === "d") {
+        e.preventDefault();
+        e.stopPropagation();
+        setGameState((prev) => navigateHackSelection(prev, "d"));
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, tuneEnabled, randomizeGridNodes]);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [
+    open,
+    onClose,
+    onHackDismiss,
+    hackKeyMatches,
+    tuneEnabled,
+    handleReset,
+    sounds,
+    onHackComplete,
+  ]);
 
-  const gridArea = layout.gridArea;
-  const { cols: gridCols, rows: gridRows } = getHackGridDimensions(gridArea);
+  const startNode = getNode(gameState, HACK_START_NODE_ID);
+  const startIsActive = gameState.activeNodeId === HACK_START_NODE_ID;
+  const startIsSelected = gameState.selectedNodeId === HACK_START_NODE_ID;
+  const startPointerTarget =
+    !tuneEnabled && gameState.status === "active" && startIsActive && startNode
+      ? getStartPointerTarget(gameState)
+      : null;
+  const showStartPointer =
+    startIsActive &&
+    startPointerTarget != null &&
+    startPointerTarget.id !== HACK_START_NODE_ID;
+  const startSpriteTemplate = layout.nodeLive ?? { x: 0, y: 0 };
+  const startPointerAngle =
+    startPointerTarget != null && gridArea && layout.gridStartNode && startNode
+      ? hackPointerRingAngleBetweenOverlay(
+          hackConnectionNodeCenterInOverlay(
+            startNode,
+            gridArea,
+            startSpriteTemplate,
+            gridCols,
+            gridRows,
+            layout.gridStartNode,
+            HACK_START_NODE_ID,
+            layout.gridRewardCache,
+            HACK_REWARD_NODE_ID
+          ),
+          hackConnectionNodeCenterInOverlay(
+            startPointerTarget,
+            gridArea,
+            startSpriteTemplate,
+            gridCols,
+            gridRows,
+            layout.gridStartNode,
+            HACK_START_NODE_ID,
+            layout.gridRewardCache,
+            HACK_REWARD_NODE_ID
+          )
+        )
+      : 0;
+  const activeNode = getNode(gameState, gameState.activeNodeId);
+  const lastColIsActive = activeNode?.col === gridCols - 1;
+  const rewardNode = getNode(gameState, HACK_REWARD_NODE_ID);
+  const rewardIsSelected = gameState.selectedNodeId === HACK_REWARD_NODE_ID;
+  const rewardIsSelectable =
+    !tuneEnabled &&
+    gameState.status === "active" &&
+    rewardNode != null &&
+    isSelectableNeighbor(gameState, rewardNode);
   const spriteCellW = gridArea ? gridArea.w / gridCols : 1;
   const spriteCellH = gridArea ? gridArea.h / gridRows : 1;
   const spriteDragSpace = useMemo(
@@ -205,25 +456,6 @@ export default function ConsoleHackScreen({
       cellH: spriteCellH,
     }),
     [spriteCellW, spriteCellH]
-  );
-
-  const gridNodes = useMemo(
-    () =>
-      buildRandomHackGridNodes({
-        cols: gridCols,
-        rows: gridRows,
-        seed: gridSeed,
-      }),
-    [gridCols, gridRows, gridSeed]
-  );
-
-  const screenFlashNodes = useMemo(
-    () =>
-      gridNodes.filter(
-        (node) =>
-          node.variant === "live" && hackNodeScreenFlashEnabled(node.index, gridSeed)
-      ),
-    [gridNodes, gridSeed]
   );
 
   const tuneLineProps = useCallback(
@@ -280,8 +512,19 @@ export default function ConsoleHackScreen({
             <ConsoleHackTuneLine {...tuneLineProps("statusLabel")} className="consoleHackLabel">
               STATUS
             </ConsoleHackTuneLine>
-            <ConsoleHackTuneLine {...tuneLineProps("statusValue")} className="consoleHackValue">
-              {HACK_UI.status}
+            <ConsoleHackTuneLine
+              {...tuneLineProps("statusValue")}
+              className={[
+                "consoleHackValue",
+                showSecurityFailure || showTimerExpiredOverlay
+                  ? "consoleHackValue--alert"
+                  : "",
+                gameState.status === "complete" ? "consoleHackValue--success" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {hackStatusText}
             </ConsoleHackTuneLine>
             <ConsoleHackTuneLine {...tuneLineProps("statusPulse")} className="consoleHackPulseLine">
               <HackStatusPulse animate={pulseAnimate} />
@@ -296,14 +539,16 @@ export default function ConsoleHackScreen({
             >
               {HACK_UI.objectiveLines[0]}
             </ConsoleHackTuneLine>
-            <ConsoleHackTuneLine
-              {...tuneLineProps("objectiveLine2")}
-              className="consoleHackValue consoleHackValue--sub"
-            >
-              {HACK_UI.objectiveLines[1]}
-            </ConsoleHackTuneLine>
+            {HACK_SECURITY_ENABLED ? (
+              <ConsoleHackTuneLine
+                {...tuneLineProps("objectiveLine2")}
+                className="consoleHackValue consoleHackValue--sub"
+              >
+                {HACK_UI.objectiveLines[1]}
+              </ConsoleHackTuneLine>
+            ) : null}
             <ConsoleHackTuneLine {...tuneLineProps("objectiveCount")} className="consoleHackValue">
-              {HACK_UI.objectiveCount}
+              {hackObjectiveCount}
             </ConsoleHackTuneLine>
 
             <ConsoleHackTuneLine {...tuneLineProps("rewardLabel")} className="consoleHackLabel">
@@ -351,14 +596,104 @@ export default function ConsoleHackScreen({
               {hackProgressPct}%
             </ConsoleHackTuneLine>
 
-            <ConsoleHackTuneLine {...tuneLineProps("gridStart")} className="consoleHackGridLabel">
+            <ConsoleHackTuneLine
+              {...tuneLineProps("gridStart")}
+              className="consoleHackGridLabel consoleHackGridLabel--start"
+            >
               {HACK_UI.gridStart}
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine
+              {...tuneLineProps("gridStartNode")}
+              onClick={
+                !tuneEnabled && startIsActive
+                  ? () => setGameState((prev) => selectNodeByMouse(prev, HACK_START_NODE_ID))
+                  : undefined
+              }
+              className={[
+                "consoleHackGridStartNode",
+                !tuneEnabled && gameState.status === "active" && startIsSelected
+                  ? "consoleHackGridStartNode--selected"
+                  : "",
+                !tuneEnabled && startIsActive ? "consoleHackGridStartNode--active" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {!tuneEnabled ? (
+                <>
+                  <span
+                    className="consoleHackNodeSprite__zapWrap"
+                    style={hackNodePulseTimingStyle(0)}
+                  >
+                    <span className="consoleHackNodeSprite__glow consoleHackNodeSprite__glow--start" aria-hidden="true" />
+                    <img
+                      src={HACK_NODE_LIVE_SRC}
+                      alt=""
+                      className="consoleHackNodeSprite__img consoleHackNodeSprite__img--pulse"
+                      draggable={false}
+                    />
+                  </span>
+                  {startIsSelected ? <HackNodeSelectedRing /> : null}
+                  {showStartPointer && startPointerTarget ? (
+                    <HackNodePointerRing angleDeg={startPointerAngle} />
+                  ) : null}
+                </>
+              ) : (
+                <img
+                  src={HACK_NODE_LIVE_SRC}
+                  alt=""
+                  className="consoleHackNodeSprite__img consoleHackNodeSprite__img--tunePreview"
+                  draggable={false}
+                />
+              )}
             </ConsoleHackTuneLine>
             <ConsoleHackTuneLine
               {...tuneLineProps("gridReward")}
               className="consoleHackGridLabel consoleHackGridLabel--reward"
             >
               {HACK_UI.gridReward}
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine
+              {...tuneLineProps("gridRewardCache")}
+              onClick={
+                rewardIsSelectable
+                  ? () => setGameState((prev) => selectNodeByMouse(prev, HACK_REWARD_NODE_ID))
+                  : undefined
+              }
+              className={[
+                "consoleHackGridRewardCache",
+                gameState.status === "active" && rewardIsSelected
+                  ? "consoleHackGridRewardCache--selected"
+                  : "",
+                lastColIsActive ? "consoleHackGridRewardCache--active" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {!tuneEnabled ? (
+                <>
+                  <span
+                    className="consoleHackNodeSprite__zapWrap"
+                    style={hackNodePulseTimingStyle(5)}
+                  >
+                    <span className="consoleHackNodeSprite__glow" aria-hidden="true" />
+                    <img
+                      src={HACK_REWARD_CACHE_SRC}
+                      alt=""
+                      className="consoleHackNodeSprite__img consoleHackNodeSprite__img--pulse"
+                      draggable={false}
+                    />
+                  </span>
+                  {gameState.status === "active" && rewardIsSelected ? <HackNodeSelectedRing /> : null}
+                </>
+              ) : (
+                <img
+                  src={HACK_REWARD_CACHE_SRC}
+                  alt=""
+                  className="consoleHackNodeSprite__img consoleHackNodeSprite__img--tunePreview"
+                  draggable={false}
+                />
+              )}
             </ConsoleHackTuneLine>
 
             <ConsoleHackGridArea
@@ -368,9 +703,12 @@ export default function ConsoleHackScreen({
               onSelectId={setSelectedId}
               startDrag={startDrag}
               spriteDragSpace={spriteDragSpace}
-              gridNodes={gridNodes}
               gridCols={gridCols}
               gridRows={gridRows}
+              gameState={tuneEnabled ? null : gameState}
+              onSelectGameNode={(nodeId) => {
+                setGameState((prev) => selectNodeByMouse(prev, nodeId));
+              }}
             />
 
             <ConsoleHackTuneLine {...tuneLineProps("nodeIdLabel")} className="consoleHackLabel">
@@ -408,25 +746,48 @@ export default function ConsoleHackScreen({
                 {...tuneLineProps("rewardsLabel")}
                 className="consoleHackLabel consoleHackRewardsGrid__label"
               >
-                POTENTIAL REWARDS
+                {showSuccessOverlay ? "GRANTED REWARDS" : "POTENTIAL REWARDS"}
               </ConsoleHackTuneLine>
-              {HACK_UI.rewards.map(({ iconId, lineId, text, Icon }) => (
-                <span key={lineId} className="consoleHackRewardRow">
-                  <ConsoleHackTuneLine
-                    {...tuneLineProps(iconId)}
-                    className="consoleHackIconLine consoleHackRewardIconLine"
-                    aria-label={text}
+              {(showSuccessOverlay ? grantedRewards : HACK_UI.rewards).map((entry) => {
+                const rowKey = showSuccessOverlay ? entry.key : entry.lineId;
+                const text = entry.text;
+                const Icon = showSuccessOverlay
+                  ? REWARD_ICONS[entry.key]
+                  : entry.Icon;
+                const iconId = entry.iconId ?? `${rowKey}Icon`;
+                const lineId = entry.lineId ?? `${rowKey}Line`;
+                return (
+                  <span
+                    key={rowKey}
+                    className={[
+                      "consoleHackRewardRow",
+                      showSuccessOverlay ? "consoleHackRewardRow--granted" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
                   >
-                    <Icon className="consoleHackIcon consoleHackRewardIcon" />
-                  </ConsoleHackTuneLine>
-                  <ConsoleHackTuneLine
-                    {...tuneLineProps(lineId)}
-                    className="consoleHackValue consoleHackValue--list"
-                  >
-                    {text}
-                  </ConsoleHackTuneLine>
-                </span>
-              ))}
+                    <ConsoleHackTuneLine
+                      {...tuneLineProps(iconId)}
+                      className="consoleHackIconLine consoleHackRewardIconLine"
+                      aria-label={text}
+                    >
+                      <Icon className="consoleHackIcon consoleHackRewardIcon" />
+                    </ConsoleHackTuneLine>
+                    <ConsoleHackTuneLine
+                      {...tuneLineProps(lineId)}
+                      className={[
+                        "consoleHackValue",
+                        "consoleHackValue--list",
+                        showSuccessOverlay ? "consoleHackValue--success" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      {text}
+                    </ConsoleHackTuneLine>
+                  </span>
+                );
+              })}
             </div>
 
             {HACK_UI.footer.map((group) => (
@@ -445,20 +806,31 @@ export default function ConsoleHackScreen({
               </ConsoleHackTuneLine>
             ))}
           </div>
+
+          {showTimerExpiredOverlay ? (
+            <button
+              type="button"
+              className="consoleHackTimerOverlay"
+              role="alertdialog"
+              aria-modal="true"
+              aria-label="Time expired. Click to exit."
+              onClick={() => onClose?.()}
+            >
+              <p className="consoleHackTimerOverlayTitle">TIME EXPIRED</p>
+              <p className="consoleHackTimerOverlaySub">
+                Breach window closed — session terminated
+              </p>
+              <p className="consoleHackTimerOverlayHint">Click to exit</p>
+            </button>
+          ) : null}
+
+          {showSuccessOverlay ? (
+            <div className="consoleHackSuccessOverlay" role="status" aria-live="polite">
+              <p className="consoleHackSuccessOverlayTitle">ACCESS GRANTED</p>
+            </div>
+          ) : null}
         </div>
       </div>
-
-      {!tuneEnabled && screenFlashNodes.length > 0 ? (
-        <div className="consoleHackScreenFlashes" aria-hidden="true">
-          {screenFlashNodes.map((node) => (
-            <div
-              key={`screen-flash-${node.index}`}
-              className="consoleHackScreenFlash"
-              style={hackLightningTimingStyle(node.index)}
-            />
-          ))}
-        </div>
-      ) : null}
 
       {tuneEnabled ? (
         <ConsoleHackTunePanel

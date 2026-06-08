@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { disposeLevelGroup } from "@/lib/level/Level";
 import { createLevelFromConfig } from "@/lib/level/createLevelFromConfig";
@@ -167,6 +167,10 @@ import {
   refreshLevelPickupShadows,
 } from "@/lib/pickups/AmmoCrate";
 import {
+  preloadScorePackAssets,
+  SCORE_PACK_DEFAULT_VALUE,
+} from "@/lib/pickups/ScorePack.js";
+import {
   preloadOilBarrelAssets,
   ensureOilBarrelInteriorTextures,
   ensureOilBarrelInteriorVideo,
@@ -193,6 +197,7 @@ import {
   toggleVx27ContainerDoorLeaf,
 } from "@/lib/vx27-container/Vx27ContainerDoorInteract";
 import {
+  findNearestFacingControlPanel,
   findNearestHackableControlPanel,
   getControlPanelHackLabel,
   updateControlPanelHackPrompt,
@@ -203,6 +208,7 @@ import {
   loadConsoleHackTuneEnabled,
   saveConsoleHackTuneEnabled,
 } from "@/lib/console-hack/ConsoleHackLayoutTuning.js";
+import { formatHackGrantedRewards } from "@/lib/console-hack/ConsoleHackGame.js";
 import {
   loadVx27ContainerMaterialTuning,
   normalizeVx27ContainerMaterialTuning,
@@ -321,6 +327,7 @@ import {
 import PistolTunePanel from "@/components/tuning-panels/PistolTunePanel";
 import WeaponTunePanel from "@/components/tuning-panels/WeaponTunePanel";
 import WeaponRoundDisplayTunePanel from "@/components/tuning-panels/WeaponRoundDisplayTunePanel";
+import ControlPanelScreenHackFlashTunePanel from "@/components/tuning-panels/ControlPanelScreenHackFlashTunePanel";
 import {
   DEFAULT_AIM_ROUND_DISPLAY,
   DEFAULT_HIP_ROUND_DISPLAY,
@@ -375,6 +382,19 @@ import {
   preloadControlPanelScreenCTextures,
   resetControlPanelScreenCTextureCache,
 } from "@/lib/control-panel/ControlPanelScreenC";
+import {
+  preloadControlPanelScreenCHackFlashTextures,
+  clearAllControlPanelScreenCHackFlashPreviews,
+  setControlPanelScreenCHackFlashPreview,
+  startControlPanelScreenCHackFlash,
+  updateControlPanelScreenCHackFlashes,
+} from "@/lib/control-panel/ControlPanelScreenCHackFlash.js";
+import {
+  loadControlPanelScreenGreenBrightness,
+  loadControlPanelScreenHackFlashTuneEnabled,
+  loadControlPanelScreenRedBrightness,
+  saveControlPanelScreenHackFlashTuneEnabled,
+} from "@/lib/control-panel/ControlPanelScreenCHackFlashTuning.js";
 import {
   preloadControlPanelShelfDTextures,
   resetControlPanelShelfDTextureCache,
@@ -593,10 +613,20 @@ function updateFlashbangOverlay(el, blindStartMs) {
   el.style.opacity = String(opacity);
 }
 
-function safeRequestPointerLock(canvas) {
-  if (touchControlsGateRef.current) return;
+function safeRequestPointerLock(canvas, retries = 3) {
+  if (touchControlsGateRef.current || !canvas) return;
   if (document.pointerLockElement === canvas) return;
-  canvas.requestPointerLock().catch(() => {});
+
+  const attempt = (remaining) => {
+    if (document.pointerLockElement === canvas) return;
+    canvas.focus?.({ preventScroll: true });
+    canvas.requestPointerLock().catch(() => {
+      if (remaining > 0) {
+        requestAnimationFrame(() => attempt(remaining - 1));
+      }
+    });
+  };
+  attempt(retries);
 }
 
 function safeExitPointerLock() {
@@ -848,6 +878,7 @@ export default function FpsGame() {
   const [renderScale, setRenderScale] = useState(DEFAULT_RENDER_SCALE);
   const renderScaleRef = useRef(DEFAULT_RENDER_SCALE);
   const rendererRef = useRef(null);
+  const cameraRef = useRef(null);
   const soundsRef = useRef(null);
   const [keyboardLook, setKeyboardLook] = useState(DEFAULT_KEYBOARD_LOOK);
   const [keyboardEase, setKeyboardEase] = useState(DEFAULT_KEYBOARD_EASE);
@@ -932,6 +963,111 @@ export default function FpsGame() {
   const [consoleHackTuneEnabled, setConsoleHackTuneEnabled] = useState(() =>
     loadConsoleHackTuneEnabled()
   );
+  const consoleHackTuneEnabledRef = useRef(consoleHackTuneEnabled);
+  const [screenHackFlashTuneEnabled, setScreenHackFlashTuneEnabled] = useState(
+    () => loadControlPanelScreenHackFlashTuneEnabled()
+  );
+  const screenHackFlashTuneEnabledRef = useRef(screenHackFlashTuneEnabled);
+  const [screenHackFlashPreviewOutcome, setScreenHackFlashPreviewOutcome] =
+    useState("green");
+  const screenHackFlashPreviewOutcomeRef = useRef("green");
+  const screenHackFlashPreviewPanelRef = useRef(null);
+  const [screenGreenBrightness, setScreenGreenBrightness] = useState(() =>
+    loadControlPanelScreenGreenBrightness()
+  );
+  const [screenRedBrightness, setScreenRedBrightness] = useState(() =>
+    loadControlPanelScreenRedBrightness()
+  );
+  const handleConsoleHackComplete = useCallback((rewards) => {
+    playerScoreRef.current += rewards.credits ?? 0;
+    updateScoreHud(scoreHudRef.current, playerScoreRef.current);
+
+    const pistolSpare = Math.ceil((rewards.pistolAmmo ?? 0) / 12);
+    if (pistolSpare > 0) {
+      ammoPoolSnapshotRef.current.pistol.spare += pistolSpare;
+    }
+
+    let playedHpPickup = false;
+    if (rewards.medkit) {
+      playerHealthRef.current = Math.min(100, playerHealthRef.current + 40 * rewards.medkit);
+      soundsRef.current?.playHpPickup?.();
+      playedHpPickup = true;
+    }
+
+    for (const item of formatHackGrantedRewards(rewards)) {
+      pickupFlashLayerRef.current?.show(item.pickup);
+    }
+    if (!playedHpPickup && (rewards.pistolAmmo || rewards.credits)) {
+      soundsRef.current?.playSupplyPickup?.();
+    }
+
+    if (consoleHackPanelRef.current) {
+      startControlPanelScreenCHackFlash(consoleHackPanelRef.current, "success");
+    }
+
+    scheduleGameplayHudSyncRef.current?.();
+  }, []);
+
+  const handleConsoleHackFailed = useCallback(() => {
+    if (consoleHackPanelRef.current) {
+      startControlPanelScreenCHackFlash(consoleHackPanelRef.current, "failed");
+    }
+  }, []);
+
+  const closeConsoleHackRef = useRef(() => {});
+  const openConsoleHackRef = useRef(() => {});
+  const openConsoleHack = useCallback((target) => {
+    const canvas = canvasRef.current;
+    inputRef.current?.discardLookDelta?.();
+    inputRef.current?.clearHeldState?.();
+    consoleHackPanelRef.current = target.group;
+    setConsoleHackPanelId(target.group.userData.controlPanelPropId ?? null);
+    setConsoleHackPanelLabel(getControlPanelHackLabel(target.group));
+    const hackLayout = loadConsoleHackLayout();
+    consoleHackLayoutRef.current = hackLayout;
+    setConsoleHackLayout(hackLayout);
+    setConsoleHackOpen(true);
+    updateControlPanelHackPrompt(consoleHackPromptRef.current, bindingsRef.current, false);
+    if (consoleHackTuneEnabledRef.current) {
+      safeExitPointerLock();
+    } else {
+      safeRequestPointerLock(canvas);
+    }
+  }, []);
+
+  const closeConsoleHack = useCallback(() => {
+    const canvas = canvasRef.current;
+    inputRef.current?.discardLookDelta?.();
+    inputRef.current?.clearHeldState?.();
+    consoleHackPanelRef.current = null;
+    setConsoleHackPanelId(null);
+    setConsoleHackPanelLabel(null);
+    setConsoleHackOpen(false);
+    safeRequestPointerLock(canvas);
+    requestAnimationFrame(() => safeRequestPointerLock(canvas));
+  }, []);
+
+  const handleConsoleHackDismissed = useCallback(
+    (timerRemainingMs) => {
+      const panel = consoleHackPanelRef.current;
+      if (panel && timerRemainingMs > 0) {
+        startControlPanelScreenCHackFlash(panel, "failed", {
+          holdMs: timerRemainingMs,
+        });
+      }
+      closeConsoleHack();
+    },
+    [closeConsoleHack]
+  );
+
+  const consoleHackSounds = useMemo(
+    () => ({
+      playSupplyPickup: () => soundsRef.current?.playSupplyPickup?.(),
+      playHackDeath: () => soundsRef.current?.playHackDeath?.(),
+      playHackConnect: () => soundsRef.current?.playHackConnect?.(),
+    }),
+    []
+  );
   const [rebindAction, setRebindAction] = useState(null);
   const bindingsRef = useRef(loadBindings());
   const settingsOpenRef = useRef(false);
@@ -1004,6 +1140,42 @@ export default function FpsGame() {
   const dayNightCurNightnessRef = useRef(
     DAY_NIGHT_SWITCHER_ENABLED && !loadSunDayMode() ? 1 : 0
   );
+  const clearScreenHackFlashPreview = useCallback(() => {
+    clearAllControlPanelScreenCHackFlashPreviews(
+      controlPanelsRef.current,
+      dayNightCurNightnessRef.current
+    );
+    screenHackFlashPreviewPanelRef.current = null;
+  }, []);
+
+  const refreshScreenHackFlashPreview = useCallback(() => {
+    if (!screenHackFlashTuneEnabledRef.current) return;
+    const camera = cameraRef.current;
+    if (!camera || !controlPanelsRef.current.length) return;
+
+    const target = findNearestFacingControlPanel(
+      camera,
+      controlPanelsRef.current
+    );
+    const nightness = dayNightCurNightnessRef.current;
+    const outcome = screenHackFlashPreviewOutcomeRef.current;
+    const prev = screenHackFlashPreviewPanelRef.current;
+
+    if (!target) {
+      if (prev) {
+        setControlPanelScreenCHackFlashPreview(prev, null, nightness);
+        screenHackFlashPreviewPanelRef.current = null;
+      }
+      return;
+    }
+
+    if (prev && prev !== target.group) {
+      setControlPanelScreenCHackFlashPreview(prev, null, nightness);
+    }
+
+    setControlPanelScreenCHackFlashPreview(target.group, outcome, nightness);
+    screenHackFlashPreviewPanelRef.current = target.group;
+  }, []);
   const dayNightDemoCycleElapsedRef = useRef(0);
   const skyRef = useRef(null);
   const weaponRef = useRef(null);
@@ -1370,6 +1542,11 @@ export default function FpsGame() {
   settingsOpenRef.current = settingsOpen;
   controlsOpenRef.current = controlsOpen;
   consoleHackOpenRef.current = consoleHackOpen;
+  consoleHackTuneEnabledRef.current = consoleHackTuneEnabled;
+  closeConsoleHackRef.current = closeConsoleHack;
+  openConsoleHackRef.current = openConsoleHack;
+  screenHackFlashTuneEnabledRef.current = screenHackFlashTuneEnabled;
+  screenHackFlashPreviewOutcomeRef.current = screenHackFlashPreviewOutcome;
   touchControlsGateRef.current = touchControlsActive;
 
   useEffect(() => {
@@ -1479,6 +1656,7 @@ export default function FpsGame() {
       camera.layers.enable(ROOM_INTERIOR_LAYER);
       camera.layers.enable(VIEWMODEL_LAYER);
       camera.layers.enable(HEALTH_BAR_LAYER);
+      cameraRef.current = camera;
       screenCrosshairRef.current = createScreenCrosshair(scene);
       const sounds = createSoundManager(camera);
       soundsRef.current = sounds;
@@ -1529,6 +1707,9 @@ export default function FpsGame() {
       reportLoad(52, "Ammo crate textures");
       await preloadAmmoCrateAssets();
       if (!isActive()) return;
+      reportLoad(53, "Score pack texture");
+      await preloadScorePackAssets();
+      if (!isActive()) return;
       reportLoad(54, "Oil barrel assets");
       await preloadOilBarrelAssets(arena);
       if (!isActive()) return;
@@ -1539,6 +1720,7 @@ export default function FpsGame() {
       resetControlPanelBodyTextureCache();
       await Promise.all([
         preloadControlPanelScreenCTextures(),
+        preloadControlPanelScreenCHackFlashTextures(),
         preloadControlPanelShelfDTextures(),
         preloadControlPanelBodyTextures(),
       ]);
@@ -2697,6 +2879,15 @@ export default function FpsGame() {
           !controlsOpenRef.current &&
           !consoleHackOpenRef.current;
 
+        if (consoleHackOpenRef.current) {
+          input.discardLookDelta?.();
+          if (consoleHackTuneEnabledRef.current) {
+            safeExitPointerLock();
+          } else if (!touchMode && document.pointerLockElement !== canvas) {
+            safeRequestPointerLock(canvas);
+          }
+        }
+
         if (!frozen && !consoleHackOpenRef.current) {
           player.update(input, dt);
           playerPlacementRef.current = {
@@ -2891,6 +3082,13 @@ export default function FpsGame() {
           );
         }
 
+        updateControlPanelScreenCHackFlashes(
+          controlPanelsRef.current,
+          dayNightCurNightnessRef.current,
+          now
+        );
+        refreshScreenHackFlashPreview();
+
         let hackTarget = null;
         if (
           !consoleHackOpenRef.current &&
@@ -2923,17 +3121,7 @@ export default function FpsGame() {
           canInteract &&
           wasBindingPressed(input, bindingsRef.current, "hack")
         ) {
-          consoleHackPanelRef.current = hackTarget.group;
-          setConsoleHackPanelId(
-            hackTarget.group.userData.controlPanelPropId ?? null
-          );
-          setConsoleHackPanelLabel(getControlPanelHackLabel(hackTarget.group));
-          const hackLayout = loadConsoleHackLayout();
-          consoleHackLayoutRef.current = hackLayout;
-          setConsoleHackLayout(hackLayout);
-          setConsoleHackOpen(true);
-          updateControlPanelHackPrompt(consoleHackPromptRef.current, bindingsRef.current, false);
-          safeExitPointerLock();
+          openConsoleHackRef.current(hackTarget);
         }
 
         if (
@@ -2967,7 +3155,7 @@ export default function FpsGame() {
           canUseWeapons &&
           isBindingDown(input, bindingsRef.current, "shoot");
 
-        if (!frozen) {
+        if (!frozen && !consoleHackOpenRef.current) {
           const rounds = roundsInMagRef.current;
           const spare = spareMagsRef.current;
           weaponSwap.update(dt, primaryWeapons, () => activePrimaryId, (id) => {
@@ -3401,6 +3589,15 @@ export default function FpsGame() {
               setFlashbangCount(flashbangCountRef.current);
               pickupFlashLayerRef.current?.show("grenade");
               sounds.playSupplyPickup();
+            } else if (kind === "score") {
+              const credits = value ?? SCORE_PACK_DEFAULT_VALUE;
+              playerScoreRef.current += credits;
+              updateScoreHud(scoreHudRef.current, playerScoreRef.current);
+              pickupFlashLayerRef.current?.show({
+                type: "score",
+                label: `+ ${credits} CREDITS`,
+              });
+              sounds.playSupplyPickup();
             } else {
               roundsInMagRef.current += value ?? 10;
               persistActiveAmmo();
@@ -3641,7 +3838,13 @@ export default function FpsGame() {
           updateFlashbangOverlay(flashbangOverlayRef.current, 0);
           beginDeathOverlayFade(deathOverlayRef.current);
         }
-        safeRequestPointerLock(canvas);
+        if (
+          !(
+            consoleHackOpenRef.current && consoleHackTuneEnabledRef.current
+          )
+        ) {
+          safeRequestPointerLock(canvas);
+        }
       };
       onPointerLockChange = () => syncPointerLocked();
       onKeyDown = (e) => {
@@ -3651,10 +3854,7 @@ export default function FpsGame() {
           } else if (controlsOpenRef.current) {
             setControlsOpen(false);
           } else if (consoleHackOpenRef.current) {
-            consoleHackPanelRef.current = null;
-            setConsoleHackPanelId(null);
-            setConsoleHackPanelLabel(null);
-            setConsoleHackOpen(false);
+            closeConsoleHackRef.current();
           } else {
             safeExitPointerLock();
           }
@@ -4092,7 +4292,7 @@ export default function FpsGame() {
           </div>
         ) : null}
       </div>
-      <canvas ref={canvasRef} className="gameCanvas" />
+      <canvas ref={canvasRef} className="gameCanvas" tabIndex={-1} />
       <TouchControls
         active={
           touchControlsActive &&
@@ -4162,6 +4362,39 @@ export default function FpsGame() {
           />
         )}
       {loadDone &&
+        screenHackFlashTuneEnabled &&
+        !controlsOpen &&
+        !consoleHackOpen && (
+          <ControlPanelScreenHackFlashTunePanel
+            previewOutcome={screenHackFlashPreviewOutcome}
+            onPreviewOutcomeChange={(outcome) => {
+              screenHackFlashPreviewOutcomeRef.current = outcome;
+              setScreenHackFlashPreviewOutcome(outcome);
+              refreshScreenHackFlashPreview();
+            }}
+            greenBrightness={screenGreenBrightness}
+            redBrightness={screenRedBrightness}
+            onGreenBrightnessChange={(value) => {
+              setScreenGreenBrightness(value);
+              if (screenHackFlashPreviewOutcomeRef.current === "green") {
+                refreshScreenHackFlashPreview();
+              }
+            }}
+            onRedBrightnessChange={(value) => {
+              setScreenRedBrightness(value);
+              if (screenHackFlashPreviewOutcomeRef.current === "red") {
+                refreshScreenHackFlashPreview();
+              }
+            }}
+            onClose={() => {
+              clearScreenHackFlashPreview();
+              setScreenHackFlashTuneEnabled(false);
+              screenHackFlashTuneEnabledRef.current = false;
+              saveControlPanelScreenHackFlashTuneEnabled(false);
+            }}
+          />
+        )}
+      {loadDone &&
         roundDisplayTuneEnabled &&
         !controlsOpen &&
         !consoleHackOpen && (
@@ -4208,17 +4441,20 @@ export default function FpsGame() {
         }}
         onTuneClose={() => {
           setConsoleHackTuneEnabled(false);
+          consoleHackTuneEnabledRef.current = false;
           saveConsoleHackTuneEnabled(false);
+          if (consoleHackOpenRef.current && !touchControlsActive) {
+            safeRequestPointerLock(canvasRef.current);
+          }
         }}
         panelId={consoleHackPanelId}
         panelLabel={consoleHackPanelLabel}
-        onClose={() => {
-          consoleHackPanelRef.current = null;
-          setConsoleHackPanelId(null);
-          setConsoleHackPanelLabel(null);
-          setConsoleHackOpen(false);
-          safeRequestPointerLock(canvasRef.current);
-        }}
+        onClose={closeConsoleHack}
+        hackKeyCode={bindings.hack}
+        onHackDismiss={handleConsoleHackDismissed}
+        onHackComplete={handleConsoleHackComplete}
+        onHackFailed={handleConsoleHackFailed}
+        sounds={consoleHackSounds}
       />
       <div
         ref={flashbangOverlayRef}
@@ -4915,6 +5151,30 @@ export default function FpsGame() {
                 Align the magazine round counter on the receiver blank. Copy JSON
                 when positioned, then turn off the wizard.
               </p>
+              <p className="settingsGroupLabel">Control panel</p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={screenHackFlashTuneEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    if (!enabled) {
+                      clearScreenHackFlashPreview();
+                    }
+                    setScreenHackFlashTuneEnabled(enabled);
+                    screenHackFlashTuneEnabledRef.current = enabled;
+                    saveControlPanelScreenHackFlashTuneEnabled(enabled);
+                    if (enabled) {
+                      refreshScreenHackFlashPreview();
+                    }
+                  }}
+                />
+                Hack screen colour tuning
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Left-side sliders for green (success) and red (failure) screen
+                brightness. Face a console to preview while adjusting.
+              </p>
               <label className="settingRow">
                 <input
                   type="checkbox"
@@ -4922,7 +5182,17 @@ export default function FpsGame() {
                   onChange={(e) => {
                     const enabled = e.target.checked;
                     setConsoleHackTuneEnabled(enabled);
+                    consoleHackTuneEnabledRef.current = enabled;
                     saveConsoleHackTuneEnabled(enabled);
+                    if (enabled && consoleHackOpenRef.current) {
+                      safeExitPointerLock();
+                    } else if (
+                      !enabled &&
+                      consoleHackOpenRef.current &&
+                      !touchControlsActive
+                    ) {
+                      safeRequestPointerLock(canvasRef.current);
+                    }
                   }}
                 />
                 Console hack layout wizard

@@ -9,6 +9,10 @@ Optimized WebP maps for the sloped monitor bank (profile edge **C**, corners 3�
 | `screen_c_roughness.webp` | Roughness |
 | `screen_c_metallic.webp` | Metalness |
 | `screen_c_emissive.webp` | Emissive (UI glow) |
+| `screen_c_albedo_green.webp` | Hack success albedo |
+| `screen_c_emissive_green.webp` | Hack success emissive |
+| `screen_c_albedo_red.webp` | Hack failure albedo |
+| `screen_c_emissive_red.webp` | Hack failure emissive |
 | `screen_c_ao.webp` | Ambient occlusion |
 **Surface C** (profile edge 3→4, monitor slope) — `u` along `panelWidth`, `v` down the slope. Maps: albedo, normal, roughness, AO, emissive (`metalness` off — no env map). Glow ~1.75× `0x3db8ff`.
 

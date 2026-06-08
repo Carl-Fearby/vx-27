@@ -2111,6 +2111,45 @@ body {
   margin: 0 auto;
 }
 
+.pickupOverlayScoreImg {
+  flex: 0 0 auto;
+  width: var(--pickup-canvas-size);
+  height: auto;
+  max-width: min(16.5vw, 196px);
+  margin: -0.08rem auto 0;
+  transform: scale(0.35);
+  transform-origin: center center;
+  opacity: 0;
+  transition:
+    width var(--pickup-fade),
+    transform var(--pickup-fade),
+    opacity var(--pickup-fade);
+  filter: drop-shadow(0 0 18px rgba(60, 170, 255, 0.45));
+  pointer-events: none;
+  user-select: none;
+}
+
+.pickupOverlayCard--visible .pickupOverlayScoreImg {
+  transform: scale(1);
+  opacity: 1;
+  animation: pickupScoreSpin 2.4s linear infinite;
+}
+
+.pickupOverlayCard--exit .pickupOverlayScoreImg {
+  transform: scale(0.58);
+  opacity: 0;
+  animation: none;
+}
+
+@keyframes pickupScoreSpin {
+  from {
+    transform: scale(1) rotate(0deg);
+  }
+  to {
+    transform: scale(1) rotate(360deg);
+  }
+}
+
 /* === Top-left stamina bar + score ========================================= */
 .hudStaminaCluster {
   position: fixed;
@@ -2959,6 +2998,78 @@ body {
   max-height: min(34vh, 260px);
   overflow-x: auto;
   overflow-y: auto;
+}
+
+.hackFlashTunePanel {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 120;
+  width: min(16rem, calc(100vw - 2rem));
+  padding: 0.55rem 0.65rem 0.65rem;
+  border-radius: 10px;
+  background: rgba(18, 18, 24, 0.98);
+  border: 1px solid #3a3a48;
+  color: #d8d8e4;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  pointer-events: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+.hackFlashTuneHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #e8e8ec;
+}
+
+.hackFlashTuneHint {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: #9898a8;
+}
+
+.hackFlashTunePreviewRow {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.hackFlashTunePreviewBtn {
+  flex: 1;
+  padding: 0.35rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid #3a3a48;
+  background: #1e1e28;
+  color: #c8c8d2;
+  font-size: 0.7rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.hackFlashTunePreviewBtn--green.isActive {
+  border-color: #2a8a4a;
+  background: rgba(24, 72, 44, 0.85);
+  color: #b8f0c8;
+}
+
+.hackFlashTunePreviewBtn--red.isActive {
+  border-color: #8a2a2a;
+  background: rgba(72, 24, 24, 0.85);
+  color: #f0b8b8;
+}
+
+.hackFlashTunePanel .sliderRow {
+  gap: 0.2rem;
+}
+
+.hackFlashTunePanel .sliderLabel {
+  font-size: 0.72rem;
 }
 
 .hudTunePanel--bottomDock .hudTuneBody--row,

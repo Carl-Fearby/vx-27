@@ -7,7 +7,8 @@ import {
   formatConsoleHackLayoutForCopy,
   HACK_ELEMENT_META,
   isHackGridAreaElement,
-  isHackSpriteElement,
+  isHackGridMarkerElement,
+  isHackMarkerOrSpriteElement,
   resetConsoleHackElement,
   resetConsoleHackLayout,
 } from "@/lib/console-hack/ConsoleHackLayoutTuning.js";
@@ -95,7 +96,9 @@ export default function ConsoleHackTunePanel({
 }) {
   const el = selectedId ? layout[selectedId] : null;
   const meta = selectedId ? HACK_ELEMENT_META[selectedId] : null;
-  const isSprite = selectedId ? isHackSpriteElement(selectedId) : false;
+  const isSprite = selectedId ? isHackMarkerOrSpriteElement(selectedId) : false;
+  const isGridMarker = selectedId ? isHackGridMarkerElement(selectedId) : false;
+  const isCellSprite = isSprite && !isGridMarker;
   const isGridArea = selectedId ? isHackGridAreaElement(selectedId) : false;
   const isTextElement = el && meta && !isSprite && !isGridArea;
 
@@ -150,7 +153,7 @@ export default function ConsoleHackTunePanel({
         </button>
       </header>
       <p className="consoleHackTuneHint">
-        Drag this panel header to reposition. Click a line, grid area, or node sprite to select it.
+        Drag this panel header to reposition. Click a line, grid area, START/reward markers, or node sprite to select it.
         Drag to move, drag the corner handle to resize.
       </p>
 
@@ -161,10 +164,19 @@ export default function ConsoleHackTunePanel({
           onChange={(e) => onSelect(e.target.value || null)}
         >
           <option value="">— select —</option>
-          {Object.entries(HACK_ELEMENT_META).map(([id, m]) => (
-            <option key={id} value={id}>
-              {m.group}: {m.label}
-            </option>
+          {Object.entries(
+            Object.entries(HACK_ELEMENT_META).reduce((groups, [id, m]) => {
+              (groups[m.group] ??= []).push([id, m]);
+              return groups;
+            }, /** @type {Record<string, [string, { label: string, group: string }][]>} */ ({}))
+          ).map(([group, items]) => (
+            <optgroup key={group} label={group}>
+              {items.map(([id, m]) => (
+                <option key={id} value={id}>
+                  {m.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </label>
@@ -173,18 +185,18 @@ export default function ConsoleHackTunePanel({
         <div className="consoleHackTuneSection">
           <h3>{meta.label}</h3>
           <SliderField
-            label={isSprite ? "X (center offset)" : "X"}
+            label={isCellSprite ? "X (center offset)" : "X"}
             value={el.x}
-            min={isSprite ? -0.5 : 0}
-            max={isSprite ? 0.5 : 1}
+            min={isCellSprite ? -0.5 : 0}
+            max={isCellSprite ? 0.5 : 1}
             step={0.001}
             onChange={(v) => onPatch(selectedId, { x: v })}
           />
           <SliderField
-            label={isSprite ? "Y (center offset)" : "Y"}
+            label={isCellSprite ? "Y (center offset)" : "Y"}
             value={el.y}
-            min={isSprite ? -0.5 : 0}
-            max={isSprite ? 0.5 : 1}
+            min={isCellSprite ? -0.5 : 0}
+            max={isCellSprite ? 0.5 : 1}
             step={0.001}
             onChange={(v) => onPatch(selectedId, { y: v })}
           />
@@ -227,8 +239,9 @@ export default function ConsoleHackTunePanel({
           ) : null}
           {isSprite ? (
             <p className="consoleHackTuneHint">
-              X/Y offset the icon center from the cell center (0 = centred). W/H are shared between live
-              and dead. Image scale is per variant — use Dead node sprite to shrink dead icons.
+              {selectedId === "gridStartNode" || selectedId === "gridRewardCache"
+                ? "Drag to reposition the flanking marker. W/H set the tune box; image scale sizes the sprite inside it."
+                : "X/Y offset the icon center from the cell center (0 = centred). W/H are shared between live and dead. Image scale is per variant — use Dead node sprite to shrink dead icons."}
             </p>
           ) : null}
           <button

@@ -110,30 +110,6 @@ export function HackMedkitIcon({ className }) {
   );
 }
 
-/** Jagged strike bolt — overlays live grid nodes on occasional zap hits. */
-export function HackLightningBoltIcon({ className, style }) {
-  return (
-    <svg
-      className={className}
-      style={style}
-      viewBox="0 0 24 32"
-      aria-hidden="true"
-    >
-      <path
-        d="M14.4 0 6.2 14.8h4.5L3.8 32l12.6-17.4H11.8L19.2 0Z"
-        fill="rgba(210, 245, 255, 0.35)"
-        stroke="rgba(120, 220, 255, 0.55)"
-        strokeWidth="0.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M13.6 2.2 7.4 14.2h3.4L5.6 28.8l10.2-14.4H12.4L17.4 2.2Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
 /** Credit chip — stylised $ badge for reward credits. */
 export function HackCreditIcon({ className }) {
   return (

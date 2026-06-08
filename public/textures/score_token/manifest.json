@@ -1,0 +1,105 @@
+{
+  "asset_name": "VX-27 Score Bonus Token PBR Texture Pack",
+  "version": "1.0",
+  "created_for": "VX-27 FPS game collectible score-points object",
+  "notes": [
+    "Texture pack contains front-face and side-wall / outer-rim maps.",
+    "Maps are generated from the score token concept and renamed for direct import into a 3D workflow.",
+    "AO and metallic maps are derived utility maps; treat them as a starting point and tune in-engine if needed.",
+    "Emissive maps should be plugged into emission with cyan/blue bloom enabled.",
+    "Side wall maps are intended as a horizontal unwrap strip around the token rim."
+  ],
+  "recommended_material_setup": {
+    "base_color": "Use *_albedo.png in Base Color / Albedo.",
+    "normal": "Use *_normal.png as Tangent Space Normal. Flip green channel if your engine requires DirectX/OpenGL conversion.",
+    "roughness": "Use *_roughness.png. White = rougher, black = smoother.",
+    "metallic": "Use *_metallic.png. White = metal, black = non-metal/paint/glow.",
+    "ambient_occlusion": "Use *_ao.png to darken panel seams and recessed details.",
+    "emissive": "Use *_emissive.png for blue light strips, star, rings, vents, and UI markings."
+  },
+  "textures": {
+    "front_face": {
+      "description": "Circular front face with central score star, VX-27, +100, SCORE BONUS markings, white armor panels and blue core.",
+      "uv_intent": "Flat front cap / coin face UV island.",
+      "maps": {
+        "albedo": "front_face_albedo.png",
+        "normal": "front_face_normal.png",
+        "roughness": "front_face_roughness.png",
+        "metallic": "front_face_metallic.png",
+        "ambient_occlusion": "front_face_ao.png",
+        "emissive": "front_face_emissive.png"
+      }
+    },
+    "side_walls": {
+      "description": "Horizontal unwrap texture for the cylindrical side wall / outer rim, with repeating armor panels, vents, dark hardware and blue lights.",
+      "uv_intent": "Wrap around the rim/cylinder side. Tile horizontally if needed.",
+      "maps": {
+        "albedo": "side_walls_albedo.png",
+        "normal": "side_walls_normal.png",
+        "roughness": "side_walls_roughness.png",
+        "metallic": "side_walls_metallic.png",
+        "ambient_occlusion": "side_walls_ao.png",
+        "emissive": "side_walls_emissive.png"
+      }
+    }
+  },
+  "source_dimensions_px": {
+    "front_face_albedo.png": [
+      1254,
+      1254
+    ],
+    "front_face_ao.png": [
+      1254,
+      1254
+    ],
+    "front_face_emissive.png": [
+      1254,
+      1254
+    ],
+    "front_face_metallic.png": [
+      1254,
+      1254
+    ],
+    "front_face_normal.png": [
+      1254,
+      1254
+    ],
+    "front_face_roughness.png": [
+      1254,
+      1254
+    ],
+    "reference_score_token_render.png": [
+      1254,
+      1254
+    ],
+    "side_walls_albedo.png": [
+      1254,
+      1254
+    ],
+    "side_walls_ao.png": [
+      1254,
+      1254
+    ],
+    "side_walls_emissive.png": [
+      1254,
+      1254
+    ],
+    "side_walls_metallic.png": [
+      1254,
+      1254
+    ],
+    "side_walls_normal.png": [
+      1254,
+      1254
+    ],
+    "side_walls_roughness.png": [
+      1254,
+      1254
+    ]
+  },
+  "engine_tips": {
+    "unity_hdrp_urp": "Import albedo as sRGB, normal as Normal Map, roughness/metallic/AO as linear grayscale, emissive as sRGB with bloom.",
+    "threejs": "Use map, normalMap, roughnessMap, metalnessMap, aoMap, emissiveMap. Set emissive color to cyan/blue and tune emissiveIntensity.",
+    "blender": "Use Principled BSDF: Base Color, Metallic, Roughness, Normal Map node, AO multiply, and Emission/Emission Strength for glow areas."
+  }
+}

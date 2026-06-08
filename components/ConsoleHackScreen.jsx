@@ -3,14 +3,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  HACK_ELEMENT_META,
   getHackGridDimensions,
-  hackRectStyle,
   isHackSpriteElement,
   loadConsoleHackLayout,
   saveConsoleHackLayout,
 } from "@/lib/console-hack/ConsoleHackLayoutTuning.js";
-import { buildRandomHackGridNodes } from "@/lib/console-hack/ConsoleHackGrid.js";
+import {
+  buildRandomHackGridNodes,
+  hackLightningTimingStyle,
+  hackNodeScreenFlashEnabled,
+} from "@/lib/console-hack/ConsoleHackGrid.js";
 import {
   formatHackTimer,
   hackTimerProgressPct,
@@ -28,6 +30,7 @@ import {
 } from "@/components/console-hack/ConsoleHackIcons.jsx";
 import { HackSecureChannelBars, HackStatusPulse } from "@/components/console-hack/ConsoleHackPulse.jsx";
 import ConsoleHackGridArea from "@/components/console-hack/ConsoleHackGridArea.jsx";
+import ConsoleHackTuneLine from "@/components/console-hack/ConsoleHackTuneLine.jsx";
 import "./console-hack/ConsoleHackScreen.css";
 
 const HACK_UI = {
@@ -58,16 +61,6 @@ const HACK_UI = {
     { id: "footerExit", keys: ["ESC"], label: "EXIT" },
   ],
 };
-
-function elementStyle(tune) {
-  return {
-    ...hackRectStyle(tune),
-    "--hack-label-color": tune.labelColor,
-    "--hack-value-color": tune.valueColor,
-    "--hack-accent-color": tune.accentColor,
-    "--hack-font-scale": String(tune.fontScale),
-  };
-}
 
 /**
  * @param {{
@@ -224,49 +217,28 @@ export default function ConsoleHackScreen({
     [gridCols, gridRows, gridSeed]
   );
 
-  const HackTuneLine = ({
-    id,
-    className = "",
-    as: Tag = "span",
-    children,
-  }) => {
-    const tune = layout[id];
-    if (!tune) return null;
-    const selected = selectedId === id;
-    return (
-      <Tag
-        className={[
-          "consoleHackLine",
-          "consoleHackTuneTextBlock",
-          className,
-          tuneEnabled ? "consoleHackTuneBox consoleHackTuneBox--interactive" : "",
-          selected ? "consoleHackTuneBox--selected" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        style={elementStyle(tune)}
-        data-hack-id={id}
-        title={tuneEnabled ? HACK_ELEMENT_META[id]?.label : undefined}
-        onMouseDown={
-          tuneEnabled
-            ? (e) => {
-                e.stopPropagation();
-                setSelectedId(id);
-                startDrag(e, id, "move", tune);
-              }
-            : undefined
-        }
-      >
-        {children}
-        {tuneEnabled && selected ? (
-          <span
-            className="consoleHackResizeHandle"
-            onMouseDown={(e) => startDrag(e, id, "resize", tune)}
-          />
-        ) : null}
-      </Tag>
-    );
-  };
+  const screenFlashNodes = useMemo(
+    () =>
+      gridNodes.filter(
+        (node) =>
+          node.variant === "live" && hackNodeScreenFlashEnabled(node.index, gridSeed)
+      ),
+    [gridNodes, gridSeed]
+  );
+
+  const tuneLineProps = useCallback(
+    (id) => ({
+      id,
+      tune: layout[id],
+      tuneEnabled,
+      selected: selectedId === id,
+      onSelect: setSelectedId,
+      onStartDrag: startDrag,
+    }),
+    [layout, tuneEnabled, selectedId, startDrag]
+  );
+
+  const pulseAnimate = !tuneEnabled;
 
   if (!open) return null;
 
@@ -290,80 +262,104 @@ export default function ConsoleHackScreen({
                 : undefined
             }
           >
-            <HackTuneLine id="headerTitle" className="consoleHackTitle consoleHackLine--center" as="h1">
+            <ConsoleHackTuneLine
+              {...tuneLineProps("headerTitle")}
+              className="consoleHackTitle consoleHackLine--center"
+              as="h1"
+            >
               {HACK_UI.headerTitle}
-            </HackTuneLine>
-            <HackTuneLine id="headerSubtitle" className="consoleHackSubtitle consoleHackLine--center" as="p">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine
+              {...tuneLineProps("headerSubtitle")}
+              className="consoleHackSubtitle consoleHackLine--center"
+              as="p"
+            >
               {HACK_UI.headerSubtitle}
-            </HackTuneLine>
+            </ConsoleHackTuneLine>
 
-            <HackTuneLine id="statusLabel" className="consoleHackLabel">
+            <ConsoleHackTuneLine {...tuneLineProps("statusLabel")} className="consoleHackLabel">
               STATUS
-            </HackTuneLine>
-            <HackTuneLine id="statusValue" className="consoleHackValue">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine {...tuneLineProps("statusValue")} className="consoleHackValue">
               {HACK_UI.status}
-            </HackTuneLine>
-            <HackTuneLine id="statusPulse" className="consoleHackPulseLine">
-              <HackStatusPulse animate={open && !tuneEnabled} />
-            </HackTuneLine>
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine {...tuneLineProps("statusPulse")} className="consoleHackPulseLine">
+              <HackStatusPulse animate={pulseAnimate} />
+            </ConsoleHackTuneLine>
 
-            <HackTuneLine id="objectiveLabel" className="consoleHackLabel">
+            <ConsoleHackTuneLine {...tuneLineProps("objectiveLabel")} className="consoleHackLabel">
               OBJECTIVE
-            </HackTuneLine>
-            <HackTuneLine id="objectiveLine1" className="consoleHackValue consoleHackValue--sub">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine
+              {...tuneLineProps("objectiveLine1")}
+              className="consoleHackValue consoleHackValue--sub"
+            >
               {HACK_UI.objectiveLines[0]}
-            </HackTuneLine>
-            <HackTuneLine id="objectiveLine2" className="consoleHackValue consoleHackValue--sub">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine
+              {...tuneLineProps("objectiveLine2")}
+              className="consoleHackValue consoleHackValue--sub"
+            >
               {HACK_UI.objectiveLines[1]}
-            </HackTuneLine>
-            <HackTuneLine id="objectiveCount" className="consoleHackValue">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine {...tuneLineProps("objectiveCount")} className="consoleHackValue">
               {HACK_UI.objectiveCount}
-            </HackTuneLine>
+            </ConsoleHackTuneLine>
 
-            <HackTuneLine id="rewardLabel" className="consoleHackLabel">
+            <ConsoleHackTuneLine {...tuneLineProps("rewardLabel")} className="consoleHackLabel">
               REWARD
-            </HackTuneLine>
-            <HackTuneLine id="rewardTitle" className="consoleHackValue">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine {...tuneLineProps("rewardTitle")} className="consoleHackValue">
               {HACK_UI.rewardTitle}
-            </HackTuneLine>
-            <HackTuneLine id="rewardSub" className="consoleHackValue consoleHackValue--sub">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine
+              {...tuneLineProps("rewardSub")}
+              className="consoleHackValue consoleHackValue--sub"
+            >
               {HACK_UI.rewardSub}
-            </HackTuneLine>
+            </ConsoleHackTuneLine>
 
-            <HackTuneLine id="timerLabel" className="consoleHackLabel">
+            <ConsoleHackTuneLine {...tuneLineProps("timerLabel")} className="consoleHackLabel">
               TIMER
-            </HackTuneLine>
-            <HackTuneLine id="timerIcon" className="consoleHackIconLine" aria-label="Timer">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine
+              {...tuneLineProps("timerIcon")}
+              className="consoleHackIconLine"
+              aria-label="Timer"
+            >
               <HackClockIcon className="consoleHackIcon" />
-            </HackTuneLine>
-            <HackTuneLine id="timerValue" className="consoleHackValue consoleHackValue--lg">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine
+              {...tuneLineProps("timerValue")}
+              className="consoleHackValue consoleHackValue--lg"
+            >
               {hackTimerText}
-            </HackTuneLine>
+            </ConsoleHackTuneLine>
 
-            <HackTuneLine id="progressLabel" className="consoleHackLabel">
+            <ConsoleHackTuneLine {...tuneLineProps("progressLabel")} className="consoleHackLabel">
               PROGRESS
-            </HackTuneLine>
-            <HackTuneLine id="progressBar" className="consoleHackProgressRow">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine {...tuneLineProps("progressBar")} className="consoleHackProgressRow">
               <div className="consoleHackProgressTrack">
                 <div
                   className="consoleHackProgressFill"
                   style={{ width: `${hackProgressPct}%` }}
                 />
               </div>
-            </HackTuneLine>
-            <HackTuneLine id="progressPct" className="consoleHackProgressPct">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine {...tuneLineProps("progressPct")} className="consoleHackProgressPct">
               {hackProgressPct}%
-            </HackTuneLine>
+            </ConsoleHackTuneLine>
 
-            <HackTuneLine id="gridStart" className="consoleHackGridLabel">
+            <ConsoleHackTuneLine {...tuneLineProps("gridStart")} className="consoleHackGridLabel">
               {HACK_UI.gridStart}
-            </HackTuneLine>
-            <HackTuneLine
-              id="gridReward"
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine
+              {...tuneLineProps("gridReward")}
               className="consoleHackGridLabel consoleHackGridLabel--reward"
             >
               {HACK_UI.gridReward}
-            </HackTuneLine>
+            </ConsoleHackTuneLine>
 
             <ConsoleHackGridArea
               layout={layout}
@@ -377,56 +373,66 @@ export default function ConsoleHackScreen({
               gridRows={gridRows}
             />
 
-            <HackTuneLine id="nodeIdLabel" className="consoleHackLabel">
+            <ConsoleHackTuneLine {...tuneLineProps("nodeIdLabel")} className="consoleHackLabel">
               NODE ID
-            </HackTuneLine>
-            <HackTuneLine id="nodeIdValue" className="consoleHackValue consoleHackValue--lg">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine
+              {...tuneLineProps("nodeIdValue")}
+              className="consoleHackValue consoleHackValue--lg"
+            >
               {HACK_UI.nodeId}
-            </HackTuneLine>
-            <HackTuneLine id="secureChannelLabel" className="consoleHackLabel">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine {...tuneLineProps("secureChannelLabel")} className="consoleHackLabel">
               {HACK_UI.secureChannel}
-            </HackTuneLine>
-            <HackTuneLine id="secureChannelLock" className="consoleHackIconLine" aria-label="Secure">
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine
+              {...tuneLineProps("secureChannelLock")}
+              className="consoleHackIconLine"
+              aria-label="Secure"
+            >
               <HackLockIcon className="consoleHackIcon" />
-            </HackTuneLine>
-            <HackTuneLine id="secureChannelBars" className="consoleHackPulseLine consoleHackSecureBarsWrap">
-              <HackSecureChannelBars animate={open && !tuneEnabled} />
-            </HackTuneLine>
+            </ConsoleHackTuneLine>
+            <ConsoleHackTuneLine
+              {...tuneLineProps("secureChannelBars")}
+              className="consoleHackPulseLine consoleHackSecureBarsWrap"
+            >
+              <HackSecureChannelBars animate={pulseAnimate} />
+            </ConsoleHackTuneLine>
 
-            <HackTuneLine id="rewardPreviewLabel" className="consoleHackLabel">
+            <ConsoleHackTuneLine {...tuneLineProps("rewardPreviewLabel")} className="consoleHackLabel">
               {HACK_UI.rewardPreview}
-            </HackTuneLine>
+            </ConsoleHackTuneLine>
 
             <div className="consoleHackRewardsGrid consoleHackRewardsGrid--tune">
-              <HackTuneLine
-                id="rewardsLabel"
+              <ConsoleHackTuneLine
+                {...tuneLineProps("rewardsLabel")}
                 className="consoleHackLabel consoleHackRewardsGrid__label"
               >
                 POTENTIAL REWARDS
-              </HackTuneLine>
+              </ConsoleHackTuneLine>
               {HACK_UI.rewards.map(({ iconId, lineId, text, Icon }) => (
                 <span key={lineId} className="consoleHackRewardRow">
-                  <HackTuneLine
-                    id={iconId}
+                  <ConsoleHackTuneLine
+                    {...tuneLineProps(iconId)}
                     className="consoleHackIconLine consoleHackRewardIconLine"
                     aria-label={text}
                   >
                     <Icon className="consoleHackIcon consoleHackRewardIcon" />
-                  </HackTuneLine>
-                  <HackTuneLine
-                    id={lineId}
+                  </ConsoleHackTuneLine>
+                  <ConsoleHackTuneLine
+                    {...tuneLineProps(lineId)}
                     className="consoleHackValue consoleHackValue--list"
                   >
                     {text}
-                  </HackTuneLine>
+                  </ConsoleHackTuneLine>
                 </span>
               ))}
             </div>
 
             {HACK_UI.footer.map((group) => (
-              <HackTuneLine
+              <ConsoleHackTuneLine
                 key={group.id}
-                id={group.id}
+                {...tuneLineProps(group.id)}
                 className="consoleHackFooterGroup"
                 as="span"
               >
@@ -436,11 +442,23 @@ export default function ConsoleHackScreen({
                   </kbd>
                 ))}
                 <span>{group.label}</span>
-              </HackTuneLine>
+              </ConsoleHackTuneLine>
             ))}
           </div>
         </div>
       </div>
+
+      {!tuneEnabled && screenFlashNodes.length > 0 ? (
+        <div className="consoleHackScreenFlashes" aria-hidden="true">
+          {screenFlashNodes.map((node) => (
+            <div
+              key={`screen-flash-${node.index}`}
+              className="consoleHackScreenFlash"
+              style={hackLightningTimingStyle(node.index)}
+            />
+          ))}
+        </div>
+      ) : null}
 
       {tuneEnabled ? (
         <ConsoleHackTunePanel

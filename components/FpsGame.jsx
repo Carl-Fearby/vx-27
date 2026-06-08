@@ -72,6 +72,39 @@ import {
 import {
   resolveViewmodelLightingZone,
 } from "@/lib/lighting/LightingZones";
+import {
+  buildRainOccluderSlabs,
+  buildSnowOccluderSlabs,
+  createRainSystem,
+  disposeRain,
+  updateRain,
+} from "@/lib/Rain.js";
+import {
+  loadRainEnabled,
+  loadRainIntensity,
+  MAX_RAIN_INTENSITY,
+  MIN_RAIN_INTENSITY,
+  saveRainEnabled,
+  saveRainIntensity,
+} from "@/lib/RainTuning.js";
+import {
+  createSnowSystem,
+  disposeSnow,
+  resetSnowSettled,
+  updateSnow,
+} from "@/lib/Snow.js";
+import {
+  loadSnowEnabled,
+  loadSnowIntensity,
+  loadSnowStickRate,
+  MAX_SNOW_INTENSITY,
+  MAX_SNOW_STICK_RATE,
+  MIN_SNOW_INTENSITY,
+  MIN_SNOW_STICK_RATE,
+  saveSnowEnabled,
+  saveSnowIntensity,
+  saveSnowStickRate,
+} from "@/lib/SnowTuning.js";
 import { buildRoomCullables, updateRoomCulling } from "@/lib/rooms/RoomCulling";
 import {
   initCandleFlicker,
@@ -851,6 +884,18 @@ export default function FpsGame() {
   const [showHud, setShowHud] = useState(() => loadShowHud());
   const [musicEnabled, setMusicEnabled] = useState(true);
   const musicEnabledRef = useRef(true);
+  const [snowEnabled, setSnowEnabled] = useState(() => loadSnowEnabled());
+  const snowEnabledRef = useRef(loadSnowEnabled());
+  const [snowIntensity, setSnowIntensity] = useState(() => loadSnowIntensity());
+  const snowIntensityRef = useRef(loadSnowIntensity());
+  const [snowStickRate, setSnowStickRate] = useState(() => loadSnowStickRate());
+  const snowStickRateRef = useRef(loadSnowStickRate());
+  const [rainIntensity, setRainIntensity] = useState(() => loadRainIntensity());
+  const rainIntensityRef = useRef(loadRainIntensity());
+  const [rainEnabled, setRainEnabled] = useState(
+    () => loadRainEnabled() && !loadSnowEnabled()
+  );
+  const rainEnabledRef = useRef(loadRainEnabled() && !loadSnowEnabled());
   const [ammoDropSpareThreshold, setAmmoDropSpareThreshold] = useState(
     DEFAULT_AMMO_DROP_SPARE_THRESHOLD
   );
@@ -863,6 +908,7 @@ export default function FpsGame() {
   const hudBarCompassSize = 6.3;
   const hbCorner = 3;
   const sceneRef = useRef(null);
+  const snowRef = useRef(null);
   const [bindings, setBindings] = useState(() => loadBindings());
   const gameplayHintsDismissedRef = useRef(new Set());
   const gameplayHintRef = useRef(null);
@@ -1315,6 +1361,11 @@ export default function FpsGame() {
   maxLookRateRef.current = maxLookRate;
   playerHeightRef.current = playerHeight;
   sunIsDayRef.current = sunIsDay;
+  rainEnabledRef.current = rainEnabled;
+  rainIntensityRef.current = rainIntensity;
+  snowEnabledRef.current = snowEnabled;
+  snowIntensityRef.current = snowIntensity;
+  snowStickRateRef.current = snowStickRate;
   flashlightOnRef.current = flashlightOn;
   settingsOpenRef.current = settingsOpen;
   controlsOpenRef.current = controlsOpen;
@@ -1375,6 +1426,8 @@ export default function FpsGame() {
     let grenades = [];
     let grenadeDrops = [];
     let bloodSplatters = [];
+    let rain = null;
+    let snow = null;
     /** Kill-shot blood — waits for ragdoll, then spawns next frame. */
     let pendingKillBlood = [];
     let bloodAfterRagdoll = [];
@@ -1558,6 +1611,25 @@ export default function FpsGame() {
       setHealthBarOccluders(level.group);
       setSunOcclusionRoot(level.group);
       reportLoad(72, "Level geometry");
+      if (shouldLoadSky(arena)) {
+        const weatherOccluders = buildRainOccluderSlabs(
+          level.groundSurfaces,
+          level.catwalkDeckY,
+          level.ceilingColliders.filter((c) => c.kind === "deck"),
+          level.stairColliders
+        );
+        const snowOccluders = buildSnowOccluderSlabs(
+          level.groundSurfaces,
+          level.catwalkDeckY,
+          level.ceilingColliders.filter((c) => c.kind === "deck"),
+          level.stairColliders
+        );
+        rain = createRainSystem(scene);
+        rain.occluders = weatherOccluders;
+        snow = createSnowSystem(scene);
+        snow.occluders = snowOccluders;
+        snowRef.current = snow;
+      }
       prebuildRagdollTemplates(level.targets);
       vx27ContainersRef.current = level.vx27ContainerMeshes ?? [];
       controlPanelsRef.current = level.controlPanelMeshes ?? [];
@@ -3464,6 +3536,55 @@ export default function FpsGame() {
           viewmodelLightingZone === "room"
         );
 
+        const rainOccluders =
+          rain?.occluders ??
+          buildRainOccluderSlabs(
+            level.groundSurfaces,
+            level.catwalkDeckY,
+            level.ceilingColliders.filter((c) => c.kind === "deck"),
+            level.stairColliders
+          );
+        const snowOccluders =
+          snow?.occluders ??
+          buildSnowOccluderSlabs(
+            level.groundSurfaces,
+            level.catwalkDeckY,
+            level.ceilingColliders.filter((c) => c.kind === "deck"),
+            level.stairColliders
+          );
+
+        const snowActive =
+          snowEnabledRef.current && viewmodelLightingZone !== "container";
+
+        updateRain(rain, camera, dt, {
+          active:
+            rainEnabledRef.current &&
+            !snowEnabledRef.current &&
+            viewmodelLightingZone !== "container",
+          enclosed: inRoomBody,
+          playerX: player.getX(),
+          attachWall,
+          arenaHalf,
+          wallThickness: arena.wallThickness ?? 0.5,
+          occluders: rainOccluders,
+          intensity: rainIntensityRef.current,
+          floorY: arena.floorY ?? 0,
+        });
+
+        updateSnow(snow, camera, dt, now * 0.001, {
+          active: snowActive,
+          enclosed: inRoomBody,
+          allowSettle: snowActive && !inRoomBody,
+          intensity: snowIntensityRef.current,
+          stickRate: snowStickRateRef.current,
+          playerX: player.getX(),
+          attachWall,
+          arenaHalf,
+          wallThickness: arena.wallThickness ?? 0.5,
+          occluders: snowOccluders,
+          floorY: arena.floorY ?? 0,
+        });
+
         const barrelFireShadowCount = updateOilBarrelFireShadowBudget(
           oilBarrelRuntimeIndex.fireLights,
           camera.position,
@@ -3778,6 +3899,11 @@ export default function FpsGame() {
       input?.dispose();
       sky?.dispose();
       skyRef.current = null;
+      disposeRain(rain);
+      rain = null;
+      disposeSnow(snow);
+      snow = null;
+      snowRef.current = null;
       resetViewmodelInteriorAmbient();
       resetRoomInteriorAmbient();
       renderer.dispose();
@@ -4440,6 +4566,112 @@ export default function FpsGame() {
             )}
 
             <SettingsSection title="General">
+              {shouldLoadSky(arenaLiveRef.current) ? (
+                <>
+                  <label className="settingRow">
+                    <input
+                      type="checkbox"
+                      checked={rainEnabled}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        setRainEnabled(enabled);
+                        rainEnabledRef.current = enabled;
+                        saveRainEnabled(enabled);
+                        if (enabled) {
+                          setSnowEnabled(false);
+                          snowEnabledRef.current = false;
+                          saveSnowEnabled(false);
+                          resetSnowSettled(snowRef.current);
+                        }
+                      }}
+                    />
+                    Rain
+                  </label>
+                  <label className="sliderRow">
+                    <span className="sliderLabel">
+                      Rain intensity{" "}
+                      <output>{Math.round(rainIntensity * 100)}%</output>
+                    </span>
+                    <input
+                      type="range"
+                      min={MIN_RAIN_INTENSITY}
+                      max={MAX_RAIN_INTENSITY}
+                      step="0.05"
+                      value={rainIntensity}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        setRainIntensity(value);
+                        rainIntensityRef.current = value;
+                        saveRainIntensity(value);
+                      }}
+                    />
+                  </label>
+                  <label className="settingRow">
+                    <input
+                      type="checkbox"
+                      checked={snowEnabled}
+                      onChange={(e) => {
+                        const enabled = e.target.checked;
+                        setSnowEnabled(enabled);
+                        snowEnabledRef.current = enabled;
+                        saveSnowEnabled(enabled);
+                        if (enabled) {
+                          setRainEnabled(false);
+                          rainEnabledRef.current = false;
+                          saveRainEnabled(false);
+                        } else {
+                          resetSnowSettled(snowRef.current);
+                        }
+                      }}
+                    />
+                    Snow
+                  </label>
+                  <label className="sliderRow">
+                    <span className="sliderLabel">
+                      Snow intensity{" "}
+                      <output>{Math.round(snowIntensity * 100)}%</output>
+                    </span>
+                    <input
+                      type="range"
+                      min={MIN_SNOW_INTENSITY}
+                      max={MAX_SNOW_INTENSITY}
+                      step="0.05"
+                      value={snowIntensity}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        setSnowIntensity(value);
+                        snowIntensityRef.current = value;
+                        saveSnowIntensity(value);
+                      }}
+                    />
+                  </label>
+                  <label className="sliderRow">
+                    <span className="sliderLabel">
+                      Snow stick{" "}
+                      <output>{Math.round(snowStickRate * 100)}%</output>
+                    </span>
+                    <input
+                      type="range"
+                      min={MIN_SNOW_STICK_RATE}
+                      max={MAX_SNOW_STICK_RATE}
+                      step="0.05"
+                      value={snowStickRate}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        setSnowStickRate(value);
+                        snowStickRateRef.current = value;
+                        saveSnowStickRate(value);
+                      }}
+                    />
+                  </label>
+                  <p className="settingsHint" style={{ marginTop: 0 }}>
+                    Rain or snow outdoors (not both). Intensity runs from light
+                    drizzle / flurry up to 500% storm. Snow stick (to 500%)
+                    controls how much stays on catwalks, stairs, and the arena
+                    floor — separate from how hard it falls. Off in containers.
+                  </p>
+                </>
+              ) : null}
               <label className="settingRow">
                 <input
                   type="checkbox"

@@ -9,6 +9,7 @@ import {
   hackGridCellStyleInGrid,
   HACK_NODE_DEAD_SRC,
   HACK_NODE_LIVE_SRC,
+  hackLightningTimingStyle,
   hackNodeSpriteStyleInGrid,
 } from "@/lib/console-hack/ConsoleHackGrid.js";
 import { HackLightningBoltIcon } from "@/components/console-hack/ConsoleHackIcons.jsx";
@@ -20,17 +21,6 @@ function elementStyle(tune) {
     "--hack-value-color": tune.valueColor,
     "--hack-accent-color": tune.accentColor,
     "--hack-font-scale": String(tune.fontScale),
-  };
-}
-
-/** @param {number} index */
-function lightningTimingStyle(index) {
-  return {
-    "--lightning-dur": `${6.5 + (index % 11) * 1.25}s`,
-    "--lightning-delay": `${(index % 19) * 0.47}s`,
-    "--lightning-rot": `${-28 + (index % 7) * 14}deg`,
-    "--pulse-dur": `${2.35 + (index % 9) * 0.42}s`,
-    "--pulse-delay": `${(index % 13) * 0.21}s`,
   };
 }
 
@@ -141,7 +131,7 @@ function ConsoleHackGridArea({
               {!tuneEnabled && node.variant === "live" ? (
                 <span
                   className="consoleHackNodeSprite__zapWrap"
-                  style={lightningTimingStyle(node.index)}
+                    style={hackLightningTimingStyle(node.index)}
                 >
                   <span className="consoleHackNodeSprite__glow" aria-hidden="true" />
                   <img
@@ -167,8 +157,8 @@ function ConsoleHackGridArea({
                   style={
                     !tuneEnabled && node.variant === "dead"
                       ? {
-                          animationDuration: `${4.5 + (node.index % 8) * 0.85}s`,
-                          animationDelay: `${(node.index % 11) * 0.34}s`,
+                          animationDuration: `${16 + (node.index % 9) * 3.1}s`,
+                          animationDelay: `${(node.index % 13) * 1.45}s`,
                         }
                       : undefined
                   }

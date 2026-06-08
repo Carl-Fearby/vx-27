@@ -1,4 +1,4 @@
-/** Animated HUD pulse readouts — bars + dots for live console feedback. */
+import { memo } from "react";
 
 /**
  * @param {number} seed
@@ -29,8 +29,6 @@ function buildStatusNoiseDots(count) {
   return dots;
 }
 
-const STATUS_NOISE_DOTS = buildStatusNoiseDots(44);
-
 /** @param {number} count */
 function buildSecureBarLevels(count) {
   const rand = mulberry32(0x5ec0de);
@@ -47,10 +45,11 @@ function buildSecureBarLevels(count) {
   return levels;
 }
 
+const STATUS_NOISE_DOTS = buildStatusNoiseDots(44);
 const SECURE_BAR_COUNT = 28;
 const SECURE_BAR_LEVELS = buildSecureBarLevels(SECURE_BAR_COUNT);
 
-export function HackStatusPulse({ className = "", animate = true }) {
+export const HackStatusPulse = memo(function HackStatusPulse({ className = "", animate = true }) {
   return (
     <span
       className={["consoleHackStatusPulse", animate ? "consoleHackStatusPulse--live" : "", className]
@@ -75,9 +74,12 @@ export function HackStatusPulse({ className = "", animate = true }) {
       ))}
     </span>
   );
-}
+});
 
-export function HackSecureChannelBars({ className = "", animate = true }) {
+export const HackSecureChannelBars = memo(function HackSecureChannelBars({
+  className = "",
+  animate = true,
+}) {
   return (
     <span
       className={["consoleHackSecureBars", animate ? "consoleHackSecureBars--live" : "", className]
@@ -99,4 +101,4 @@ export function HackSecureChannelBars({ className = "", animate = true }) {
       ))}
     </span>
   );
-}
+});

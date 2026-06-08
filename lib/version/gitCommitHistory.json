@@ -1,8 +1,23 @@
 {
-  "generatedAt": "2026-06-08T22:59:53.926Z",
-  "head": "faa3936",
-  "count": 148,
+  "generatedAt": "2026-06-08T23:18:04.976Z",
+  "head": "5e4b770",
+  "count": 151,
   "commits": [
+    {
+      "sha": "5e4b770",
+      "date": "2026-06-09",
+      "subject": "Fix v0.1.38 release commit hash in version history."
+    },
+    {
+      "sha": "602af4a",
+      "date": "2026-06-09",
+      "subject": "Release v0.1.38: Console hack gameplay and score collectibles."
+    },
+    {
+      "sha": "a20b0e9",
+      "date": "2026-06-09",
+      "subject": "Add console hack gameplay, score token, and screen flash polish."
+    },
     {
       "sha": "faa3936",
       "date": "2026-06-08",

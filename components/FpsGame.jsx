@@ -954,7 +954,6 @@ export default function FpsGame() {
   const gameplayHintsDismissedRef = useRef(new Set());
   const gameplayHintRef = useRef(null);
   const gameplayHintRuntimeRef = useRef(createGameplayHintRuntime());
-  const [flashlightOn, setFlashlightOn] = useState(false);
   const flashlightOnRef = useRef(false);
   const inputRef = useRef(null);
   const [touchControlsActive, setTouchControlsActive] = useState(false);
@@ -1488,7 +1487,6 @@ export default function FpsGame() {
   snowEnabledRef.current = snowEnabled;
   snowIntensityRef.current = snowIntensity;
   snowStickRateRef.current = snowStickRate;
-  flashlightOnRef.current = flashlightOn;
   settingsOpenRef.current = settingsOpen;
   controlsOpenRef.current = controlsOpen;
   consoleHackOpenRef.current = consoleHackOpen;
@@ -3079,7 +3077,6 @@ export default function FpsGame() {
           const nowOn = weapon?.toggleFlashlight();
           if (nowOn !== undefined) {
             flashlightOnRef.current = nowOn;
-            setFlashlightOn(nowOn);
             dismissGameplayHint(gameplayHintsDismissedRef.current, "flashlight");
             clearGameplayHintPulse(gameplayHintRuntimeRef.current);
             refreshGameplayHintHudRef.current();
@@ -3994,7 +3991,6 @@ export default function FpsGame() {
         frames: level.vx27ContainerMeshes?.length ? 8 : 4,
         isActive,
       });
-      beginShadowStartupWindow();
       reportLoad(99, GPU_PRELOAD_READY_LABEL);
 
       scorePopupContainer = document.createElement("div");
@@ -4193,6 +4189,7 @@ export default function FpsGame() {
     if (loadDone || !assetsReady) return;
     gameSessionStarted = true;
     loadDoneRef.current = true;
+    beginShadowStartupWindow();
     soundsRef.current?.resume();
     setLoadDone(true);
     if (!touchControlsActive) {

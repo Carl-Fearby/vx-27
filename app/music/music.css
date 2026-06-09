@@ -1,0 +1,318 @@
+/* Music page — fixed viewport, no credits-style scroll */
+
+html:has(.musicRoot),
+html:has(.musicRoot) body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.musicRoot {
+  --music-blue: #5eaaff;
+  --music-blue-dim: rgba(94, 170, 255, 0.72);
+  --music-text: rgba(220, 235, 255, 0.92);
+  --music-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --music-font: var(--font-futuristic, Orbitron, system-ui, sans-serif);
+  --music-player-h: 280px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  color: var(--music-text);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 80, 160, 0.22), transparent 55%),
+    linear-gradient(180deg, #040810 0%, #020408 100%);
+  overflow: hidden;
+}
+
+.musicGrid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(94, 170, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(94, 170, 255, 0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.musicVignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.musicNav {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid rgba(94, 170, 255, 0.14);
+  background: rgba(2, 4, 8, 0.82);
+  backdrop-filter: blur(10px);
+}
+
+.musicNavBrand {
+  display: flex;
+  align-items: center;
+}
+
+.musicNavLogo {
+  width: auto;
+  height: 2rem;
+}
+
+.musicNavLinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1.1rem;
+  font-family: var(--music-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.musicNavLinks a {
+  color: var(--music-blue-dim);
+  text-decoration: none;
+}
+
+.musicNavLinks a:hover {
+  color: var(--music-blue);
+}
+
+.musicNavPlay {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgba(94, 170, 255, 0.35);
+  border-radius: 4px;
+  color: var(--music-blue) !important;
+}
+
+.musicMain {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  width: min(980px, 100%);
+  margin: 0 auto;
+  padding: 1rem 1.25rem 1.5rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.musicIntro {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 52rem;
+  text-align: center;
+}
+
+.musicKicker {
+  margin: 0 0 0.5rem;
+  font-family: var(--music-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--music-blue-dim);
+}
+
+.musicTitle {
+  margin: 0 0 0.5rem;
+  font-family: var(--music-font);
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e8f4ff;
+}
+
+.musicDeck {
+  margin: 0 auto;
+  max-width: 40rem;
+  font-family: var(--music-mono);
+  font-size: clamp(0.62rem, 1.4vw, 0.76rem);
+  letter-spacing: 0.06em;
+  line-height: 1.75;
+  color: rgba(180, 210, 255, 0.55);
+}
+
+/* Equal 50/50 columns, fixed height */
+.musicTrackPlayerInline {
+  flex: 0 0 auto;
+  width: min(920px, 94vw);
+  height: var(--music-player-h);
+  contain: layout size style;
+}
+
+.musicTrackPlayerInline .creditsTrackPlayerInner {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.75rem;
+  width: 100%;
+  height: var(--music-player-h);
+  max-height: var(--music-player-h);
+  flex: none;
+  animation: none;
+}
+
+.musicTrackPlayerInline .creditsTrackPlayerViz,
+.musicTrackPlayerInline .creditsTrackPlayerPanel {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  height: 100%;
+  max-height: 100%;
+  box-sizing: border-box;
+}
+
+.musicTrackPlayerInline .creditsTrackPlayerViz {
+  display: flex;
+  flex-direction: column;
+}
+
+.musicTrackPlayerInline .creditsTrackPlayerViz .loadingAudioBar {
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0;
+}
+
+.musicTrackPlayerInline .creditsTrackPlayerViz .loadingAudioVizWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.musicTrackPlayerInline .creditsTrackPlayerViz .loadingAudioVizWrap > div {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.musicTrackPlayerInline .creditsTrackPlayerViz .loadingAudioVizWrap .loadingAudioViz,
+.musicTrackPlayerInline .creditsTrackPlayerViz .loadingAudioVizWrap .loadingAudioVizSkeleton,
+.musicTrackPlayerInline .creditsTrackPlayerViz .loadingAudioVizWrap .loadingAudioVizIdle {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+
+.musicTrackPlayerInline .creditsTrackPlayerPanel {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+  padding: 0.75rem 0.8rem;
+}
+
+.musicTrackPlayerInline .creditsTrackPlayerLabel {
+  flex: 0 0 auto;
+  margin-bottom: 0.45rem;
+}
+
+.musicTrackPlayerInline .creditsTrackList {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 0.15rem;
+}
+
+.musicTrackPlayerInline .creditsTrackList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.musicTrackPlayerInline .creditsTrackList::-webkit-scrollbar-thumb {
+  background: rgba(94, 170, 255, 0.35);
+  border-radius: 3px;
+}
+
+.musicNowPlaying {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 36rem;
+  text-align: center;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(94, 170, 255, 0.16);
+  background: rgba(6, 14, 28, 0.35);
+}
+
+.musicNowPlayingLabel {
+  margin: 0 0 0.25rem;
+  font-family: var(--music-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(140, 180, 230, 0.55);
+}
+
+.musicNowPlayingTitle {
+  margin: 0;
+  font-family: var(--music-font);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d8ecff;
+}
+
+.musicNowPlayingUsage {
+  margin: 0.2rem 0 0;
+  font-family: var(--music-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--music-blue-dim);
+}
+
+.musicNowPlayingTagline {
+  margin: 0.35rem 0 0;
+  font-family: var(--music-mono);
+  font-size: clamp(0.58rem, 1.2vw, 0.7rem);
+  letter-spacing: 0.05em;
+  line-height: 1.65;
+  color: rgba(180, 210, 255, 0.5);
+}
+
+@media (max-width: 720px) {
+  .musicRoot {
+    --music-player-h: 420px;
+  }
+
+  .musicMain {
+    justify-content: flex-start;
+    padding-top: 1.25rem;
+    gap: 1rem;
+  }
+
+  .musicTrackPlayerInline .creditsTrackPlayerInner {
+    flex-direction: column;
+  }
+
+  .musicTrackPlayerInline .creditsTrackPlayerViz,
+  .musicTrackPlayerInline .creditsTrackPlayerPanel {
+    flex: 1 1 0;
+    width: 100%;
+    height: 0;
+  }
+}

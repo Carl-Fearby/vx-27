@@ -5,12 +5,17 @@ import Link from "next/link";
 import * as THREE from "three";
 import {
   createSoundManager,
-  DEFAULT_LEVEL_TRACK_ID,
   DEFAULT_LOADING_TRACK_ID,
   loadStoredLoadingTrackId,
   MUSIC_TRACK_KEY,
   MUSIC_TRACKS,
 } from "@/lib/audio/Sound";
+import {
+  TRACK_SONG_CREDITS,
+  trackTagline,
+  trackUsageLabel,
+} from "@/lib/audio/MusicTrackMeta.js";
+import MusicTrackPlayer from "@/components/MusicTrackPlayer";
 import CreditsRiflePreview from "@/components/CreditsRiflePreview";
 import CreditsAmmoCratePreview from "@/components/CreditsAmmoCratePreview";
 import CreditsVx27ContainerPreview from "@/components/CreditsVx27ContainerPreview";
@@ -35,70 +40,6 @@ const THE_END_HOLD_MS = 5000;
 const THANK_YOU_MS = 3000;
 /** Pause once THE END has scrolled this far above viewport center (visual centering). */
 const THE_END_CENTER_BIAS_PX = 36;
-
-/** Per-track soundtrack credits — tongue firmly in cheek. */
-const TRACK_SONG_CREDITS = Object.freeze({
-  "galactic-drifter": [
-    ["Official Mood", "Staring At A Progress Bar"],
-    ["Written during", "npm install (still running)"],
-    ["Tempo", "Slower Than Your Download"],
-    ["Key", "Waiting Minor"],
-    ["Time Signature", "4/4 Until The Bar Stops"],
-    ["Inspired by", "The spinning VX-27 logo"],
-    ["Lyrics", "None (Carl was busy loading)"],
-    ["Composed by", "Fay Brace"],
-    ["Arranged by", "Clay Faber"],
-    ["Programmed by", "Ray Cable"],
-    ["Mixed by", "Alf Bracey"],
-    ["Mastered by", "Earl Farby"],
-    ["Mixer Notes", "More reverb than progress"],
-    ["Plays When", "Carl tests 'one more thing'"],
-    ["Grammy Category", "Best Loading Screen Anthem"],
-    ["Streaming Revenue", "Paid in exposure"],
-    ["Vocals", "Carl Fearby (mumbling 'almost there')"],
-    ["Executive Producer", CARL],
-    ["Published by", `${CARL} Productions`],
-    ["Rights", "All rites reserved for the loading cult"],
-  ],
-  "galactic-drifter-2": [
-    ["Subtitle", "The Driftening Continues"],
-    ["Sequel Because", "Carl had one more MIDI file"],
-    ["Features", "47% More Galactic, 12% More Drift"],
-    ["Written by", "Cyra Fable"],
-    ["Produced by", "Cary Baler"],
-    ["Composed while", "Carl walked into pillars repeatedly"],
-    ["Combat Mix", "Duck under gunfire (unimplemented)"],
-    ["Loop Length", "Long enough to forget which room"],
-    ["BPM", "Exactly one sprint per bar"],
-    ["Player Feedback", "'Can we skip this?' — Carl, playtesting"],
-    ["Licensed for", "Indoor arena violence only"],
-    ["Not Licensed for", "Actual galactic drifting"],
-    ["Co-Produced by", "Ralf Bayer"],
-    ["Performed by", "The Carl Fearby Anagram Players"],
-    ["All Instruments", "A laptop and hope"],
-    ["Soundcheck", "Passed (Carl was the only listener)"],
-    ["Vocals", "Carl Fearby (uncredited, again)"],
-    ["Executive Music Producer", CARL],
-    ["Published by", `${CARL} Productions`],
-    ["In Memoriam", "Your ears, briefly"],
-  ],
-});
-
-function trackUsageLabel(trackId) {
-  if (trackId === DEFAULT_LOADING_TRACK_ID) return "Loading Screen Theme";
-  if (trackId === DEFAULT_LEVEL_TRACK_ID) return "In-Game Theme";
-  return "Original Soundtrack";
-}
-
-function trackTagline(trackId) {
-  if (trackId === DEFAULT_LOADING_TRACK_ID) {
-    return "The anthem of patience. Side effects may include checking the router.";
-  }
-  if (trackId === DEFAULT_LEVEL_TRACK_ID) {
-    return "Now with 100% more gameplay. Carl insists you will feel the drift.";
-  }
-  return "A Carl Fearby joint. No refunds on vibes.";
-}
 
 const SECTIONS = [
   {
@@ -895,50 +836,6 @@ function CreditsThankYou() {
   return (
     <div className="creditsThankYou" aria-live="polite">
       <p className="creditsThankYouText">Thank You</p>
-    </div>
-  );
-}
-
-function CreditsTrackPlayer({ soundsRef, activeTrackId, onTrackSelect, onClose }) {
-  return (
-    <div
-      className="creditsTrackPlayer"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClose();
-      }}
-    >
-      <div className="creditsTrackPlayerInner" onClick={(e) => e.stopPropagation()}>
-        <div className="creditsTrackPlayerViz" aria-hidden>
-          <LoadingAudioViz
-            showToggle={false}
-            getAnalyser={() => soundsRef.current?.getLoadingAnalyser()}
-            getBeatAnalyser={() => soundsRef.current?.getLoadingBeatAnalyser()}
-            isMusicPreloaded={() => soundsRef.current?.isMusicPreloaded()}
-            isLoadingMusicPlaying={() => soundsRef.current?.isLoadingMusicPlaying()}
-            resetKey={activeTrackId}
-          />
-        </div>
-        <div className="creditsTrackPlayerPanel">
-          <p className="creditsTrackPlayerLabel">Soundtrack</p>
-          <p className="creditsTrackPlayerDismiss">Click outside · M · or Esc to close</p>
-          <ul className="creditsTrackList">
-            {MUSIC_TRACKS.map((track) => (
-              <li key={track.id}>
-                <button
-                  type="button"
-                  className={`creditsTrackBtn${activeTrackId === track.id ? " creditsTrackBtn--active" : ""}`}
-                  onClick={() => onTrackSelect(track.id)}
-                  aria-current={activeTrackId === track.id ? "true" : undefined}
-                >
-                  <span className="creditsTrackBtnLabel">{track.label}</span>
-                  <span className="creditsTrackBtnMeta">{trackUsageLabel(track.id)}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
     </div>
   );
 }

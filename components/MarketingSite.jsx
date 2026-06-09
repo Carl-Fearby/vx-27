@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import packageJson from "../package.json";
 import CreditsScanlineCanvas from "@/components/CreditsScanlineCanvas";
+import MarketingControlPanelPreview from "@/components/MarketingControlPanelPreview";
 import MarketingBrowserBanner, {
   useNonChromeBrowser,
 } from "@/components/MarketingBrowserBanner";
@@ -23,43 +24,65 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
-  { label: "BUILD", value: `v${BUILD_VERSION} · iPad touch · laser tracers` },
+  { label: "BUILD", value: `v${BUILD_VERSION} · NODE BREACH consoles · score tokens` },
   { label: "PLATFORM", value: "Desktop · iPad Safari · zero install" },
   { label: "ZONE", value: "Exclusion sector · sealed" },
   { label: "RENDER", value: "WebGL · Three.js · GPU preload on load" },
   { label: "DEPLOY", value: "Browser native · no app store" },
 ];
 
+const NODE_BREACH_SPECS = [
+  ["Console access", "H at prompt · H again to end early"],
+  ["Breach grid", "WASD select nodes · SPACE confirm routes"],
+  ["Timer", "60s pressure · security trip retries same seed"],
+  ["Security shuffle", "Death moves one tripped node · clock resets"],
+  ["Screen C", "Green on success · red on fail or early exit"],
+  ["Shelf D", "PBR shelf quad · clamped hero UV"],
+  ["Hull prop", "Sharp extrusion · plinth clearance · tiled PBR"],
+  ["Hack audio", "Neon Gate Rush · combat mix muted underneath"],
+  ["Rewards", "Score cache pickup · four-second HUD flash"],
+];
+
 const WHATS_NEW = [
+  {
+    tag: "v0.1.38",
+    title: "NODE BREACH console hack",
+    text: "Face a control panel, press H, and route power through the breach grid. WASD selects nodes, SPACE locks routes, security columns punish mistakes. Screen C flashes green on success or red when you bail or fail.",
+  },
+  {
+    tag: "v0.1.38",
+    title: "Procedural control panel",
+    text: "Arena console prop with hull overlays, screen C monitor slope, and shelf D quads — sharp extrusion profile, PBR maps as WebP, emissive screen flash after every hack outcome.",
+  },
+  {
+    tag: "v0.1.38",
+    title: "Neon Gate Rush",
+    text: "NODE BREACH theme layers over muted combat mix while you hack; level music returns full when you exit. Preview every track at /music without touching your loading-screen choice.",
+  },
+  {
+    tag: "v0.1.38",
+    title: "Score tokens & reward flashes",
+    text: "3D score disk collectibles with shared pickup bob. Hack pass rewards and floor pickups share the same four-second HUD flash — credits, ammo, medkit.",
+  },
+  {
+    tag: "v0.1.37",
+    title: "Hack UI & weather",
+    text: "NODE BREACH overlay with animated nodes, secure-channel pulse bars, and a layout tuning wizard. Outdoor rain and snow with intensity sliders — mutually exclusive, off inside containers.",
+  },
+  {
+    tag: "v0.1.37",
+    title: "Console screen flash",
+    text: "Screen C turns green on hack success and red on failure or early exit. Dev brightness tuning for sheltered and room consoles.",
+  },
   {
     tag: "v0.1.24",
     title: "iPad touch controls",
     text: "Move stick, look drag zone, and FIRE / AIM / JUMP buttons on coarse-pointer devices. HUD scales for tablet safe areas — play in Safari without a keyboard.",
   },
   {
-    tag: "v0.1.23",
-    title: "Gameplay hints",
-    text: "Press N for night and a brief toast reminds you to hit F for the weapon torch. Six-second pulse, then gone — no permanent nag while you're still in day mode.",
-  },
-  {
-    tag: "v0.1.22",
-    title: "Laser tracers",
-    text: "Simple muzzle-aligned hitscan lines in weapon blue — readable feedback without the old thick traveling bolt parade.",
-  },
-  {
-    tag: "Prop",
-    title: "Control panel console",
-    text: "Procedural console in the arena: hull PBR, screen C, shelf D, sharp extrusion, plinth fixed off the floor. New credits section for the polish pass.",
-  },
-  {
-    tag: "v0.1.21",
-    title: "Hurt vocals & barrel pile",
-    text: "Player hurt sounds on fire and grenade damage. Oil barrel pile mirrored to the SE corner; sheltered rooms read darker in the corners.",
-  },
-  {
-    tag: "Load",
-    title: "GPU preload",
-    text: "Loading bar runs real gameplay renders — doorway poses, stairs, flashlight, muzzle — so the first step into the zone stutters less.",
+    tag: "Audio",
+    title: "Galactic Drifter soundtrack",
+    text: "Loading theme and in-game combat mix — now with a dedicated /music page and the same visualizer player from the credits roll.",
   },
 ];
 
@@ -169,10 +192,22 @@ const OPS = [
     accent: "v0.1.14+ preload",
   },
   {
+    code: "HCK",
+    title: "NODE BREACH console hack",
+    body: "H at a facing console opens the breach grid — WASD to select nodes, SPACE to confirm routes, security columns to dodge, 60s timer throughout. Neon Gate Rush plays while combat mix stays muted; success flashes screen C green; bail with H and it stays red for what's left on the clock.",
+    accent: "H breach · H end",
+  },
+  {
     code: "PNL",
     title: "Control panel console",
-    body: "Procedural console prop in the arena — hull overlays, screen C and shelf D quads, sharp extrusion, plinth clearance. Looks like someone left it running.",
-    accent: "PBR · screen C",
+    body: "Procedural console prop in the arena — tiled hull PBR, screen C monitor slope, shelf D top quad, sharp extrusion profile, plinth floor clearance. Screen C emissive flash maps for green success and red failure.",
+    accent: "screen C · shelf D",
+  },
+  {
+    code: "WX",
+    title: "Rain & snow",
+    body: "Outdoor streak rain with catwalk occluders, or round falling snow that settles on decks and stairs. Settings intensity 5%–500%; neither runs inside VX-27 containers.",
+    accent: "mutually exclusive",
   },
   {
     code: "CRG",
@@ -246,9 +281,11 @@ export default function MarketingSite() {
           <a href="#briefing">Briefing</a>
           <a href="#story">Story</a>
           <a href="#factions">Threats</a>
+          <a href="#breach">NODE BREACH</a>
           <a href="#ops">Systems</a>
           <a href="#collaborate">Join us</a>
           <a href="#contact">Contact</a>
+          <Link href="/music">Music</Link>
           <Link href="/credits">Credits</Link>
           <Link href="/game" className="mktNavPlay">
             <span>Deploy</span>
@@ -349,10 +386,10 @@ export default function MarketingSite() {
           <p className="mktKicker">Transmission · build {BUILD_VERSION}</p>
           <h2 id="whats-new-heading">What landed this week</h2>
           <p className="mktWhatsNewDeck">
-            Control panel in the arena, laser tracers that read from the muzzle, contextual
-            flashlight hints at night, and full touch controls for iPad — plus the usual
-            load-screen GPU bake keeping first contact smooth. Play v{BUILD_VERSION} in your
-            browser; no install.
+            Procedural control panel consoles, NODE BREACH grid hacking with screen C flashes,
+            Neon Gate Rush hack audio, score disk collectibles, outdoor rain and snow, and a
+            dedicated /music soundtrack page — plus iPad touch and GPU preload.
+            Play v{BUILD_VERSION} in your browser; no install.
           </p>
         </div>
         <div className="mktWhatsNewGrid">
@@ -372,6 +409,41 @@ export default function MarketingSite() {
           <Link href="/game" className="mktPlayBtn mktPlayBtnCompact">
             <span className="mktPlayBtnLabel">Play v{BUILD_VERSION}</span>
             <span className="mktPlayBtnSub">Desktop or iPad · free</span>
+          </Link>
+        </div>
+      </section>
+
+      <section id="breach" className="mktBreach">
+        <div className="mktBreachVisual">
+          <MarketingControlPanelPreview />
+          <div className="mktBreachHud" aria-hidden>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/ui/hack/node-live.png" alt="" width={28} height={28} />
+            <img src="/ui/hack/line.png" alt="" width={48} height={12} />
+            <img src="/ui/hack/pointer.png" alt="" width={20} height={20} />
+            <img src="/ui/hack/reward-cache.png" alt="" width={26} height={26} />
+          </div>
+        </div>
+        <div className="mktBreachCopy">
+          <p className="mktKicker">NODE BREACH · SYS/CONSOLE</p>
+          <h2>Face the console. Breach the grid. Beat the clock.</h2>
+          <p className="mktBreachLead">
+            Industrial control panels now sit in the arena — procedural hull, emissive screen C,
+            shelf D overlays, and a full-screen NODE BREACH overlay when you press H. Route power,
+            dodge security nodes, and read the monitor: green means you got away with it, red means
+            you did not.
+          </p>
+          <dl className="mktBreachSpecs">
+            {NODE_BREACH_SPECS.map(([label, value]) => (
+              <div key={label} className="mktBreachSpecRow">
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <Link href="/game" className="mktPlayBtn mktPlayBtnCompact">
+            <span className="mktPlayBtnLabel">Breach a console</span>
+            <span className="mktPlayBtnSub">H at prompt · desktop or iPad</span>
           </Link>
         </div>
       </section>
@@ -508,7 +580,10 @@ export default function MarketingSite() {
             <li>Desktop FPS — WASD, sprint, crouch, aim, torch on F, day/night on N</li>
             <li>iPad &amp; touch — move stick, look drag, FIRE / AIM / JUMP / USE buttons</li>
             <li>Muzzle-aligned laser tracers and contextual F-for-flashlight hints at night</li>
-            <li>Control panel console prop with PBR hull, screen C, and shelf D overlays</li>
+            <li>NODE BREACH console hack — grid routing, security nodes, 60s timer, H to breach or end early</li>
+            <li>Procedural control panel — hull PBR, screen C emissive flash, shelf D quad overlays</li>
+            <li>Neon Gate Rush hack theme · combat mix muted during breach · /music preview page</li>
+            <li>Score token disks, hack reward flashes, outdoor rain and snow intensity sliders</li>
             <li>VX-27 cargo container — open doors on E, bullet decals on shell</li>
             <li>Catwalks, stairs, attached service rooms with pillar-shell lighting</li>
             <li>Dumped barrel pile and burning open-top drum — SE corner layout</li>
@@ -641,7 +716,7 @@ export default function MarketingSite() {
           You were sent to recover a weapon. You found something worse.
         </p>
         <p className="mktLaunchBuildNote">
-          Now live · v{BUILD_VERSION} · iPad touch · laser tracers · control panel
+          Now live · v{BUILD_VERSION} · NODE BREACH consoles · rain/snow · soundtrack at /music
         </p>
         <Link href="/game" className="mktPlayBtn mktPlayBtnLaunch">
           <span className="mktPlayBtnLabel">Launch VX-27</span>
@@ -659,6 +734,7 @@ export default function MarketingSite() {
           </a>
           <a href={`mailto:${CONTACT.email}`}>Email</a>
           <a href={GITHUB_REPO} target="_blank" rel="noopener noreferrer">GitHub</a>
+          <Link href="/music">Music</Link>
           <Link href="/credits">Credits</Link>
           <Link href="/version">Version</Link>
         </div>

@@ -71,6 +71,7 @@ import {
 } from "@/lib/rooms/RoomPlacement";
 import {
   resolveViewmodelLightingZone,
+  isEnclosedViewmodelZone,
 } from "@/lib/lighting/LightingZones";
 import {
   buildRainOccluderSlabs,
@@ -155,9 +156,7 @@ import {
 import {
   DEFAULT_PISTOL_ADS_POSE,
   DEFAULT_PISTOL_HIP_POSE,
-  loadPistolTuneEnabled,
   loadPistolTuning,
-  savePistolTuneEnabled,
 } from "@/lib/weapons/PistolTuning";
 import { createWeaponSwapController } from "@/lib/weapons/WeaponSwap";
 import {
@@ -184,12 +183,19 @@ import {
   refreshOilBarrelRenderLayers,
 } from "@/lib/oil-barrel/OilBarrel";
 import {
+  collectVx27ContainerRoomLights,
   preloadVx27ContainerAssets,
   consumeVx27DoorColliderDirty,
+  isAnyVx27ContainerInteriorPassNeeded,
   refreshVx27ContainerRenderLayers,
+  setVx27ContainerCeilingLightEnabled,
   setVx27ContainerMaterialTuning,
   updateVx27ContainerDoorAnimations,
 } from "@/lib/vx27-container/Vx27Container";
+import {
+  loadVx27ContainerCeilingLightEnabled,
+  saveVx27ContainerCeilingLightEnabled,
+} from "@/lib/vx27-container/Vx27ContainerCeilingLightTuning";
 import {
   collectVx27DoorInteractMeshes,
   getVx27DoorInteractLabel,
@@ -197,17 +203,12 @@ import {
   toggleVx27ContainerDoorLeaf,
 } from "@/lib/vx27-container/Vx27ContainerDoorInteract";
 import {
-  findNearestFacingControlPanel,
   findNearestHackableControlPanel,
   getControlPanelHackLabel,
   updateControlPanelHackPrompt,
 } from "@/lib/control-panel/ControlPanelHackInteract";
 import ConsoleHackScreen from "@/components/ConsoleHackScreen";
-import {
-  loadConsoleHackLayout,
-  loadConsoleHackTuneEnabled,
-  saveConsoleHackTuneEnabled,
-} from "@/lib/console-hack/ConsoleHackLayoutTuning.js";
+import { loadConsoleHackLayout } from "@/lib/console-hack/ConsoleHackLayoutTuning.js";
 import { formatHackGrantedRewards } from "@/lib/console-hack/ConsoleHackGame.js";
 import {
   loadVx27ContainerMaterialTuning,
@@ -315,26 +316,17 @@ import {
   DEFAULT_MAX_LOOK_RATE,
   LOOK_MAX_RATE_KEY,
   loadLookTuning,
-  loadWeaponTuneEnabled,
   loadWeaponTuning,
-  saveWeaponTuneEnabled,
 } from "@/lib/weapons/WeaponTuning";
 import { createScreenCrosshair } from "@/lib/ui/ScreenCrosshair";
 import {
   DEFAULT_CROSSHAIR_TUNING,
   loadCrosshairTuning,
 } from "@/lib/weapons/CrosshairTuning";
-import PistolTunePanel from "@/components/tuning-panels/PistolTunePanel";
-import WeaponTunePanel from "@/components/tuning-panels/WeaponTunePanel";
-import WeaponRoundDisplayTunePanel from "@/components/tuning-panels/WeaponRoundDisplayTunePanel";
-import ControlPanelScreenHackFlashTunePanel from "@/components/tuning-panels/ControlPanelScreenHackFlashTunePanel";
 import {
   DEFAULT_AIM_ROUND_DISPLAY,
   DEFAULT_HIP_ROUND_DISPLAY,
-  loadWeaponRoundDisplayTuneEnabled,
   loadWeaponRoundDisplayTuning,
-  saveWeaponRoundDisplayTuneEnabled,
-  saveWeaponRoundDisplayTuning,
 } from "@/lib/weapons/WeaponRoundDisplayTuning";
 import {
   shouldDropAmmoCrate,
@@ -384,17 +376,9 @@ import {
 } from "@/lib/control-panel/ControlPanelScreenC";
 import {
   preloadControlPanelScreenCHackFlashTextures,
-  clearAllControlPanelScreenCHackFlashPreviews,
-  setControlPanelScreenCHackFlashPreview,
   startControlPanelScreenCHackFlash,
   updateControlPanelScreenCHackFlashes,
 } from "@/lib/control-panel/ControlPanelScreenCHackFlash.js";
-import {
-  loadControlPanelScreenGreenBrightness,
-  loadControlPanelScreenHackFlashTuneEnabled,
-  loadControlPanelScreenRedBrightness,
-  saveControlPanelScreenHackFlashTuneEnabled,
-} from "@/lib/control-panel/ControlPanelScreenCHackFlashTuning.js";
 import {
   preloadControlPanelShelfDTextures,
   resetControlPanelShelfDTextureCache,
@@ -404,6 +388,7 @@ import {
   resetControlPanelBodyTextureCache,
 } from "@/lib/control-panel/ControlPanelBody";
 import {
+  refreshControlPanelRenderLayers,
   syncControlPanelScreenMaterials,
   updateControlPanelMaterialsLive,
 } from "@/lib/control-panel/ControlPanel";
@@ -915,6 +900,12 @@ export default function FpsGame() {
   const [showHud, setShowHud] = useState(() => loadShowHud());
   const [musicEnabled, setMusicEnabled] = useState(true);
   const musicEnabledRef = useRef(true);
+  const [vx27ContainerCeilingLight, setVx27ContainerCeilingLight] = useState(
+    () => loadVx27ContainerCeilingLightEnabled()
+  );
+  const vx27ContainerCeilingLightRef = useRef(
+    loadVx27ContainerCeilingLightEnabled()
+  );
   const [snowEnabled, setSnowEnabled] = useState(() => loadSnowEnabled());
   const snowEnabledRef = useRef(loadSnowEnabled());
   const [snowIntensity, setSnowIntensity] = useState(() => loadSnowIntensity());
@@ -960,24 +951,6 @@ export default function FpsGame() {
   const consoleHackPromptRef = useRef(null);
   const consoleHackLayoutRef = useRef(loadConsoleHackLayout());
   const [consoleHackLayout, setConsoleHackLayout] = useState(() => loadConsoleHackLayout());
-  const [consoleHackTuneEnabled, setConsoleHackTuneEnabled] = useState(() =>
-    loadConsoleHackTuneEnabled()
-  );
-  const consoleHackTuneEnabledRef = useRef(consoleHackTuneEnabled);
-  const [screenHackFlashTuneEnabled, setScreenHackFlashTuneEnabled] = useState(
-    () => loadControlPanelScreenHackFlashTuneEnabled()
-  );
-  const screenHackFlashTuneEnabledRef = useRef(screenHackFlashTuneEnabled);
-  const [screenHackFlashPreviewOutcome, setScreenHackFlashPreviewOutcome] =
-    useState("green");
-  const screenHackFlashPreviewOutcomeRef = useRef("green");
-  const screenHackFlashPreviewPanelRef = useRef(null);
-  const [screenGreenBrightness, setScreenGreenBrightness] = useState(() =>
-    loadControlPanelScreenGreenBrightness()
-  );
-  const [screenRedBrightness, setScreenRedBrightness] = useState(() =>
-    loadControlPanelScreenRedBrightness()
-  );
   const handleConsoleHackComplete = useCallback((rewards) => {
     playerScoreRef.current += rewards.credits ?? 0;
     updateScoreHud(scoreHudRef.current, playerScoreRef.current);
@@ -1016,6 +989,13 @@ export default function FpsGame() {
 
   const closeConsoleHackRef = useRef(() => {});
   const openConsoleHackRef = useRef(() => {});
+  const resumeLevelMusicAfterHack = useCallback(() => {
+    if (!musicEnabledRef.current || !loadDoneRef.current) return;
+    soundsRef.current?.startLevelMusic({
+      trackId: levelMusicTrackIdRef.current,
+    });
+  }, []);
+
   const openConsoleHack = useCallback((target) => {
     const canvas = canvasRef.current;
     inputRef.current?.discardLookDelta?.();
@@ -1028,24 +1008,25 @@ export default function FpsGame() {
     setConsoleHackLayout(hackLayout);
     setConsoleHackOpen(true);
     updateControlPanelHackPrompt(consoleHackPromptRef.current, bindingsRef.current, false);
-    if (consoleHackTuneEnabledRef.current) {
-      safeExitPointerLock();
-    } else {
-      safeRequestPointerLock(canvas);
+    if (musicEnabledRef.current) {
+      soundsRef.current?.startHackMusic?.();
     }
+    safeRequestPointerLock(canvas);
   }, []);
 
   const closeConsoleHack = useCallback(() => {
     const canvas = canvasRef.current;
     inputRef.current?.discardLookDelta?.();
     inputRef.current?.clearHeldState?.();
+    soundsRef.current?.stopHackMusic?.();
+    resumeLevelMusicAfterHack();
     consoleHackPanelRef.current = null;
     setConsoleHackPanelId(null);
     setConsoleHackPanelLabel(null);
     setConsoleHackOpen(false);
     safeRequestPointerLock(canvas);
     requestAnimationFrame(() => safeRequestPointerLock(canvas));
-  }, []);
+  }, [resumeLevelMusicAfterHack]);
 
   const handleConsoleHackDismissed = useCallback(
     (timerRemainingMs) => {
@@ -1140,42 +1121,6 @@ export default function FpsGame() {
   const dayNightCurNightnessRef = useRef(
     DAY_NIGHT_SWITCHER_ENABLED && !loadSunDayMode() ? 1 : 0
   );
-  const clearScreenHackFlashPreview = useCallback(() => {
-    clearAllControlPanelScreenCHackFlashPreviews(
-      controlPanelsRef.current,
-      dayNightCurNightnessRef.current
-    );
-    screenHackFlashPreviewPanelRef.current = null;
-  }, []);
-
-  const refreshScreenHackFlashPreview = useCallback(() => {
-    if (!screenHackFlashTuneEnabledRef.current) return;
-    const camera = cameraRef.current;
-    if (!camera || !controlPanelsRef.current.length) return;
-
-    const target = findNearestFacingControlPanel(
-      camera,
-      controlPanelsRef.current
-    );
-    const nightness = dayNightCurNightnessRef.current;
-    const outcome = screenHackFlashPreviewOutcomeRef.current;
-    const prev = screenHackFlashPreviewPanelRef.current;
-
-    if (!target) {
-      if (prev) {
-        setControlPanelScreenCHackFlashPreview(prev, null, nightness);
-        screenHackFlashPreviewPanelRef.current = null;
-      }
-      return;
-    }
-
-    if (prev && prev !== target.group) {
-      setControlPanelScreenCHackFlashPreview(prev, null, nightness);
-    }
-
-    setControlPanelScreenCHackFlashPreview(target.group, outcome, nightness);
-    screenHackFlashPreviewPanelRef.current = target.group;
-  }, []);
   const dayNightDemoCycleElapsedRef = useRef(0);
   const skyRef = useRef(null);
   const weaponRef = useRef(null);
@@ -1247,12 +1192,6 @@ export default function FpsGame() {
   const roundsInMagRef = useRef(PRIMARY_WEAPONS.rifle.magazineSize);
   const spareMagsRef = useRef(PRIMARY_WEAPONS.rifle.spareMagazines);
   const setAmmoStateRef = useRef(null);
-  const [weaponTuneEnabled, setWeaponTuneEnabled] = useState(() =>
-    loadWeaponTuneEnabled()
-  );
-  const weaponTuneEnabledRef = useRef(false);
-  const [weaponPoseMode, setWeaponPoseMode] = useState("hip");
-  const weaponPoseModeRef = useRef("hip");
   const [hipWeaponPose, setHipWeaponPose] = useState(() => {
     if (typeof window === "undefined") return DEFAULT_HIP_POSE;
     return loadWeaponTuning().hip;
@@ -1273,13 +1212,6 @@ export default function FpsGame() {
     bodyLookUpAmount: DEFAULT_BODY_LOOK_UP_AMOUNT,
     bodyLookDownAmount: DEFAULT_BODY_LOOK_DOWN_AMOUNT,
   });
-  const [pistolTuneEnabled, setPistolTuneEnabled] = useState(() =>
-    loadPistolTuneEnabled(),
-  );
-  const pistolTuneEnabledRef = useRef(false);
-  const pendingPistolTuneSwapRef = useRef(false);
-  const [pistolPoseMode, setPistolPoseMode] = useState("hip");
-  const pistolPoseModeRef = useRef("hip");
   const [pistolHipPose, setPistolHipPose] = useState(() => {
     if (typeof window === "undefined") return DEFAULT_PISTOL_HIP_POSE;
     return loadPistolTuning().hip;
@@ -1303,12 +1235,6 @@ export default function FpsGame() {
       ? DEFAULT_CROSSHAIR_TUNING
       : loadCrosshairTuning(),
   );
-  const [roundDisplayTuneEnabled, setRoundDisplayTuneEnabled] = useState(() =>
-    loadWeaponRoundDisplayTuneEnabled()
-  );
-  const roundDisplayTuneEnabledRef = useRef(false);
-  const [roundDisplayPreviewAim, setRoundDisplayPreviewAim] = useState(false);
-  const roundDisplayPreviewAimRef = useRef(false);
   const [roundDisplayHip, setRoundDisplayHip] = useState(() => {
     if (typeof window === "undefined") return DEFAULT_HIP_ROUND_DISPLAY;
     return loadWeaponRoundDisplayTuning().hip;
@@ -1371,12 +1297,6 @@ export default function FpsGame() {
     bodyLookUpAmount,
     bodyLookDownAmount,
   };
-  weaponTuneEnabledRef.current = weaponTuneEnabled;
-  weaponPoseModeRef.current = weaponPoseMode;
-  pistolTuneEnabledRef.current = pistolTuneEnabled;
-  pistolPoseModeRef.current = pistolPoseMode;
-  roundDisplayTuneEnabledRef.current = roundDisplayTuneEnabled;
-  roundDisplayPreviewAimRef.current = roundDisplayPreviewAim;
   roundDisplayTuningRef.current = {
     hip: roundDisplayHip,
     aim: roundDisplayAim,
@@ -1542,11 +1462,8 @@ export default function FpsGame() {
   settingsOpenRef.current = settingsOpen;
   controlsOpenRef.current = controlsOpen;
   consoleHackOpenRef.current = consoleHackOpen;
-  consoleHackTuneEnabledRef.current = consoleHackTuneEnabled;
   closeConsoleHackRef.current = closeConsoleHack;
   openConsoleHackRef.current = openConsoleHack;
-  screenHackFlashTuneEnabledRef.current = screenHackFlashTuneEnabled;
-  screenHackFlashPreviewOutcomeRef.current = screenHackFlashPreviewOutcome;
   touchControlsGateRef.current = touchControlsActive;
 
   useEffect(() => {
@@ -1777,7 +1694,17 @@ export default function FpsGame() {
       levelRef.current = level;
       if (level.interiorLights?.length) {
         roomLights.push(...level.interiorLights);
+      }
+      const vx27ContainerLights = collectVx27ContainerRoomLights(
+        level.vx27ContainerMeshes
+      );
+      if (vx27ContainerLights.length) {
+        roomLights.push(...vx27ContainerLights);
+      }
+      if (level.interiorLights?.length || vx27ContainerLights.length) {
         roomLightsRef.current = roomLights;
+        resetLightingZoneCache();
+        syncLightLayersForZone(scene, interiorLevel, outdoorLights, roomLights);
       }
       if (!isActive()) {
         if (level?.group) disposeLevelGroup(level.group);
@@ -1826,6 +1753,10 @@ export default function FpsGame() {
           ? normalizeVx27ContainerMaterialTuning(propMaterial)
           : loadVx27ContainerMaterialTuning();
         setVx27ContainerMaterialTuning(materialTuning, firstGroup);
+        setVx27ContainerCeilingLightEnabled(
+          vx27ContainersRef.current,
+          vx27ContainerCeilingLightRef.current
+        );
       }
       preloadBulletHoleTextures();
       const levelHitMeshes = collectLevelHitMeshes(level.group, level.targets);
@@ -1858,6 +1789,7 @@ export default function FpsGame() {
       ensureOilBarrelFlameMeshes(level.group);
       refreshOilBarrelRenderLayers(level.group);
       refreshVx27ContainerRenderLayers(level.group);
+      refreshControlPanelRenderLayers(level.group);
       syncInteriorLighting();
       syncOilBarrelFireLightLayers(oilBarrelFireLightsRef.current, false);
       applySunLightPosition(sun, sunLightPosRef.current);
@@ -2808,32 +2740,7 @@ export default function FpsGame() {
         const aimHeld =
           !rebindActionRef.current &&
           isBindingDown(input, bindingsRef.current, "aim");
-        const weaponAimTabActive =
-          weaponTuneEnabledRef.current && weaponPoseModeRef.current === "ads";
-        const pistolAimTabActive =
-          pistolTuneEnabledRef.current &&
-          pistolPoseModeRef.current === "ads" &&
-          activePrimaryId === "pistol";
-        const roundDisplayAimTabActive =
-          roundDisplayTuneEnabledRef.current &&
-          roundDisplayPreviewAimRef.current;
-        const aimTarget =
-          aimHeld ||
-          weaponAimTabActive ||
-          pistolAimTabActive ||
-          roundDisplayAimTabActive
-            ? 1
-            : 0;
-
-        if (
-          pendingPistolTuneSwapRef.current &&
-          !weaponSwap.isBusy() &&
-          activePrimaryId !== "pistol"
-        ) {
-          pendingPistolTuneSwapRef.current = false;
-          persistActiveAmmo();
-          weaponSwap.requestSwap("pistol", activePrimaryId, primaryWeapons);
-        }
+        const aimTarget = aimHeld ? 1 : 0;
 
         // Death sequence (two phases):
         //   1. FREEZE  — overlay is fully opaque, player is not respawned,
@@ -2881,9 +2788,7 @@ export default function FpsGame() {
 
         if (consoleHackOpenRef.current) {
           input.discardLookDelta?.();
-          if (consoleHackTuneEnabledRef.current) {
-            safeExitPointerLock();
-          } else if (!touchMode && document.pointerLockElement !== canvas) {
+          if (!touchMode && document.pointerLockElement !== canvas) {
             safeRequestPointerLock(canvas);
           }
         }
@@ -3087,7 +2992,6 @@ export default function FpsGame() {
           dayNightCurNightnessRef.current,
           now
         );
-        refreshScreenHackFlashPreview();
 
         let hackTarget = null;
         if (
@@ -3706,8 +3610,18 @@ export default function FpsGame() {
           );
         // Room pass follows camera frustum (+ body-in-room). Viewmodel lighting follows
         // feet / door threshold only — not raw frustum (service-room bbox is huge).
+        const inContainerPass = isAnyVx27ContainerInteriorPassNeeded(
+          camera,
+          level.vx27ContainerMeshes ?? [],
+          player.getX(),
+          player.getZ(),
+          allColliders
+        );
         const inRoomPass =
-          interiorLevelFrame || inRoomBody || visibleRoomCount > 0;
+          interiorLevelFrame ||
+          inRoomBody ||
+          visibleRoomCount > 0 ||
+          inContainerPass;
         const viewmodelLightingZone =
           interiorLevelFrame
             ? "room"
@@ -3730,7 +3644,7 @@ export default function FpsGame() {
         );
         syncOilBarrelFireLightLayers(
           oilBarrelFireLightsRef.current,
-          viewmodelLightingZone === "room"
+          isEnclosedViewmodelZone(viewmodelLightingZone)
         );
 
         const rainOccluders =
@@ -3838,11 +3752,7 @@ export default function FpsGame() {
           updateFlashbangOverlay(flashbangOverlayRef.current, 0);
           beginDeathOverlayFade(deathOverlayRef.current);
         }
-        if (
-          !(
-            consoleHackOpenRef.current && consoleHackTuneEnabledRef.current
-          )
-        ) {
+        if (!consoleHackOpenRef.current) {
           safeRequestPointerLock(canvas);
         }
       };
@@ -4191,6 +4101,7 @@ export default function FpsGame() {
     if (!checked) {
       s.stopLoadingMusic();
       s.stopLevelMusic();
+      s.stopHackMusic?.();
     } else if (loadDoneRef.current) {
       s.resume();
       s.startLevelMusic({ trackId: levelMusicTrackIdRef.current });
@@ -4305,148 +4216,9 @@ export default function FpsGame() {
         showInteract={touchShowInteract}
         showHack={touchShowHack}
       />
-      {loadDone &&
-        weaponTuneEnabled &&
-        !settingsOpen &&
-        !controlsOpen &&
-        !consoleHackOpen && (
-          <WeaponTunePanel
-            poseMode={weaponPoseMode}
-            onPoseModeChange={setWeaponPoseMode}
-            onReleasePointer={safeExitPointerLock}
-            hipPose={hipWeaponPose}
-            adsPose={adsWeaponPose}
-            onHipChange={setHipWeaponPose}
-            onAdsChange={setAdsWeaponPose}
-            crosshairTuning={crosshairTuning}
-            onCrosshairTuningChange={(next) => {
-              setCrosshairTuning(next);
-              crosshairTuningRef.current = next;
-            }}
-            maxLookRate={maxLookRate}
-            onMaxLookRateChange={(value) => {
-              setMaxLookRate(value);
-              maxLookRateRef.current = value;
-              localStorage.setItem(LOOK_MAX_RATE_KEY, String(value));
-            }}
-            bodyLookUpAmount={bodyLookUpAmount}
-            onBodyLookUpAmountChange={setBodyLookUpAmount}
-            bodyLookDownAmount={bodyLookDownAmount}
-            onBodyLookDownAmountChange={setBodyLookDownAmount}
-            defaultMaxLookRate={DEFAULT_MAX_LOOK_RATE}
-            onClose={() => {
-              setWeaponTuneEnabled(false);
-              weaponTuneEnabledRef.current = false;
-              saveWeaponTuneEnabled(false);
-            }}
-          />
-        )}
-      {loadDone &&
-        pistolTuneEnabled &&
-        !settingsOpen &&
-        !controlsOpen &&
-        !consoleHackOpen && (
-          <PistolTunePanel
-            poseMode={pistolPoseMode}
-            onPoseModeChange={setPistolPoseMode}
-            onReleasePointer={safeExitPointerLock}
-            hipPose={pistolHipPose}
-            adsPose={pistolAdsPose}
-            onHipChange={setPistolHipPose}
-            onAdsChange={setPistolAdsPose}
-            onClose={() => {
-              setPistolTuneEnabled(false);
-              pistolTuneEnabledRef.current = false;
-              savePistolTuneEnabled(false);
-            }}
-          />
-        )}
-      {loadDone &&
-        screenHackFlashTuneEnabled &&
-        !controlsOpen &&
-        !consoleHackOpen && (
-          <ControlPanelScreenHackFlashTunePanel
-            previewOutcome={screenHackFlashPreviewOutcome}
-            onPreviewOutcomeChange={(outcome) => {
-              screenHackFlashPreviewOutcomeRef.current = outcome;
-              setScreenHackFlashPreviewOutcome(outcome);
-              refreshScreenHackFlashPreview();
-            }}
-            greenBrightness={screenGreenBrightness}
-            redBrightness={screenRedBrightness}
-            onGreenBrightnessChange={(value) => {
-              setScreenGreenBrightness(value);
-              if (screenHackFlashPreviewOutcomeRef.current === "green") {
-                refreshScreenHackFlashPreview();
-              }
-            }}
-            onRedBrightnessChange={(value) => {
-              setScreenRedBrightness(value);
-              if (screenHackFlashPreviewOutcomeRef.current === "red") {
-                refreshScreenHackFlashPreview();
-              }
-            }}
-            onClose={() => {
-              clearScreenHackFlashPreview();
-              setScreenHackFlashTuneEnabled(false);
-              screenHackFlashTuneEnabledRef.current = false;
-              saveControlPanelScreenHackFlashTuneEnabled(false);
-            }}
-          />
-        )}
-      {loadDone &&
-        roundDisplayTuneEnabled &&
-        !controlsOpen &&
-        !consoleHackOpen && (
-          <WeaponRoundDisplayTunePanel
-            previewAim={roundDisplayPreviewAim}
-            onPreviewAimChange={setRoundDisplayPreviewAim}
-            hipTuning={roundDisplayHip}
-            aimTuning={roundDisplayAim}
-            onHipChange={(next) => {
-              setRoundDisplayHip(next);
-              roundDisplayTuningRef.current = {
-                hip: next,
-                aim: roundDisplayAim,
-              };
-            }}
-            onAimChange={(next) => {
-              setRoundDisplayAim(next);
-              roundDisplayTuningRef.current = {
-                hip: roundDisplayHip,
-                aim: next,
-              };
-            }}
-            onSnapToReceiver={() =>
-              weaponRef.current?.getRoundDisplaySuggestedPose?.() ?? null
-            }
-            onReleasePointer={safeExitPointerLock}
-            onClose={() => {
-              saveWeaponRoundDisplayTuning(roundDisplayHip, roundDisplayAim);
-              setRoundDisplayPreviewAim(false);
-              setRoundDisplayTuneEnabled(false);
-              roundDisplayPreviewAimRef.current = false;
-              roundDisplayTuneEnabledRef.current = false;
-              saveWeaponRoundDisplayTuneEnabled(false);
-            }}
-          />
-        )}
       <ConsoleHackScreen
         open={consoleHackOpen}
-        tuneEnabled={consoleHackTuneEnabled}
         layout={consoleHackLayout}
-        onLayoutChange={(next) => {
-          consoleHackLayoutRef.current = next;
-          setConsoleHackLayout(next);
-        }}
-        onTuneClose={() => {
-          setConsoleHackTuneEnabled(false);
-          consoleHackTuneEnabledRef.current = false;
-          saveConsoleHackTuneEnabled(false);
-          if (consoleHackOpenRef.current && !touchControlsActive) {
-            safeRequestPointerLock(canvasRef.current);
-          }
-        }}
         panelId={consoleHackPanelId}
         panelLabel={consoleHackPanelLabel}
         onClose={closeConsoleHack}
@@ -5097,111 +4869,6 @@ export default function FpsGame() {
             </SettingsSection>
 
             <SettingsSection title="Development">
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={weaponTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setWeaponTuneEnabled(enabled);
-                    weaponTuneEnabledRef.current = enabled;
-                    saveWeaponTuneEnabled(enabled);
-                  }}
-                />
-                Weapon pose tuning wizard
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                In-game panel — Hip, Aim, and Look tabs for pose, rotation, and
-                parallax. Aim tab previews down-sights while adjusting.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={pistolTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setPistolTuneEnabled(enabled);
-                    pistolTuneEnabledRef.current = enabled;
-                    savePistolTuneEnabled(enabled);
-                    if (enabled) {
-                      pendingPistolTuneSwapRef.current = true;
-                    }
-                  }}
-                />
-                Pistol pose tuning wizard
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Hip and Aim tabs for the Azure Pulse Pistol. Equips the pistol
-                automatically; Aim tab previews ADS while adjusting.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={roundDisplayTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setRoundDisplayTuneEnabled(enabled);
-                    roundDisplayTuneEnabledRef.current = enabled;
-                    saveWeaponRoundDisplayTuneEnabled(enabled);
-                  }}
-                />
-                Rifle round display tuning wizard
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Align the magazine round counter on the receiver blank. Copy JSON
-                when positioned, then turn off the wizard.
-              </p>
-              <p className="settingsGroupLabel">Control panel</p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={screenHackFlashTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    if (!enabled) {
-                      clearScreenHackFlashPreview();
-                    }
-                    setScreenHackFlashTuneEnabled(enabled);
-                    screenHackFlashTuneEnabledRef.current = enabled;
-                    saveControlPanelScreenHackFlashTuneEnabled(enabled);
-                    if (enabled) {
-                      refreshScreenHackFlashPreview();
-                    }
-                  }}
-                />
-                Hack screen colour tuning
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Left-side sliders for green (success) and red (failure) screen
-                brightness. Face a console to preview while adjusting.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={consoleHackTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setConsoleHackTuneEnabled(enabled);
-                    consoleHackTuneEnabledRef.current = enabled;
-                    saveConsoleHackTuneEnabled(enabled);
-                    if (enabled && consoleHackOpenRef.current) {
-                      safeExitPointerLock();
-                    } else if (
-                      !enabled &&
-                      consoleHackOpenRef.current &&
-                      !touchControlsActive
-                    ) {
-                      safeRequestPointerLock(canvasRef.current);
-                    }
-                  }}
-                />
-                Console hack layout wizard
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Open the NODE BREACH console at a control panel (H), then click
-                individual text lines to move, resize, and recolour them. Copy JSON when
-                aligned.
-              </p>
               <p className="settingsGroupLabel">Level</p>
               <div className="sliderRow">
                 <span className="sliderLabel">Arena config</span>
@@ -5255,6 +4922,28 @@ export default function FpsGame() {
               >
                 Copy coordinates JSON
               </button>
+              <p className="settingsGroupLabel">VX-27 container</p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={vx27ContainerCeilingLight}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setVx27ContainerCeilingLight(enabled);
+                    vx27ContainerCeilingLightRef.current = enabled;
+                    saveVx27ContainerCeilingLightEnabled(enabled);
+                    setVx27ContainerCeilingLightEnabled(
+                      vx27ContainersRef.current,
+                      enabled
+                    );
+                  }}
+                />
+                Ceiling light
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Blue interior point light inside VX-27 containers. Off for
+                comparing sun leak on end caps and doors.
+              </p>
             </SettingsSection>
             </div>
           </div>

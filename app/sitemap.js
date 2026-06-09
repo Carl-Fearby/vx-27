@@ -18,6 +18,12 @@ export default function sitemap() {
       priority: 0.9,
     },
     {
+      url: absoluteUrl("/music"),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.55,
+    },
+    {
       url: absoluteUrl("/credits"),
       lastModified: now,
       changeFrequency: "monthly",

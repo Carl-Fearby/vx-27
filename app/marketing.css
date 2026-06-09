@@ -743,6 +743,124 @@ body {
   gap: 1.25rem 1.75rem;
 }
 
+/* NODE BREACH — console + hack specs */
+.mktBreach {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: center;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(3rem, 8vw, 5.5rem) clamp(1.25rem, 4vw, 3rem);
+}
+
+.mktBreachVisual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mktControlPanelPreview {
+  position: relative;
+  width: min(340px, 78vw);
+  height: min(340px, 78vw);
+  padding: 10px;
+  border: 1px solid rgba(94, 170, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(4, 8, 16, 0.55);
+  animation: mktPropFloat 5.4s ease-in-out infinite;
+}
+
+.mktControlPanelPreviewCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.58))
+    drop-shadow(0 0 22px rgba(94, 170, 255, 0.2));
+}
+
+.mktBreachHud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem 0.85rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgba(94, 170, 255, 0.14);
+  border-radius: 6px;
+  background: rgba(6, 12, 22, 0.72);
+}
+
+.mktBreachHud img {
+  display: block;
+  opacity: 0.88;
+  filter: drop-shadow(0 0 8px rgba(94, 170, 255, 0.35));
+}
+
+.mktBreachCopy h2 {
+  margin: 0 0 1rem;
+  font-family: var(--font);
+  font-size: clamp(1.5rem, 3.2vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+
+.mktBreachLead {
+  margin: 0 0 1.35rem;
+  font-size: 1rem;
+  line-height: 1.72;
+  color: var(--text-dim);
+}
+
+.mktBreachSpecs {
+  margin: 0 0 1.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(94, 170, 255, 0.14);
+  border-radius: 4px;
+  background: rgba(6, 10, 18, 0.72);
+}
+
+.mktBreachSpecRow {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 0.42fr) 1fr;
+  gap: 0.65rem 1rem;
+  padding: 0.42rem 0;
+  border-bottom: 1px solid rgba(94, 170, 255, 0.08);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.mktBreachSpecRow:last-child {
+  border-bottom: 0;
+}
+
+.mktBreachSpecRow dt {
+  margin: 0;
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(140, 190, 255, 0.62);
+}
+
+.mktBreachSpecRow dd {
+  margin: 0;
+  color: rgba(210, 228, 255, 0.86);
+}
+
+@keyframes mktPropFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
 .mktBriefing {
   position: relative;
   z-index: 10;
@@ -1689,6 +1807,14 @@ body {
 
   .mktOpsGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mktBreach {
+    grid-template-columns: 1fr;
+  }
+
+  .mktBreachVisual {
+    order: -1;
   }
 
   .mktIntel {

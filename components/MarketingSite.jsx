@@ -24,7 +24,7 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
-  { label: "BUILD", value: `v${BUILD_VERSION} · container beacons · kill pre-bake` },
+  { label: "BUILD", value: `v${BUILD_VERSION} · container ceiling light · kill pre-bake` },
   { label: "PLATFORM", value: "Desktop · iPad Safari · zero install" },
   { label: "ZONE", value: "Exclusion sector · sealed" },
   { label: "RENDER", value: "WebGL · Three.js · GPU preload on load" },
@@ -45,9 +45,9 @@ const NODE_BREACH_SPECS = [
 
 const WHATS_NEW = [
   {
-    tag: "v0.1.39",
-    title: "Emergency container beacons",
-    text: "Blue and orange rotating beacons inside VX-27 crates — fast exterior sweeps, wide interior flood strobes, and light that spills through open doors only.",
+    tag: "v0.1.40",
+    title: "Container ceiling light",
+    text: "One static blue point light at the centre of each VX-27 interior — no rotating beacons, no door spill. Dev toggle under Settings → Development.",
   },
   {
     tag: "v0.1.39",
@@ -62,7 +62,7 @@ const WHATS_NEW = [
   {
     tag: "v0.1.39",
     title: "Container performance",
-    text: "Frustum culling hides off-screen crate interiors; beacon and door updates skip when culled. Startup GPU preload simulates ~2s of beacon motion.",
+    text: "Frustum culling hides off-screen crate interiors; interior updates skip when culled. Game-logic kill pre-bake warms ragdolls before the shot.",
   },
   {
     tag: "v0.1.38",
@@ -736,7 +736,7 @@ export default function MarketingSite() {
           You were sent to recover a weapon. You found something worse.
         </p>
         <p className="mktLaunchBuildNote">
-          Now live · v{BUILD_VERSION} · container beacons · NODE BREACH · soundtrack at /music
+          Now live · v{BUILD_VERSION} · container ceiling light · NODE BREACH · soundtrack at /music
         </p>
         <Link href="/game" className="mktPlayBtn mktPlayBtnLaunch">
           <span className="mktPlayBtnLabel">Launch VX-27</span>

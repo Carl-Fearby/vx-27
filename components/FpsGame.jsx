@@ -183,7 +183,6 @@ import {
   refreshOilBarrelRenderLayers,
 } from "@/lib/oil-barrel/OilBarrel";
 import {
-  collectVx27ContainerDoorEgressLights,
   collectVx27ContainerRoomLights,
   preloadVx27ContainerAssets,
   resolveVx27ContainerForPlayer,
@@ -194,7 +193,6 @@ import {
   setVx27ContainerCeilingLightEnabled,
   setVx27ContainerMaterialTuning,
   updateVx27ContainerDoorAnimations,
-  updateVx27ContainerBeaconLights,
 } from "@/lib/vx27-container/Vx27Container";
 import {
   buildVx27ContainerCullables,
@@ -1712,20 +1710,10 @@ export default function FpsGame() {
       const vx27ContainerLights = collectVx27ContainerRoomLights(
         level.vx27ContainerMeshes
       );
-      const vx27DoorEgressLights = collectVx27ContainerDoorEgressLights(
-        level.vx27ContainerMeshes
-      );
       if (vx27ContainerLights.length) {
         roomLights.push(...vx27ContainerLights);
       }
-      if (vx27DoorEgressLights.length) {
-        roomLights.push(...vx27DoorEgressLights);
-      }
-      if (
-        level.interiorLights?.length ||
-        vx27ContainerLights.length ||
-        vx27DoorEgressLights.length
-      ) {
+      if (level.interiorLights?.length || vx27ContainerLights.length) {
         roomLightsRef.current = roomLights;
         resetLightingZoneCache();
         syncLightLayersForZone(scene, interiorLevel, outdoorLights, roomLights);
@@ -3638,11 +3626,6 @@ export default function FpsGame() {
           playerVx27Container
         );
         updateVx27ContainerDoorAnimations(vx27ContainersRef.current, dt);
-        updateVx27ContainerBeaconLights(
-          vx27ContainersRef.current,
-          performance.now() * 0.001,
-          playerVx27Container
-        );
         let doorCollidersDirty = false;
         for (const doorGroup of vx27ContainersRef.current) {
           if (!consumeVx27DoorColliderDirty(doorGroup)) continue;
@@ -5008,10 +4991,10 @@ export default function FpsGame() {
                     );
                   }}
                 />
-                Emergency beacon
+                Container ceiling light
               </label>
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                Blue rotating ceiling beacon inside VX-27 containers. Off for
+                Static blue ceiling light inside VX-27 containers. Off for
                 comparing sun leak on end caps and doors.
               </p>
             </SettingsSection>

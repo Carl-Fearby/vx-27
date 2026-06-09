@@ -1,8 +1,23 @@
 {
-  "generatedAt": "2026-06-09T10:08:58.476Z",
-  "head": "4579869",
-  "count": 161,
+  "generatedAt": "2026-06-09T11:29:49.792Z",
+  "head": "d75738f",
+  "count": 164,
   "commits": [
+    {
+      "sha": "d75738f",
+      "date": "2026-06-09",
+      "subject": "Fix v0.1.41 release commit hash in version history."
+    },
+    {
+      "sha": "d173649",
+      "date": "2026-06-09",
+      "subject": "Release v0.1.41: Enemy vocal distance falloff and HMR preload fix."
+    },
+    {
+      "sha": "096f2cf",
+      "date": "2026-06-09",
+      "subject": "Refresh git commit history after v0.1.40 production build."
+    },
     {
       "sha": "4579869",
       "date": "2026-06-09",

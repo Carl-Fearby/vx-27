@@ -1,8 +1,28 @@
 {
-  "generatedAt": "2026-06-08T23:46:22.045Z",
-  "head": "a177424",
-  "count": 152,
+  "generatedAt": "2026-06-09T08:56:49.594Z",
+  "head": "531678c",
+  "count": 156,
   "commits": [
+    {
+      "sha": "531678c",
+      "date": "2026-06-09",
+      "subject": "Fix v0.1.39 release commit hash in version history."
+    },
+    {
+      "sha": "b7e39d5",
+      "date": "2026-06-09",
+      "subject": "Release v0.1.39: VX-27 beacons, door egress lighting, and kill pre-bake."
+    },
+    {
+      "sha": "5a02a38",
+      "date": "2026-06-09",
+      "subject": "Seal VX-27 door gaps and add blue rotating container beacon light."
+    },
+    {
+      "sha": "9a58596",
+      "date": "2026-06-09",
+      "subject": "Add VX-27 container interior lighting, door pass split, and session features."
+    },
     {
       "sha": "a177424",
       "date": "2026-06-09",

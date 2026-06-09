@@ -24,7 +24,7 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
-  { label: "BUILD", value: `v${BUILD_VERSION} · NODE BREACH consoles · score tokens` },
+  { label: "BUILD", value: `v${BUILD_VERSION} · container beacons · kill pre-bake` },
   { label: "PLATFORM", value: "Desktop · iPad Safari · zero install" },
   { label: "ZONE", value: "Exclusion sector · sealed" },
   { label: "RENDER", value: "WebGL · Three.js · GPU preload on load" },
@@ -44,6 +44,26 @@ const NODE_BREACH_SPECS = [
 ];
 
 const WHATS_NEW = [
+  {
+    tag: "v0.1.39",
+    title: "Emergency container beacons",
+    text: "Blue and orange rotating beacons inside VX-27 crates — fast exterior sweeps, wide interior flood strobes, and light that spills through open doors only.",
+  },
+  {
+    tag: "v0.1.39",
+    title: "Sealed container doors",
+    text: "Closed door leaves and end caps block light leaks. Interior shell fixes keep the crate dark until you open a hatch.",
+  },
+  {
+    tag: "v0.1.39",
+    title: "Kill pre-bake",
+    text: "Game logic pre-warms headshot ragdolls when you share a container with a target or have line of sight — load-screen GPU bake for every target too.",
+  },
+  {
+    tag: "v0.1.39",
+    title: "Container performance",
+    text: "Frustum culling hides off-screen crate interiors; beacon and door updates skip when culled. Startup GPU preload simulates ~2s of beacon motion.",
+  },
   {
     tag: "v0.1.38",
     title: "NODE BREACH console hack",
@@ -716,7 +736,7 @@ export default function MarketingSite() {
           You were sent to recover a weapon. You found something worse.
         </p>
         <p className="mktLaunchBuildNote">
-          Now live · v{BUILD_VERSION} · NODE BREACH consoles · rain/snow · soundtrack at /music
+          Now live · v{BUILD_VERSION} · container beacons · NODE BREACH · soundtrack at /music
         </p>
         <Link href="/game" className="mktPlayBtn mktPlayBtnLaunch">
           <span className="mktPlayBtnLabel">Launch VX-27</span>

@@ -183,16 +183,23 @@ import {
   refreshOilBarrelRenderLayers,
 } from "@/lib/oil-barrel/OilBarrel";
 import {
+  collectVx27ContainerDoorEgressLights,
   collectVx27ContainerRoomLights,
   preloadVx27ContainerAssets,
+  resolveVx27ContainerForPlayer,
+  collidersForRagdollNear,
   consumeVx27DoorColliderDirty,
-  isAnyVx27ContainerInteriorPassNeeded,
+  invalidateVx27ContainerColliderCache,
   refreshVx27ContainerRenderLayers,
   setVx27ContainerCeilingLightEnabled,
   setVx27ContainerMaterialTuning,
   updateVx27ContainerDoorAnimations,
   updateVx27ContainerBeaconLights,
 } from "@/lib/vx27-container/Vx27Container";
+import {
+  buildVx27ContainerCullables,
+  updateVx27ContainerCulling,
+} from "@/lib/vx27-container/Vx27ContainerCulling";
 import {
   loadVx27ContainerCeilingLightEnabled,
   saveVx27ContainerCeilingLightEnabled,
@@ -294,6 +301,11 @@ import {
   FLASHBANG_BLIND_FADE_SEC,
   FLASHBANG_BLIND_FULL_OPACITY,
 } from "@/lib/combat/Targets";
+import {
+  flushKillPredictiveGpuWarm,
+  resetKillPredictiveCache,
+  updateKillPredictiveCache,
+} from "@/lib/combat/KillPredictiveCache";
 import {
   disposeAllBloodSplatters,
   spawnBloodSplatter,
@@ -1076,6 +1088,7 @@ export default function FpsGame() {
   const rebuildOilBarrelsRef = useRef(null);
   const levelRef = useRef(null);
   const vx27ContainersRef = useRef([]);
+  const vx27ContainerCullablesRef = useRef([]);
   const controlPanelsRef = useRef([]);
   const syncControlPanelCollidersRef = useRef(null);
   const playerPlacementRef = useRef({ x: 0, z: 0, y: 0 });
@@ -1699,10 +1712,20 @@ export default function FpsGame() {
       const vx27ContainerLights = collectVx27ContainerRoomLights(
         level.vx27ContainerMeshes
       );
+      const vx27DoorEgressLights = collectVx27ContainerDoorEgressLights(
+        level.vx27ContainerMeshes
+      );
       if (vx27ContainerLights.length) {
         roomLights.push(...vx27ContainerLights);
       }
-      if (level.interiorLights?.length || vx27ContainerLights.length) {
+      if (vx27DoorEgressLights.length) {
+        roomLights.push(...vx27DoorEgressLights);
+      }
+      if (
+        level.interiorLights?.length ||
+        vx27ContainerLights.length ||
+        vx27DoorEgressLights.length
+      ) {
         roomLightsRef.current = roomLights;
         resetLightingZoneCache();
         syncLightLayersForZone(scene, interiorLevel, outdoorLights, roomLights);
@@ -1742,6 +1765,9 @@ export default function FpsGame() {
       }
       prebuildRagdollTemplates(level.targets);
       vx27ContainersRef.current = level.vx27ContainerMeshes ?? [];
+      vx27ContainerCullablesRef.current = buildVx27ContainerCullables(
+        vx27ContainersRef.current
+      );
       controlPanelsRef.current = level.controlPanelMeshes ?? [];
       syncControlPanelScreenMaterials(controlPanelsRef.current);
       let vx27DoorInteractMeshesCache = collectVx27DoorInteractMeshes(
@@ -1981,6 +2007,7 @@ export default function FpsGame() {
           ...level.stairColliders,
           ...level.ceilingColliders
         );
+        invalidateVx27ContainerColliderCache();
       }
       syncAllColliders();
       const targetSpawnCtx = spawnFootYContextFromLevel(level);
@@ -2475,7 +2502,14 @@ export default function FpsGame() {
           scheduleKillDrops(deathPos, zone);
           startDeathAnimation(mesh, bulletDirection, {
             scene,
-            colliders: allColliders,
+            colliders:
+              mesh.userData.predictiveDeathColliders ??
+              collidersForRagdollNear(
+                deathPos.x,
+                deathPos.z,
+                allColliders,
+                vx27ContainersRef.current
+              ),
             floorY: level.floorY,
             bounds: level.bounds,
             hitZone: zone,
@@ -2703,6 +2737,7 @@ export default function FpsGame() {
         try {
         flushBloodAfterRagdoll();
         flushPendingRagdolls();
+        flushKillPredictiveGpuWarm();
         flushPendingKillBlood();
         tickOilBarrelInteriorVideo(camera, oilBarrelRuntimeIndex);
         sounds.updateOilBarrelFire(
@@ -3266,6 +3301,26 @@ export default function FpsGame() {
         refreshGameplayHintHudRef.current();
 
         refreshLiveTargets();
+        if (
+          !frozen &&
+          locked &&
+          !settingsOpenRef.current &&
+          !controlsOpenRef.current &&
+          player
+        ) {
+          updateKillPredictiveCache({
+            playerX: player.getX(),
+            playerZ: player.getZ(),
+            camera,
+            liveTargets: liveTargetsScratch,
+            levelHitMeshes,
+            raycaster: hitRaycaster,
+            scene,
+            allColliders,
+            containers: vx27ContainersRef.current,
+            dt,
+          });
+        }
         updateBloodSplatters(bloodSplatters, dt, scene);
         scorePopupLayer?.update(camera, dt);
         updateBulletHoles(dt);
@@ -3394,33 +3449,6 @@ export default function FpsGame() {
         if (showHudRef.current) {
           updateTargetHealthBars(level.targets, dt, camera);
         }
-        updateVx27ContainerDoorAnimations(vx27ContainersRef.current, dt);
-        updateVx27ContainerBeaconLights(
-          vx27ContainersRef.current,
-          performance.now() * 0.001
-        );
-        let doorCollidersDirty = false;
-        for (const doorGroup of vx27ContainersRef.current) {
-          if (!consumeVx27DoorColliderDirty(doorGroup)) continue;
-          doorCollidersDirty = true;
-          syncVx27ContainerCollider(
-            level.colliders,
-            doorGroup.userData.vx27PropId,
-            readVx27ContainerPlacement(doorGroup),
-            {
-              ...doorGroup.userData.vx27PropDef,
-              interiorInsets: doorGroup.userData.vx27InteriorInsets,
-              edgeRadius: doorGroup.userData.vx27EdgeRadius,
-              exteriorCornerRadius: doorGroup.userData.vx27ExteriorCornerRadius,
-              scale: doorGroup.userData.vx27Scale,
-              width: doorGroup.userData.vx27Width,
-              height: doorGroup.userData.vx27Height,
-              length: doorGroup.userData.vx27Length,
-              doorTuning: doorGroup.userData.vx27DoorTuning,
-            }
-          );
-        }
-        if (doorCollidersDirty) syncAllColliders();
         updateDeathAnimations(level.targets, dt, (mesh) => {
           deactivateTarget(mesh);
           scheduleRespawn(mesh);
@@ -3598,6 +3626,46 @@ export default function FpsGame() {
           arena.wallThickness ?? 0.5
         );
 
+        const playerVx27Container = resolveVx27ContainerForPlayer(
+          player.getX(),
+          player.getZ(),
+          vx27ContainersRef.current,
+          allColliders
+        );
+        const { anyVisible: inContainerPass } = updateVx27ContainerCulling(
+          vx27ContainerCullablesRef.current,
+          camera,
+          playerVx27Container
+        );
+        updateVx27ContainerDoorAnimations(vx27ContainersRef.current, dt);
+        updateVx27ContainerBeaconLights(
+          vx27ContainersRef.current,
+          performance.now() * 0.001,
+          playerVx27Container
+        );
+        let doorCollidersDirty = false;
+        for (const doorGroup of vx27ContainersRef.current) {
+          if (!consumeVx27DoorColliderDirty(doorGroup)) continue;
+          doorCollidersDirty = true;
+          syncVx27ContainerCollider(
+            level.colliders,
+            doorGroup.userData.vx27PropId,
+            readVx27ContainerPlacement(doorGroup),
+            {
+              ...doorGroup.userData.vx27PropDef,
+              interiorInsets: doorGroup.userData.vx27InteriorInsets,
+              edgeRadius: doorGroup.userData.vx27EdgeRadius,
+              exteriorCornerRadius: doorGroup.userData.vx27ExteriorCornerRadius,
+              scale: doorGroup.userData.vx27Scale,
+              width: doorGroup.userData.vx27Width,
+              height: doorGroup.userData.vx27Height,
+              length: doorGroup.userData.vx27Length,
+              doorTuning: doorGroup.userData.vx27DoorTuning,
+            }
+          );
+        }
+        if (doorCollidersDirty) syncAllColliders();
+
         const interiorLevelFrame = isInteriorEnvironmentLevel(arenaLiveRef.current);
         const inRoomBody =
           interiorLevelFrame ||
@@ -3615,13 +3683,6 @@ export default function FpsGame() {
           );
         // Room pass follows camera frustum (+ body-in-room). Viewmodel lighting follows
         // feet / door threshold only — not raw frustum (service-room bbox is huge).
-        const inContainerPass = isAnyVx27ContainerInteriorPassNeeded(
-          camera,
-          level.vx27ContainerMeshes ?? [],
-          player.getX(),
-          player.getZ(),
-          allColliders
-        );
         const inRoomPass =
           interiorLevelFrame ||
           inRoomBody ||
@@ -3874,6 +3935,7 @@ export default function FpsGame() {
         arenaRooms: arena.rooms ?? [],
         floorExtensions: arena.floorExtensions ?? [],
         roomCullables: roomCullablesRef.current,
+        vx27ContainerCullables: vx27ContainerCullablesRef.current,
         wallThickness: arena.wallThickness ?? 0.5,
         spawnX: player.getX(),
         spawnEyeY,
@@ -3915,6 +3977,7 @@ export default function FpsGame() {
         arenaRooms: arena.rooms ?? [],
         floorExtensions: arena.floorExtensions ?? [],
         roomCullables: roomCullablesRef.current,
+        vx27ContainerCullables: vx27ContainerCullablesRef.current,
         wallThickness: arena.wallThickness ?? 0.5,
         spawnX: player.getX(),
         spawnEyeY: player.getY(),
@@ -3922,6 +3985,7 @@ export default function FpsGame() {
         spawnFootY: player.getFootY(),
         spawnYaw: player.getYaw?.() ?? 0,
         getShadowFrameOpts,
+        frames: level.vx27ContainerMeshes?.length ? 8 : 4,
       });
       beginShadowStartupWindow();
       reportLoad(99, GPU_PRELOAD_READY_LABEL);
@@ -3961,6 +4025,7 @@ export default function FpsGame() {
 
     return () => {
       disposed = true;
+      resetKillPredictiveCache();
       arenaAbort.abort();
       weaponLoadId += 1;
       cancelAnimationFrame(rafId);

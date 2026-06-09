@@ -45,6 +45,11 @@ const NODE_BREACH_SPECS = [
 
 const WHATS_NEW = [
   {
+    tag: "v0.1.41",
+    title: "Enemy vocal distance",
+    text: "Hit and pain vocals fade with distance — full volume up close, quiet across the yard, silent beyond ~42 m.",
+  },
+  {
     tag: "v0.1.40",
     title: "Container ceiling light",
     text: "One static blue point light at the centre of each VX-27 interior — no rotating beacons, no door spill. Dev toggle under Settings → Development.",

@@ -1511,6 +1511,8 @@ export default function FpsGame() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    resetGameGpuPreload();
+
     let sky = null;
     let scene = null;
     let levelTextures = null;
@@ -2721,7 +2723,6 @@ export default function FpsGame() {
       function animate(now) {
         if (disposed || !gameReady || !level?.group) return;
         if (!level.group.parent) scene.add(level.group);
-        rafId = requestAnimationFrame(animate);
         try {
         flushBloodAfterRagdoll();
         flushPendingRagdolls();
@@ -3779,7 +3780,10 @@ export default function FpsGame() {
         renderCrosshairPass(renderer, scene, camera);
         renderViewmodelPass(renderer, scene, camera);
         } catch (err) {
-          console.error("Frame render failed:", err);
+          if (!disposed) console.error("Frame render failed:", err);
+        }
+        if (!disposed && gameReady) {
+          rafId = requestAnimationFrame(animate);
         }
       }
 
@@ -3934,6 +3938,7 @@ export default function FpsGame() {
           applyDayNightRef.current?.(nightness);
         },
         initialDayNightNightness: dayNightCurNightnessRef.current,
+        isActive,
       });
       applyDayNightRef.current?.(dayNightCurNightnessRef.current);
       if (!isActive()) return;
@@ -3969,6 +3974,7 @@ export default function FpsGame() {
         spawnYaw: player.getYaw?.() ?? 0,
         getShadowFrameOpts,
         frames: level.vx27ContainerMeshes?.length ? 8 : 4,
+        isActive,
       });
       beginShadowStartupWindow();
       reportLoad(99, GPU_PRELOAD_READY_LABEL);
@@ -4008,7 +4014,9 @@ export default function FpsGame() {
 
     return () => {
       disposed = true;
+      gameReady = false;
       resetKillPredictiveCache();
+      resetGameGpuPreload();
       arenaAbort.abort();
       weaponLoadId += 1;
       cancelAnimationFrame(rafId);
@@ -4071,7 +4079,6 @@ export default function FpsGame() {
       resetRoomInteriorAmbient();
       renderer.dispose();
       rendererRef.current = null;
-      resetGameGpuPreload();
       resetArenaCeilingDayNightCache();
       safeExitPointerLock();
     };

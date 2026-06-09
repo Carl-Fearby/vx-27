@@ -191,6 +191,7 @@ import {
   setVx27ContainerCeilingLightEnabled,
   setVx27ContainerMaterialTuning,
   updateVx27ContainerDoorAnimations,
+  updateVx27ContainerBeaconLights,
 } from "@/lib/vx27-container/Vx27Container";
 import {
   loadVx27ContainerCeilingLightEnabled,
@@ -3394,6 +3395,10 @@ export default function FpsGame() {
           updateTargetHealthBars(level.targets, dt, camera);
         }
         updateVx27ContainerDoorAnimations(vx27ContainersRef.current, dt);
+        updateVx27ContainerBeaconLights(
+          vx27ContainersRef.current,
+          performance.now() * 0.001
+        );
         let doorCollidersDirty = false;
         for (const doorGroup of vx27ContainersRef.current) {
           if (!consumeVx27DoorColliderDirty(doorGroup)) continue;
@@ -4938,10 +4943,10 @@ export default function FpsGame() {
                     );
                   }}
                 />
-                Ceiling light
+                Emergency beacon
               </label>
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                Blue interior point light inside VX-27 containers. Off for
+                Blue rotating ceiling beacon inside VX-27 containers. Off for
                 comparing sun leak on end caps and doors.
               </p>
             </SettingsSection>

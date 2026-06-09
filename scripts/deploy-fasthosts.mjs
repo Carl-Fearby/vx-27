@@ -255,6 +255,14 @@ async function uploadOutDirOnce() {
   }
 }
 
+function isRetryableFtpUploadError(err) {
+  const code = err?.code;
+  if (code === 425 || code === 421 || code === 426) return true;
+  if (code === "ERR_STREAM_UNABLE_TO_PIPE") return true;
+  if (typeof code === "number" && code >= 421 && code <= 426) return true;
+  return false;
+}
+
 async function uploadOutDir() {
   const maxAttempts = Number(process.env.FASTHOSTS_FTP_UPLOAD_RETRIES ?? 4);
   console.log(`Uploading ${OUT_DIR} …`);
@@ -264,9 +272,7 @@ async function uploadOutDir() {
       await uploadOutDirOnce();
       return;
     } catch (err) {
-      const retryable =
-        err?.code === 425 || err?.code === 421 || err?.code === 426;
-      if (!retryable || attempt >= maxAttempts) throw err;
+      if (!isRetryableFtpUploadError(err) || attempt >= maxAttempts) throw err;
       const waitMs = 4000 * attempt;
       console.warn(
         `FTP upload failed (${err.code ?? err.message}) — retry ${attempt}/${maxAttempts - 1} in ${waitMs / 1000}s…`

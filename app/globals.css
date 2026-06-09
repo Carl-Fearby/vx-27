@@ -356,7 +356,6 @@ body {
 .gameRoot .hudStaminaBar,
 .gameRoot .hudScorePanel,
 .gameRoot .hudCompass,
-.gameRoot .hudBarCompass,
 .gameRoot .hudRadar,
 .gameRoot .hudHealthBar,
 .gameRoot .hudMissionInfo,
@@ -382,7 +381,7 @@ body {
 .gameHudHidden .hudStaminaBar,
 .gameHudHidden .hudScorePanel,
 .gameHudHidden .hudCompass,
-.gameHudHidden .hudBarCompass,
+.gameHudHidden .hudFireCarousel,
 .gameHudHidden .hudRadar,
 .gameHudHidden .hudHealthBar,
 .gameHudHidden .hudMissionInfo,
@@ -536,70 +535,124 @@ body {
   transition: color 0.4s ease;
 }
 
-/* Fire mode indicator — centred below ammo values */
-.hudFireMode {
+/* Fire-mode carousel — right HUD slot, single active mode slides on cycle */
+.hudFireCarousel {
   position: absolute;
-  left: 50%;
-  bottom: calc(var(--hud-firemode-y, 12%) + 2px);
-  transform: translateX(-50%);
+  left: var(--hud-fire-carousel-x, 92%);
+  top: var(--hud-fire-carousel-y, 25%);
+  transform: translateX(-50%) scale(var(--hud-fire-carousel-scale, 2.5));
+  transform-origin: center top;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: center;
   pointer-events: auto;
 }
 
-.hudFireModeOption {
+.hudFireCarouselSlot {
   display: flex;
   align-items: center;
-  gap: 0.1rem;
+  justify-content: center;
   background: transparent;
   border: 0;
-  padding: 0.15rem 0.25rem;
+  padding: 0.1rem 0.15rem;
   cursor: pointer;
-  opacity: 0.55;
-  transition: opacity 0.15s ease;
 }
 
-.hudFireModeOption:hover {
-  opacity: 0.8;
-}
-
-.hudFireModeActive {
-  opacity: 1;
-}
-
-.hudBulletIcon {
-  height: clamp(0.7rem, 1.5vw, 1.1rem);
-  width: auto;
-}
-
-.hudFireModeLabel {
-  font-family: var(--font-futuristic), "Orbitron", "Eurostile", "Rajdhani", sans-serif;
-  font-size: clamp(0.55rem, 1.1vw, 0.85rem);
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  color: rgba(94, 170, 255, 0.75);
-}
-
-.hudFireModeActive .hudFireModeLabel {
-  color: #e8eeff;
-}
-
-/* Reserved slot on bottom ammo HUD (right side) — empty for now */
-.hudBarCompass {
-  position: absolute;
-  left: var(--hud-bar-compass-x, 92%);
-  top: var(--hud-bar-compass-y, 21%);
-  transform: translateX(-50%);
+.hudFireCarouselViewport {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  pointer-events: none;
+  justify-content: center;
+  overflow: hidden;
+  min-width: clamp(2.4rem, 5.5vw, 3.6rem);
 }
 
-.hudBarCompassRing {
-  width: var(--hud-bar-compass-size, clamp(2.2rem, 6.3vw, 3.6rem));
-  aspect-ratio: 1;
+.hudFireCarouselSlide {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hudFireCarouselSlide--next {
+  animation: hudFireSlideInNext 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hudFireCarouselSlide--prev {
+  animation: hudFireSlideInPrev 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hudFireSlideInNext {
+  from {
+    transform: translateX(62%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes hudFireSlideInPrev {
+  from {
+    transform: translateX(-62%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.hudFireCarouselSlotCenter:hover .hudFireCarouselSlide {
+  transform: scale(1.04);
+  transition: transform 0.15s ease;
+}
+
+.hudFireCarouselSlotCenter:hover .hudFireCarouselSlide--next,
+.hudFireCarouselSlotCenter:hover .hudFireCarouselSlide--prev {
+  transform: none;
+}
+
+.hudFireCarouselBullets {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.08rem;
+}
+
+.hudFireCarouselBulletPair {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.hudFireCarouselBullet {
+  height: clamp(0.85rem, 1.85vw, 1.35rem);
+  width: auto;
+  display: block;
+}
+
+.hudFireCarouselBulletNight {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  opacity: var(--hud-night-grayscale, 0);
+}
+
+.hudFireCarouselBulletDay {
+  opacity: calc(1 - var(--hud-night-grayscale, 0));
+  filter: brightness(0) saturate(100%)
+    invert(58%) sepia(89%) saturate(1200%) hue-rotate(186deg) brightness(103%)
+    contrast(101%);
+}
+
+.hudFireCarouselTag {
+  font-family: var(--font-futuristic), "Orbitron", "Eurostile", "Rajdhani", sans-serif;
+  font-size: clamp(0.62rem, 1.2vw, 0.9rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgb(94, 170, 255);
+  margin-left: 0.08rem;
 }
 
 .hudHealthOverload {
@@ -2648,6 +2701,14 @@ body {
     right: 1rem;
     max-height: min(42vh, calc(50vh - 1rem));
   }
+}
+
+.hudBottomBarTunePanel {
+  top: auto;
+  bottom: 1rem;
+  left: 1rem;
+  right: auto;
+  max-height: min(72vh, calc(100vh - 2rem));
 }
 
 .weaponTunePanel {

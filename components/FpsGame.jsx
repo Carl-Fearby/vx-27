@@ -347,8 +347,9 @@ import {
   DEFAULT_AMMO_DROP_SPARE_THRESHOLD,
 } from "@/lib/pickups/RewardDropSettings";
 import HudCompass from "@/components/HudCompass";
-import HudBarCompass from "@/components/HudBarCompass";
+import HudFireModeCarousel from "@/components/HudFireModeCarousel";
 import HudPrimaryWeaponStack from "@/components/HudPrimaryWeaponStack";
+import HudBottomBarTunePanel from "@/components/tuning-panels/HudBottomBarTunePanel";
 import {
   getStackDepthInOrder,
   getStackFrameStyleFromDepth,
@@ -379,7 +380,12 @@ import {
 import { loadWalkBobTuning, resolveWalkBobTuning } from "@/lib/player/WalkBobTuning";
 import { loadStairWalkTuning, normalizeStairWalkTuning } from "@/lib/stairs/StairWalkTuning";
 import { loadHudBarTuning } from "@/lib/ui/HudBarTuning";
-import { loadHudBottomBarTuning } from "@/lib/ui/HudBottomBarTuning";
+import {
+  loadHudBottomBarTuneEnabled,
+  loadHudBottomBarTuning,
+  saveHudBottomBarTuneEnabled,
+  saveHudBottomBarTuning,
+} from "@/lib/ui/HudBottomBarTuning";
 import ControlsPanel from "@/components/ControlsPanel";
 import {
   preloadControlPanelScreenCTextures,
@@ -935,10 +941,12 @@ export default function FpsGame() {
   const ammoDropSpareThresholdRef = useRef(DEFAULT_AMMO_DROP_SPARE_THRESHOLD);
   const loadingMusicTrackIdRef = useRef(loadStoredLoadingTrackId());
   const levelMusicTrackIdRef = useRef(DEFAULT_LEVEL_TRACK_ID);
-  const hudBottomBarTuning = loadHudBottomBarTuning();
-  const hudBarCompassX = 92;
-  const hudBarCompassY = 21;
-  const hudBarCompassSize = 6.3;
+  const [hudBottomBarTuning, setHudBottomBarTuning] = useState(() =>
+    loadHudBottomBarTuning(),
+  );
+  const [hudBottomBarTuneEnabled, setHudBottomBarTuneEnabled] = useState(() =>
+    loadHudBottomBarTuneEnabled(),
+  );
   const hbCorner = 3;
   const sceneRef = useRef(null);
   const snowRef = useRef(null);
@@ -1200,6 +1208,16 @@ export default function FpsGame() {
   const playerLivesRef = useRef(3);
   const fireModeRef = useRef("auto");
   const fireModeByWeaponRef = useRef(createDefaultFireModePool());
+  const cycleFireModeHud = useCallback(() => {
+    const modes = PRIMARY_WEAPONS[activePrimaryWeapon].fireModes;
+    if (modes.length <= 1) return;
+    const i = modes.indexOf(fireModeRef.current);
+    const next = modes[(i + 1) % modes.length];
+    const resolved = resolveFireModeForWeapon(activePrimaryWeapon, next);
+    fireModeByWeaponRef.current[activePrimaryWeapon] = resolved;
+    fireModeRef.current = resolved;
+    setFireMode(resolved);
+  }, [activePrimaryWeapon]);
   const activePrimaryIdRef = useRef("rifle");
   const roundsInMagRef = useRef(PRIMARY_WEAPONS.rifle.magazineSize);
   const spareMagsRef = useRef(PRIMARY_WEAPONS.rifle.spareMagazines);
@@ -4313,10 +4331,9 @@ export default function FpsGame() {
           "--hud-value-font": `${hudBottomBarTuning.valueFont}vw`,
           "--hud-label-scale": String(hudBottomBarTuning.labelScale),
           "--hud-label-y": `${hudBottomBarTuning.labelY}px`,
-          "--hud-firemode-y": `${hudBottomBarTuning.fireModeY}%`,
-          "--hud-bar-compass-x": `${hudBarCompassX}%`,
-          "--hud-bar-compass-y": `${hudBarCompassY}%`,
-          "--hud-bar-compass-size": `${hudBarCompassSize}vw`,
+          "--hud-fire-carousel-x": `${hudBottomBarTuning.fireCarouselX}%`,
+          "--hud-fire-carousel-y": `${hudBottomBarTuning.fireCarouselY}%`,
+          "--hud-fire-carousel-scale": String(hudBottomBarTuning.fireCarouselScale),
         }}
       >
         {/* Settings button — sits in the top-left decorative tab */}
@@ -4351,55 +4368,11 @@ export default function FpsGame() {
           <span className={`hudAmmoValue${hudAmmoValueClass(spareMags)}`}>{String(spareMags).padStart(2, "0")}</span>
         </div>
 
-        {/* Fire mode — only modes supported by the active primary weapon */}
-        {PRIMARY_WEAPONS[activePrimaryWeapon].fireModes.length > 0 && (
-          <div className="hudFireMode">
-            {PRIMARY_WEAPONS[activePrimaryWeapon].fireModes.includes("auto") && (
-              <button
-                type="button"
-                className={`hudFireModeOption${fireMode === "auto" ? " hudFireModeActive" : ""}`}
-                onClick={() => {
-                  fireModeByWeaponRef.current[activePrimaryWeapon] = "auto";
-                  fireModeRef.current = "auto";
-                  setFireMode("auto");
-                }}
-              >
-                <img src={fireMode === "auto" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
-                <span className="hudFireModeLabel">A</span>
-              </button>
-            )}
-            {PRIMARY_WEAPONS[activePrimaryWeapon].fireModes.includes("burst") && (
-              <button
-                type="button"
-                className={`hudFireModeOption${fireMode === "burst" ? " hudFireModeActive" : ""}`}
-                onClick={() => {
-                  fireModeByWeaponRef.current[activePrimaryWeapon] = "burst";
-                  fireModeRef.current = "burst";
-                  setFireMode("burst");
-                }}
-              >
-                <img src={fireMode === "burst" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
-                <img src={fireMode === "burst" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
-                <img src={fireMode === "burst" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
-              </button>
-            )}
-            {PRIMARY_WEAPONS[activePrimaryWeapon].fireModes.includes("single") && (
-              <button
-                type="button"
-                className={`hudFireModeOption${fireMode === "single" ? " hudFireModeActive" : ""}`}
-                onClick={() => {
-                  fireModeByWeaponRef.current[activePrimaryWeapon] = "single";
-                  fireModeRef.current = "single";
-                  setFireMode("single");
-                }}
-              >
-                <img src={fireMode === "single" ? "/ui/bullet_selected.webp" : "/ui/bullet.webp"} className="hudBulletIcon" alt="" />
-              </button>
-            )}
-          </div>
-        )}
-
-        <HudBarCompass />
+        <HudFireModeCarousel
+          modes={PRIMARY_WEAPONS[activePrimaryWeapon].fireModes}
+          activeMode={fireMode}
+          onCycle={cycleFireModeHud}
+        />
       </div>
 
       {/* Stamina bar + score — top left */}
@@ -4982,6 +4955,23 @@ export default function FpsGame() {
               >
                 Copy coordinates JSON
               </button>
+              <p className="settingsGroupLabel">Ammo HUD</p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={hudBottomBarTuneEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setHudBottomBarTuneEnabled(enabled);
+                    saveHudBottomBarTuneEnabled(enabled);
+                  }}
+                />
+                <span>Bottom bar layout tuning wizard</span>
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Live sliders for ROUNDS / MAG / MAGS and the fire-mode carousel on
+                the ammo bar. Copy JSON when aligned.
+              </p>
               <p className="settingsGroupLabel">VX-27 container</p>
               <label className="settingRow">
                 <input
@@ -5039,6 +5029,15 @@ export default function FpsGame() {
         </button>
       )}
       <PickupFlashLayer ref={pickupFlashLayerRef} />
+      {hudBottomBarTuneEnabled ? (
+        <HudBottomBarTunePanel
+          tuning={hudBottomBarTuning}
+          onChange={(next) => {
+            setHudBottomBarTuning(next);
+            saveHudBottomBarTuning(next);
+          }}
+        />
+      ) : null}
       <HudPrimaryWeaponStack
         activePrimaryWeapon={activePrimaryWeapon}
         primaryAmmo={primaryAmmo}

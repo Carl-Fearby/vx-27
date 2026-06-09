@@ -1,8 +1,23 @@
 {
-  "generatedAt": "2026-06-09T09:36:34.946Z",
-  "head": "ecbea12",
-  "count": 157,
+  "generatedAt": "2026-06-09T10:08:33.225Z",
+  "head": "dd8cb84",
+  "count": 160,
   "commits": [
+    {
+      "sha": "dd8cb84",
+      "date": "2026-06-09",
+      "subject": "Fix v0.1.40 release commit hash in version history."
+    },
+    {
+      "sha": "7e261c0",
+      "date": "2026-06-09",
+      "subject": "Release v0.1.40: Static blue container ceiling light."
+    },
+    {
+      "sha": "530ba8b",
+      "date": "2026-06-09",
+      "subject": "Add FTP upload retries to deploy script for transient 425 errors."
+    },
     {
       "sha": "ecbea12",
       "date": "2026-06-09",

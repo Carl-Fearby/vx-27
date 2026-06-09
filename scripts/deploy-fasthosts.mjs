@@ -226,7 +226,7 @@ async function probeRemote() {
   }
 }
 
-async function uploadOutDir() {
+async function uploadOutDirOnce() {
   const host = process.env.FASTHOSTS_FTP_HOST || "ftp.fasthosts.co.uk";
   const user = requireEnv("FASTHOSTS_FTP_USER");
   const password = requireEnv("FASTHOSTS_FTP_PASSWORD");
@@ -234,8 +234,6 @@ async function uploadOutDir() {
 
   const client = new Client(60_000);
   client.ftp.verbose = args.has("--verbose");
-
-  console.log(`Uploading ${OUT_DIR} …`);
 
   try {
     await client.access({
@@ -254,6 +252,27 @@ async function uploadOutDir() {
     console.log("Deploy complete.");
   } finally {
     client.close();
+  }
+}
+
+async function uploadOutDir() {
+  const maxAttempts = Number(process.env.FASTHOSTS_FTP_UPLOAD_RETRIES ?? 4);
+  console.log(`Uploading ${OUT_DIR} …`);
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await uploadOutDirOnce();
+      return;
+    } catch (err) {
+      const retryable =
+        err?.code === 425 || err?.code === 421 || err?.code === 426;
+      if (!retryable || attempt >= maxAttempts) throw err;
+      const waitMs = 4000 * attempt;
+      console.warn(
+        `FTP upload failed (${err.code ?? err.message}) — retry ${attempt}/${maxAttempts - 1} in ${waitMs / 1000}s…`
+      );
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
   }
 }
 

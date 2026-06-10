@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-10T22:40:40.389Z",
-  "head": "38ea662",
-  "count": 188,
+  "generatedAt": "2026-06-10T23:08:20.686Z",
+  "head": "f88e5ac",
+  "count": 190,
   "codebase": {
-    "files": 238,
-    "lines": 79975,
-    "nonBlankLines": 72900
+    "files": 239,
+    "lines": 80047,
+    "nonBlankLines": 72958
   },
   "historyStats": {
-    "filesChanged": 2170,
-    "insertions": 126341,
-    "deletions": 41262,
+    "filesChanged": 2193,
+    "insertions": 127215,
+    "deletions": 41793,
     "binaryFiles": 620
   },
   "commits": [
+    {
+      "sha": "f88e5ac",
+      "date": "2026-06-11",
+      "subject": "Release v0.1.48: Catwalk kill rewards and load perf.",
+      "stats": {
+        "filesChanged": 14,
+        "insertions": 470,
+        "deletions": 334,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "81a47b2",
+      "date": "2026-06-10",
+      "subject": "Add load-screen GPU warm-up modes and refine open-fire barrel shadows.",
+      "stats": {
+        "filesChanged": 9,
+        "insertions": 404,
+        "deletions": 197,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "38ea662",
       "date": "2026-06-10",

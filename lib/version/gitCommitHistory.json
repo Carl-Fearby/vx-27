@@ -1,19 +1,30 @@
 {
-  "generatedAt": "2026-06-10T22:11:06.912Z",
-  "head": "4ffed67",
-  "count": 187,
+  "generatedAt": "2026-06-10T22:40:40.389Z",
+  "head": "38ea662",
+  "count": 188,
   "codebase": {
     "files": 238,
-    "lines": 79715,
-    "nonBlankLines": 72659
+    "lines": 79975,
+    "nonBlankLines": 72900
   },
   "historyStats": {
-    "filesChanged": 2168,
-    "insertions": 126321,
-    "deletions": 41253,
+    "filesChanged": 2170,
+    "insertions": 126341,
+    "deletions": 41262,
     "binaryFiles": 620
   },
   "commits": [
+    {
+      "sha": "38ea662",
+      "date": "2026-06-10",
+      "subject": "Fix v0.1.47 release commit hash and regenerate version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 20,
+        "deletions": 9,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "4ffed67",
       "date": "2026-06-10",

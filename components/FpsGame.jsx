@@ -266,14 +266,19 @@ import {
 import { groundSupportFromLevel } from "@/lib/physics/GroundSupport";
 import {
   preloadGameGpu,
+  preloadThreeJsCompileGpu,
   settleGpuSpawnAfterLoad,
   resetGameGpuPreload,
   getGpuPreloadLoadLabel,
+  getGpuPreloadMode,
   GPU_PRELOAD_READY_LABEL,
+  GPU_PRELOAD_SKIPPED_LABEL,
 } from "@/lib/dev/GpuPreload";
 import {
-  loadGpuPreloadEnabled,
-  saveGpuPreloadEnabled,
+  GPU_PRELOAD_MODES,
+  GPU_PRELOAD_MODE_LABELS,
+  loadGpuPreloadMode,
+  saveGpuPreloadMode,
 } from "@/lib/dev/GpuPreloadTuning";
 import {
   addBarrelToPlacement,
@@ -1006,7 +1011,10 @@ export default function FpsGame() {
   );
   const oilBarrelTuningRef = useRef(loadOilBarrelTuning());
   const [loadProgress, setLoadProgress] = useState(0);
-  const [loadAssetLabel, setLoadAssetLabel] = useState("Initializing…");
+  const [loadAssetLabel, setLoadAssetLabel] = useState(
+    "Choose level and GPU warm-up"
+  );
+  const [loadStarted, setLoadStarted] = useState(false);
   const [assetsReady, setAssetsReady] = useState(false);
   const [loadDone, setLoadDone] = useState(() => gameSessionStarted);
   const loadDoneRef = useRef(false);
@@ -1018,8 +1026,8 @@ export default function FpsGame() {
   const vx27ContainerCeilingLightRef = useRef(
     loadVx27ContainerCeilingLightEnabled()
   );
-  const [gpuPreloadEnabled, setGpuPreloadEnabled] = useState(() =>
-    loadGpuPreloadEnabled()
+  const [gpuPreloadMode, setGpuPreloadMode] = useState(() =>
+    loadGpuPreloadMode()
   );
   const [oilBarrelPlacement, setOilBarrelPlacement] = useState(() =>
     loadOilBarrelPlacementState()
@@ -1845,7 +1853,7 @@ export default function FpsGame() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !loadStarted) return;
 
     resetGameGpuPreload();
 
@@ -2859,9 +2867,13 @@ export default function FpsGame() {
       if (!isActive()) return;
       reportLoad(97, "Sound effects");
 
-      reportLoad(98, getGpuPreloadLoadLabel());
+      const gpuWarmMode = getGpuPreloadMode();
+      reportLoad(98, getGpuPreloadLoadLabel(gpuWarmMode));
       const spawnFootY = player.getFootY();
       const spawnEyeY = player.getY();
+      const spawnX = player.getX();
+      const spawnZ = player.getZ();
+      const spawnYaw = player.getYaw?.() ?? 0;
       const getShadowFrameOpts = () => {
         const barrelFireShadowCount = updateOilBarrelFireShadowBudget(
           oilBarrelRuntimeIndex.fireLights,
@@ -2878,80 +2890,100 @@ export default function FpsGame() {
           barrelFireShadowCount,
         };
       };
-      await preloadGameGpu({
-        renderer,
-        scene,
-        camera,
-        level,
-        weapon,
-        sky,
-        floorY: level.floorY,
-        outdoorLights,
-        roomLights: roomLightsRef.current,
-        oilBarrelFireLights: oilBarrelFireLightsRef.current,
-        doorwayOpenings: level.doorwayOpenings ?? [],
-        catwalkDeckY: level.catwalkDeckY,
-        stairPlacement: stairParamsRef.current,
-        arenaHalf,
-        attachWall,
-        arenaRooms: arena.rooms ?? [],
-        floorExtensions: arena.floorExtensions ?? [],
-        roomCullables: roomCullablesRef.current,
-        vx27ContainerCullables: vx27ContainerCullablesRef.current,
-        wallThickness: arena.wallThickness ?? 0.5,
-        spawnX: player.getX(),
-        spawnEyeY,
-        spawnZ: player.getZ(),
-        spawnFootY,
-        spawnYaw: player.getYaw?.() ?? 0,
-        primeDirectionalShadow: () => {
-          if (sunIsDayRef.current) refitSunShadowRef.current?.();
-          else refitMoonShadowRef.current?.();
-        },
-        getShadowFrameOpts,
-        applyDayNightNightness: (nightness) => {
-          applyDayNightRef.current?.(nightness);
-        },
-        initialDayNightNightness: dayNightCurNightnessRef.current,
-        isActive,
-      });
-      applyDayNightRef.current?.(dayNightCurNightnessRef.current);
+      if (gpuWarmMode === "full") {
+        await preloadGameGpu({
+          renderer,
+          scene,
+          camera,
+          level,
+          weapon,
+          sky,
+          floorY: level.floorY,
+          outdoorLights,
+          roomLights: roomLightsRef.current,
+          oilBarrelFireLights: oilBarrelFireLightsRef.current,
+          doorwayOpenings: level.doorwayOpenings ?? [],
+          catwalkDeckY: level.catwalkDeckY,
+          stairPlacement: stairParamsRef.current,
+          arenaHalf,
+          attachWall,
+          arenaRooms: arena.rooms ?? [],
+          floorExtensions: arena.floorExtensions ?? [],
+          roomCullables: roomCullablesRef.current,
+          vx27ContainerCullables: vx27ContainerCullablesRef.current,
+          wallThickness: arena.wallThickness ?? 0.5,
+          spawnX,
+          spawnEyeY,
+          spawnZ,
+          spawnFootY,
+          spawnYaw,
+          primeDirectionalShadow: () => {
+            if (sunIsDayRef.current) refitSunShadowRef.current?.();
+            else refitMoonShadowRef.current?.();
+          },
+          getShadowFrameOpts,
+          applyDayNightNightness: (nightness) => {
+            applyDayNightRef.current?.(nightness);
+          },
+          initialDayNightNightness: dayNightCurNightnessRef.current,
+          isActive,
+        });
+        applyDayNightRef.current?.(dayNightCurNightnessRef.current);
+        if (!isActive()) return;
+        refreshLevelPickupShadows(
+          level.pickupsGroup ?? scene,
+          collectibleEntries.map((e) => e.drop?.mesh),
+          level.group
+        );
+        await settleGpuSpawnAfterLoad({
+          renderer,
+          scene,
+          camera,
+          level,
+          weapon,
+          sky,
+          floorY: level.floorY,
+          outdoorLights,
+          roomLights: roomLightsRef.current,
+          oilBarrelFireLights: oilBarrelFireLightsRef.current,
+          doorwayOpenings: level.doorwayOpenings ?? [],
+          catwalkDeckY: level.catwalkDeckY,
+          arenaHalf,
+          attachWall,
+          arenaRooms: arena.rooms ?? [],
+          floorExtensions: arena.floorExtensions ?? [],
+          roomCullables: roomCullablesRef.current,
+          vx27ContainerCullables: vx27ContainerCullablesRef.current,
+          wallThickness: arena.wallThickness ?? 0.5,
+          spawnX,
+          spawnEyeY: player.getY(),
+          spawnZ,
+          spawnFootY: player.getFootY(),
+          spawnYaw,
+          getShadowFrameOpts,
+          frames: level.vx27ContainerMeshes?.length ? 8 : 4,
+          isActive,
+        });
+      } else if (gpuWarmMode === "three") {
+        await preloadThreeJsCompileGpu({
+          renderer,
+          scene,
+          camera,
+          level,
+          weapon,
+          sky,
+          spawnX,
+          spawnEyeY,
+          spawnZ,
+          spawnYaw,
+          isActive,
+        });
+      }
       if (!isActive()) return;
-      refreshLevelPickupShadows(
-        level.pickupsGroup ?? scene,
-        collectibleEntries.map((e) => e.drop?.mesh),
-        level.group
+      reportLoad(
+        99,
+        gpuWarmMode === "off" ? GPU_PRELOAD_SKIPPED_LABEL : GPU_PRELOAD_READY_LABEL
       );
-      await settleGpuSpawnAfterLoad({
-        renderer,
-        scene,
-        camera,
-        level,
-        weapon,
-        sky,
-        floorY: level.floorY,
-        outdoorLights,
-        roomLights: roomLightsRef.current,
-        oilBarrelFireLights: oilBarrelFireLightsRef.current,
-        doorwayOpenings: level.doorwayOpenings ?? [],
-        catwalkDeckY: level.catwalkDeckY,
-        arenaHalf,
-        attachWall,
-        arenaRooms: arena.rooms ?? [],
-        floorExtensions: arena.floorExtensions ?? [],
-        roomCullables: roomCullablesRef.current,
-        vx27ContainerCullables: vx27ContainerCullablesRef.current,
-        wallThickness: arena.wallThickness ?? 0.5,
-        spawnX: player.getX(),
-        spawnEyeY: player.getY(),
-        spawnZ: player.getZ(),
-        spawnFootY: player.getFootY(),
-        spawnYaw: player.getYaw?.() ?? 0,
-        getShadowFrameOpts,
-        frames: level.vx27ContainerMeshes?.length ? 8 : 4,
-        isActive,
-      });
-      reportLoad(99, GPU_PRELOAD_READY_LABEL);
 
       scorePopupContainer = document.createElement("div");
       scorePopupContainer.className = "killCalloutLayer";
@@ -3052,20 +3084,33 @@ export default function FpsGame() {
       resetArenaCeilingDayNightCache();
       safeExitPointerLock();
     };
-  }, [selectedLevel]);
+  }, [selectedLevel, loadStarted]);
 
   const handleLoadingLevelSelect = useCallback(
     (levelNumber) => {
-      if (loadDoneRef.current || !isPlayableLevel(levelNumber)) return;
+      if (loadDoneRef.current || loadStarted || !isPlayableLevel(levelNumber)) {
+        return;
+      }
       if (levelNumber === selectedLevel) return;
       saveSelectedLevel(levelNumber);
       setSelectedLevel(levelNumber);
-      setAssetsReady(false);
-      setLoadProgress(0);
-      setLoadAssetLabel("Switching level…");
     },
-    [selectedLevel]
+    [selectedLevel, loadStarted]
   );
+
+  const handleBeginLoad = () => {
+    if (loadStarted || loadDone) return;
+    setLoadStarted(true);
+    setAssetsReady(false);
+    setLoadProgress(0);
+    setLoadAssetLabel("Initializing…");
+  };
+
+  const handleGpuPreloadModeChange = (mode) => {
+    if (!GPU_PRELOAD_MODES.includes(mode) || loadStarted) return;
+    setGpuPreloadMode(mode);
+    saveGpuPreloadMode(mode);
+  };
 
   const handleDayNightChange = (isDay, { persist = true } = {}) => {
     if (!DAY_NIGHT_SWITCHER_ENABLED) return;
@@ -3161,7 +3206,7 @@ export default function FpsGame() {
       <div
         className={`loadingOverlay${loadDone ? " loadingDone" : ""}`}
         onClick={() => {
-          if (loadDone || assetsReady) return;
+          if (loadDone || !loadStarted || assetsReady) return;
           const s = soundsRef.current;
           if (!s) return;
           s.resume();
@@ -3174,29 +3219,60 @@ export default function FpsGame() {
         <div className="loadingHeroStack">
           <img src="/ui/logo.png" alt="VX-27" className="loadingLogo" />
         </div>
-        {!loadDone ? (
-          <div
-            className="loadingLevelSelect"
-            role="group"
-            aria-label="Select level"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {LEVEL_SELECT_OPTIONS.map(({ number, label }) => (
-              <button
-                key={number}
-                type="button"
-                className={`loadingLevelBtn${selectedLevel === number ? " active" : ""}`}
-                aria-pressed={selectedLevel === number}
-                disabled={selectedLevel === number}
-                onClick={() => handleLoadingLevelSelect(number)}
-              >
-                <span className="loadingLevelBtnNum">Level {number}</span>
-                <span className="loadingLevelBtnLabel">{label}</span>
-              </button>
-            ))}
-          </div>
+        {!loadDone && !loadStarted ? (
+          <>
+            <div
+              className="loadingLevelSelect"
+              role="group"
+              aria-label="Select level"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {LEVEL_SELECT_OPTIONS.map(({ number, label }) => (
+                <button
+                  key={number}
+                  type="button"
+                  className={`loadingLevelBtn${selectedLevel === number ? " active" : ""}`}
+                  aria-pressed={selectedLevel === number}
+                  disabled={selectedLevel === number}
+                  onClick={() => handleLoadingLevelSelect(number)}
+                >
+                  <span className="loadingLevelBtnNum">Level {number}</span>
+                  <span className="loadingLevelBtnLabel">{label}</span>
+                </button>
+              ))}
+            </div>
+            <fieldset
+              className="loadingGpuWarmFieldset"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <legend className="loadingGpuWarmLegend">GPU warm-up</legend>
+              {GPU_PRELOAD_MODES.map((mode) => (
+                <label key={mode} className="loadingGpuWarmOption">
+                  <input
+                    type="radio"
+                    name="gpu-warm-mode"
+                    value={mode}
+                    checked={gpuPreloadMode === mode}
+                    onChange={() => handleGpuPreloadModeChange(mode)}
+                  />
+                  <span>{GPU_PRELOAD_MODE_LABELS[mode]}</span>
+                </label>
+              ))}
+            </fieldset>
+            <button
+              type="button"
+              className="loadingStartBtn loadingPreloadBtn"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleBeginLoad();
+              }}
+            >
+              Preload
+            </button>
+            <div className="loadingAssetLabel">{loadAssetLabel}</div>
+          </>
         ) : null}
-        {assetsReady ? (
+        {!loadDone && loadStarted && assetsReady ? (
           <button
             type="button"
             className="loadingStartBtn"
@@ -3207,26 +3283,15 @@ export default function FpsGame() {
           >
             Start Game
           </button>
-        ) : (
+        ) : null}
+        {!loadDone && loadStarted && !assetsReady ? (
           <>
             <div className="loadingBarTrack">
               <div className="loadingBarFill" style={{ width: `${loadProgress}%` }} />
             </div>
             <div className="loadingAssetLabel">{loadAssetLabel}</div>
-            <label className="loadingDevToggle">
-              <input
-                type="checkbox"
-                checked={gpuPreloadEnabled}
-                onChange={(e) => {
-                  const enabled = e.target.checked;
-                  setGpuPreloadEnabled(enabled);
-                  saveGpuPreloadEnabled(enabled);
-                }}
-              />
-              <span>GPU preload (off = faster reload)</span>
-            </label>
           </>
-        )}
+        ) : null}
         {!loadDone ? (
           <div className="loadingTopRight">
             <LoadingAudioViz
@@ -3974,22 +4039,26 @@ export default function FpsGame() {
                 Bottom-left panel — move the interior console and fire barrel.
                 Copy JSON into <code>level1.json</code> props when aligned.
               </p>
-              <p className="settingsGroupLabel">Load screen</p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={gpuPreloadEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setGpuPreloadEnabled(enabled);
-                    saveGpuPreloadEnabled(enabled);
-                  }}
-                />
-                <span>GPU preload on load</span>
-              </label>
+              <p className="settingsGroupLabel">Load screen GPU warm-up</p>
+              {GPU_PRELOAD_MODES.map((mode) => (
+                <label key={mode} className="settingRow">
+                  <input
+                    type="radio"
+                    name="settings-gpu-warm-mode"
+                    value={mode}
+                    checked={gpuPreloadMode === mode}
+                    onChange={() => {
+                      setGpuPreloadMode(mode);
+                      saveGpuPreloadMode(mode);
+                    }}
+                  />
+                  <span>{GPU_PRELOAD_MODE_LABELS[mode]}</span>
+                </label>
+              ))}
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                Off skips the load-screen shader bake for faster dev reloads.
-                Also on the loading screen — takes effect on the next warm-up.
+                Choose before Preload on the loading screen. Three.js compile
+                uses renderer.compileAsync only; full preload runs the gameplay
+                render path.
               </p>
             </SettingsSection>
             </div>

@@ -80,6 +80,22 @@ body {
   text-transform: uppercase;
 }
 
+.loadingDevToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  color: rgba(180, 210, 255, 0.78);
+  cursor: pointer;
+  user-select: none;
+}
+
+.loadingDevToggle input {
+  accent-color: rgba(70, 200, 255, 0.95);
+}
+
 .loadingLevelSelect {
   display: flex;
   flex-wrap: wrap;
@@ -345,34 +361,8 @@ body {
   --hud-compass-width: min(24rem, calc(100vw - 2 * min(22rem, 36vw) - 5rem));
   --hud-compass-top: 1rem;
   --hud-compass-height: calc(var(--hud-compass-width) * 292 / 1828);
-  --hud-night-grayscale: 0;
   position: fixed;
   inset: 0;
-}
-
-/* Desaturate HUD chrome in night mode (crosshair and modal settings stay full colour). */
-.gameRoot .hudBottomBar,
-.gameRoot .hudStaminaCluster,
-.gameRoot .hudStaminaBar,
-.gameRoot .hudScorePanel,
-.gameRoot .hudCompass,
-.gameRoot .hudRadar,
-.gameRoot .hudHealthBar,
-.gameRoot .hudMissionInfo,
-.gameRoot .hudDamageVignette,
-.gameRoot .hudPrimaryWeapon,
-.gameRoot .hudSecondWeapon,
-.gameRoot .topRightHud,
-.gameRoot .hudPlayerCoords,
-.gameRoot .pickupOverlayRow,
-.gameRoot .hudCompassPointer,
-.gameRoot .doorInteractPrompt,
-.gameRoot .consoleHackPrompt,
-.gameRoot .demoBtnGroup,
-.gameRoot .gameplayHint,
-.gameRoot .killCalloutLayer {
-  filter: grayscale(var(--hud-night-grayscale))
-    brightness(calc(1 - 0.75 * var(--hud-night-grayscale)));
 }
 
 /* Dev toggle: hide in-game HUD chrome for clean captures (crosshair stays). */
@@ -392,14 +382,9 @@ body {
 .gameHudHidden .killCalloutLayer,
 .gameHudHidden .hudPlayerCoords,
 .gameHudHidden .demoBtnGroup,
-.gameHudHidden .pickupOverlayRow,
-.gameHudHidden .gameplayHint {
+.gameHudHidden .pickupOverlayRow {
   visibility: hidden !important;
   pointer-events: none !important;
-}
-
-.gameHudHidden .consoleHackPrompt {
-  visibility: visible !important;
 }
 
 .gameHudHidden .hudCompassPointer {
@@ -619,7 +604,6 @@ body {
 }
 
 .hudFireCarouselBulletPair {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -630,17 +614,6 @@ body {
   height: clamp(0.85rem, 1.85vw, 1.35rem);
   width: auto;
   display: block;
-}
-
-.hudFireCarouselBulletNight {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  opacity: var(--hud-night-grayscale, 0);
-}
-
-.hudFireCarouselBulletDay {
-  opacity: calc(1 - var(--hud-night-grayscale, 0));
   filter: brightness(0) saturate(100%)
     invert(58%) sepia(89%) saturate(1200%) hue-rotate(186deg) brightness(103%)
     contrast(101%);
@@ -1920,81 +1893,28 @@ body {
   }
 }
 
-/* ── Contextual gameplay hints (day/night, flashlight, …) ─────────── */
-.gameplayHint {
+/* ── Center interact prompt (door, hack, cooldowns, hints) ─────────── */
+.centerInteractPrompt {
   position: fixed;
   left: 50%;
-  top: calc(50% + 2.75rem);
+  top: calc(50% + 1.35rem);
   transform: translateX(-50%);
+  pointer-events: none;
   z-index: 200;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.55rem 1rem;
-  background: rgba(6, 12, 24, 0.92);
-  border: 1px solid rgba(94, 170, 255, 0.55);
-  border-radius: 3px;
-  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.55);
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: clamp(0.72rem, 1.6vw, 0.88rem);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(230, 242, 255, 0.95);
-  pointer-events: none;
   opacity: 0;
   visibility: hidden;
-  white-space: nowrap;
-  transition: opacity 0.25s ease;
-}
-
-.gameplayHintVisible {
-  opacity: 1;
-  visibility: visible;
-}
-
-.grenadeCooldownHint {
-  position: fixed;
-  left: 50%;
-  top: calc(50% + 2.75rem);
-  transform: translateX(-50%);
-  z-index: 201;
-  padding: 0.55rem 1rem;
-  background: rgba(6, 12, 24, 0.92);
-  border: 1px solid rgba(94, 170, 255, 0.55);
-  border-radius: 3px;
-  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.55);
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: clamp(0.72rem, 1.6vw, 0.88rem);
-  letter-spacing: 0.06em;
+  transition: opacity 0.12s ease-out;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(230, 242, 255, 0.95);
-  pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
+  color: rgba(180, 235, 255, 0.95);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
   white-space: nowrap;
 }
 
-.grenadeCooldownHint--visible {
+.centerInteractPromptVisible {
   visibility: visible;
-}
-
-.gameplayHintKey {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.65rem;
-  padding: 0.12rem 0.45rem;
-  border-radius: 3px;
-  border: 1px solid rgba(94, 170, 255, 0.55);
-  background: rgba(30, 80, 160, 0.35);
-  color: rgba(180, 220, 255, 1);
-  font: inherit;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.gameplayHintText {
-  color: rgba(180, 210, 255, 0.72);
 }
 
 /* ── Pickup overlay (power pack collect) ─────────────────────────── */
@@ -2753,28 +2673,6 @@ body {
   margin-top: -1px;
 }
 
-.doorInteractPrompt {
-  position: fixed;
-  left: 50%;
-  top: calc(50% + 1.35rem);
-  transform: translateX(-50%);
-  pointer-events: none;
-  z-index: 6;
-  opacity: 0;
-  transition: opacity 0.12s ease-out;
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(180, 235, 255, 0.95);
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
-  white-space: nowrap;
-}
-
-.doorInteractPromptVisible {
-  opacity: 1;
-}
-
 .weaponRoundDisplayTunePanel {
   top: 1rem;
   right: calc(1rem + min(17.5rem, calc(100vw - 2rem)) + 0.75rem);
@@ -2823,6 +2721,60 @@ body {
   max-height: min(72vh, calc(100vh - 2rem));
 }
 
+.oilBarrelPlacementTunePanel {
+  top: auto;
+  bottom: 1rem;
+  left: 1rem;
+  right: auto;
+  max-height: min(78vh, calc(100vh - 2rem));
+}
+
+.vx27ContainerDoorTunePanel {
+  top: auto;
+  bottom: 1rem;
+  right: 1rem;
+  left: auto;
+  max-height: min(78vh, calc(100vh - 2rem));
+}
+
+.cargoModulePropsTunePanel {
+  top: auto;
+  bottom: 1rem;
+  left: 1rem;
+  right: auto;
+  max-height: min(72vh, calc(100vh - 2rem));
+}
+
+.weaponTunePanelBtnRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.1rem;
+}
+
+.weaponTunePanelBtnRow .settingsBtn {
+  flex: 1 1 calc(50% - 0.2rem);
+  min-width: 6.5rem;
+  text-align: center;
+  white-space: nowrap;
+  margin-top: 0;
+}
+
+.settingsCheckboxRow {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: #c8c8d0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.settingsCheckboxRow input {
+  margin: 0;
+  flex-shrink: 0;
+}
+
 .weaponTunePanelHeader {
   flex-shrink: 0;
 }
@@ -2852,6 +2804,17 @@ body {
 .weaponTunePanelFooter {
   flex-shrink: 0;
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.weaponTunePanelFooter .settingsBtn {
+  flex: 1 1 calc(50% - 0.2rem);
+  min-width: 6.5rem;
+  text-align: center;
+  white-space: nowrap;
+  margin-top: 0;
 }
 
 .weaponTunePanel .poseNumber,
@@ -3586,7 +3549,7 @@ body {
   transform-origin: top right;
 }
 
-.gameRoot--touch .gameplayHint {
+.gameRoot--touch .centerInteractPrompt {
   top: calc(50% + 1.5rem);
 }
 

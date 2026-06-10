@@ -26,12 +26,7 @@ function FireModeBulletIcon() {
       <img
         src="/ui/bullet_selected.webp"
         alt=""
-        className="hudFireCarouselBullet hudFireCarouselBulletDay"
-      />
-      <img
-        src="/ui/bullet.webp"
-        alt=""
-        className="hudFireCarouselBullet hudFireCarouselBulletNight"
+        className="hudFireCarouselBullet"
       />
     </span>
   );

@@ -131,10 +131,15 @@ import {
   clearGameplayHintPulse,
   createGameplayHintRuntime,
   dismissGameplayHint,
-  hintMessageForId,
-  pulseGameplayHint,
+  pulseFlashlightGameplayHint,
   tickGameplayHintDisplay,
 } from "@/lib/ui/GameplayHints.js";
+import {
+  createCenterPromptState,
+  pulseCenterPrompt,
+  tickCenterInteractPrompt,
+} from "@/lib/ui/CenterInteractPrompt.js";
+import CenterInteractPrompt from "@/components/CenterInteractPrompt";
 import { initPickupPreviewEngine } from "@/lib/pickups/PickupPreviewEngine";
 import {
   getLaserPalette,
@@ -190,11 +195,11 @@ import {
   consumeVx27DoorColliderDirty,
   invalidateVx27ContainerColliderCache,
   refreshVx27ContainerRenderLayers,
-  initVx27ContainerCeilingLightFlicker,
   setVx27ContainerCeilingLightEnabled,
   setVx27ContainerMaterialTuning,
-  updateVx27ContainerBeaconLights,
   updateVx27ContainerDoorAnimations,
+  applyVx27ContainerDoorTuning,
+  readVx27ContainerDoorTuning,
 } from "@/lib/vx27-container/Vx27Container";
 import {
   buildVx27ContainerCullables,
@@ -202,18 +207,14 @@ import {
 } from "@/lib/vx27-container/Vx27ContainerCulling";
 import {
   loadVx27ContainerCeilingLightEnabled,
-  saveVx27ContainerCeilingLightEnabled,
 } from "@/lib/vx27-container/Vx27ContainerCeilingLightTuning";
 import {
   collectVx27DoorInteractMeshes,
-  getVx27DoorInteractLabel,
   pickVx27DoorUnderCrosshair,
   toggleVx27ContainerDoorLeaf,
 } from "@/lib/vx27-container/Vx27ContainerDoorInteract";
 import {
-  findNearestHackableControlPanel,
   getControlPanelHackLabel,
-  updateControlPanelHackPrompt,
 } from "@/lib/control-panel/ControlPanelHackInteract";
 import ConsoleHackScreen from "@/components/ConsoleHackScreen";
 import { loadConsoleHackLayout } from "@/lib/console-hack/ConsoleHackLayoutTuning.js";
@@ -270,6 +271,33 @@ import {
   getGpuPreloadLoadLabel,
   GPU_PRELOAD_READY_LABEL,
 } from "@/lib/dev/GpuPreload";
+import {
+  loadGpuPreloadEnabled,
+  saveGpuPreloadEnabled,
+} from "@/lib/dev/GpuPreloadTuning";
+import {
+  addBarrelToPlacement,
+  applyOilBarrelPlacements,
+  clearPlacementApplyRequests,
+  enterBarrelPlacementEditor,
+  isBarrelPlacementGroupTarget,
+  loadOilBarrelPlacementState,
+  loadOilBarrelPlacementTuneEnabled,
+  placementApplyOptionsFromState,
+  saveOilBarrelPlacementState,
+  saveOilBarrelPlacementTuneEnabled,
+} from "@/lib/oil-barrel/OilBarrelPlacementTuning";
+import {
+  applyBarrelPlacementPick,
+  collectOilBarrelPickMeshes,
+  getBarrelPlacementHighlightIds,
+  ndcFromCanvasPointer,
+  pickOilBarrelPropAtNdc,
+} from "@/lib/oil-barrel/OilBarrelPlacementPick";
+import {
+  disposeBarrelPlacementHighlights,
+  updateBarrelPlacementHighlights,
+} from "@/lib/oil-barrel/OilBarrelPlacementHighlight";
 import { resetArenaCeilingDayNightCache } from "@/lib/lighting/ArenaCeilingDayNight";
 import { applyCombatScore, formatKillCallout } from "@/lib/combat/Score";
 import { createScorePopupLayer } from "@/lib/combat/ScorePopups";
@@ -307,6 +335,8 @@ import {
   resetKillPredictiveCache,
   updateKillPredictiveCache,
 } from "@/lib/combat/KillPredictiveCache";
+import { createGameLoop } from "@/lib/gameLoop/createGameLoop.js";
+import { attachCombatRuntime } from "@/lib/gameLoop/attachCombatRuntime.js";
 import {
   disposeAllBloodSplatters,
   spawnBloodSplatter,
@@ -352,7 +382,23 @@ import {
 import HudCompass from "@/components/HudCompass";
 import HudFireModeCarousel from "@/components/HudFireModeCarousel";
 import HudPrimaryWeaponStack from "@/components/HudPrimaryWeaponStack";
-import HudBottomBarTunePanel from "@/components/tuning-panels/HudBottomBarTunePanel";
+import OilBarrelPlacementTunePanel from "@/components/tuning-panels/OilBarrelPlacementTunePanel";
+import Vx27ContainerDoorTunePanel from "@/components/tuning-panels/Vx27ContainerDoorTunePanel";
+import CargoModulePropsTunePanel from "@/components/tuning-panels/CargoModulePropsTunePanel";
+import {
+  loadCargoModuleDoorTuning,
+  loadCargoModuleDoorTuneEnabled,
+  saveCargoModuleDoorTuning,
+  saveCargoModuleDoorTuneEnabled,
+} from "@/lib/vx27-container/CargoModuleDoorGeometryTuning";
+import {
+  CARGO_CONSOLE_PROP_ID,
+  CARGO_CONTAINER_PROP_ID,
+  loadCargoModulePropsPlacement,
+  loadCargoModulePropsTuneEnabled,
+  saveCargoModulePropsPlacement,
+  saveCargoModulePropsTuneEnabled,
+} from "@/lib/vx27-container/CargoModulePropsTuning";
 import {
   getStackDepthInOrder,
   getStackFrameStyleFromDepth,
@@ -384,10 +430,7 @@ import { loadWalkBobTuning, resolveWalkBobTuning } from "@/lib/player/WalkBobTun
 import { loadStairWalkTuning, normalizeStairWalkTuning } from "@/lib/stairs/StairWalkTuning";
 import { loadHudBarTuning } from "@/lib/ui/HudBarTuning";
 import {
-  loadHudBottomBarTuneEnabled,
   loadHudBottomBarTuning,
-  saveHudBottomBarTuneEnabled,
-  saveHudBottomBarTuning,
 } from "@/lib/ui/HudBottomBarTuning";
 import ControlsPanel from "@/components/ControlsPanel";
 import {
@@ -441,8 +484,6 @@ const FLASHBANG_WEAPON_SLOT = 2;
 const DEFAULT_FLASHBANG_COUNT = 4;
 /** Seconds before another grenade/flashbang throw via G. */
 const GRENADE_THROW_COOLDOWN_SEC = 5;
-const GRENADE_COOLDOWN_HINT_MS = 1000;
-const GRENADE_COOLDOWN_HINT_FADE_MS = 450;
 
 /** Bottom-right super-weapon stack — keys 1–4. */
 const SECONDARY_WEAPON_UI = {
@@ -638,7 +679,13 @@ function updateFlashbangOverlay(el, blindStartMs) {
 }
 
 function safeRequestPointerLock(canvas, retries = 3) {
-  if (touchControlsGateRef.current || !canvas) return;
+  if (
+    touchControlsGateRef.current ||
+    oilBarrelPlacementTuneGateRef.current ||
+    !canvas
+  ) {
+    return;
+  }
   if (document.pointerLockElement === canvas) return;
 
   const attempt = (remaining) => {
@@ -714,6 +761,8 @@ function formatMissionTimer(totalSecs) {
 
 /** Synced each render — skips pointer lock on touch/iPad UI. */
 const touchControlsGateRef = { current: false };
+/** When true, pointer lock stays off — WASD / arrows walk the level for dev placement. */
+const oilBarrelPlacementTuneGateRef = { current: false };
 
 /** Direct DOM update — avoids re-rendering the whole game tree every second. */
 function updateMissionTimerHud(el, totalSecs) {
@@ -895,7 +944,8 @@ const WeaponSlotStack = memo(function WeaponSlotStack({
 export default function FpsGame() {
   const canvasRef = useRef(null);
   const screenCrosshairRef = useRef(null);
-  const doorInteractPromptRef = useRef(null);
+  const centerInteractPromptRef = useRef(null);
+  const centerPromptStateRef = useRef(createCenterPromptState());
   const missionTimerHudRef = useRef(null);
   const hostileCountHudRef = useRef(null);
   const scoreHudRef = useRef(null);
@@ -965,12 +1015,35 @@ export default function FpsGame() {
   const [showHud, setShowHud] = useState(() => loadShowHud());
   const [musicEnabled, setMusicEnabled] = useState(true);
   const musicEnabledRef = useRef(true);
-  const [vx27ContainerCeilingLight, setVx27ContainerCeilingLight] = useState(
-    () => loadVx27ContainerCeilingLightEnabled()
-  );
   const vx27ContainerCeilingLightRef = useRef(
     loadVx27ContainerCeilingLightEnabled()
   );
+  const [gpuPreloadEnabled, setGpuPreloadEnabled] = useState(() =>
+    loadGpuPreloadEnabled()
+  );
+  const [oilBarrelPlacement, setOilBarrelPlacement] = useState(() =>
+    loadOilBarrelPlacementState()
+  );
+  const [oilBarrelPlacementTuneEnabled, setOilBarrelPlacementTuneEnabled] =
+    useState(() => loadOilBarrelPlacementTuneEnabled());
+  const oilBarrelPlacementRef = useRef(loadOilBarrelPlacementState());
+  const oilBarrelLastPickedPropIdRef = useRef(null);
+  const oilBarrelPlacementTuneEnabledRef = useRef(
+    loadOilBarrelPlacementTuneEnabled(),
+  );
+  const oilBarrelPickMeshesRef = useRef([]);
+  const [cargoModuleDoorTuning, setCargoModuleDoorTuning] = useState(() =>
+    loadCargoModuleDoorTuning(),
+  );
+  const [cargoModuleDoorTuneEnabled, setCargoModuleDoorTuneEnabled] =
+    useState(() => loadCargoModuleDoorTuneEnabled());
+  const cargoModuleDoorTuningRef = useRef(loadCargoModuleDoorTuning());
+  const [cargoModuleProps, setCargoModuleProps] = useState(() =>
+    loadCargoModulePropsPlacement(),
+  );
+  const [cargoModulePropsTuneEnabled, setCargoModulePropsTuneEnabled] =
+    useState(() => loadCargoModulePropsTuneEnabled());
+  const cargoModulePropsRef = useRef(loadCargoModulePropsPlacement());
   const [snowEnabled, setSnowEnabled] = useState(() => loadSnowEnabled());
   const snowEnabledRef = useRef(loadSnowEnabled());
   const [snowIntensity, setSnowIntensity] = useState(() => loadSnowIntensity());
@@ -992,15 +1065,11 @@ export default function FpsGame() {
   const [hudBottomBarTuning, setHudBottomBarTuning] = useState(() =>
     loadHudBottomBarTuning(),
   );
-  const [hudBottomBarTuneEnabled, setHudBottomBarTuneEnabled] = useState(() =>
-    loadHudBottomBarTuneEnabled(),
-  );
   const hbCorner = 3;
   const sceneRef = useRef(null);
   const snowRef = useRef(null);
   const [bindings, setBindings] = useState(() => loadBindings());
   const gameplayHintsDismissedRef = useRef(new Set());
-  const gameplayHintRef = useRef(null);
   const gameplayHintRuntimeRef = useRef(createGameplayHintRuntime());
   const flashlightOnRef = useRef(false);
   const inputRef = useRef(null);
@@ -1014,7 +1083,6 @@ export default function FpsGame() {
   const [consoleHackPanelLabel, setConsoleHackPanelLabel] = useState(null);
   const consoleHackOpenRef = useRef(false);
   const consoleHackPanelRef = useRef(null);
-  const consoleHackPromptRef = useRef(null);
   const consoleHackLayoutRef = useRef(loadConsoleHackLayout());
   const [consoleHackLayout, setConsoleHackLayout] = useState(() => loadConsoleHackLayout());
   const handleConsoleHackComplete = useCallback((rewards) => {
@@ -1073,7 +1141,7 @@ export default function FpsGame() {
     consoleHackLayoutRef.current = hackLayout;
     setConsoleHackLayout(hackLayout);
     setConsoleHackOpen(true);
-    updateControlPanelHackPrompt(consoleHackPromptRef.current, bindingsRef.current, false);
+    resetKillPredictiveCache();
     if (musicEnabledRef.current) {
       soundsRef.current?.startHackMusic?.();
     }
@@ -1143,6 +1211,144 @@ export default function FpsGame() {
   const vx27ContainersRef = useRef([]);
   const vx27ContainerCullablesRef = useRef([]);
   const controlPanelsRef = useRef([]);
+
+  function closeOilBarrelPlacementTune() {
+    setOilBarrelPlacementTuneEnabled(false);
+    saveOilBarrelPlacementTuneEnabled(false);
+  }
+
+  function refreshBarrelPlacementEditorUi(state) {
+    const root = sceneRef.current ?? levelRef.current?.group;
+    if (!root) return;
+    oilBarrelPickMeshesRef.current = collectOilBarrelPickMeshes(root);
+    updateBarrelPlacementHighlights(
+      root,
+      getBarrelPlacementHighlightIds(state),
+    );
+  }
+
+  function applyOilBarrelPlacementState(state) {
+    const root = sceneRef.current ?? levelRef.current?.group;
+    if (!root) return;
+    const floorY = levelRef.current?.floorY ?? 0;
+    applyOilBarrelPlacements(
+      root,
+      state,
+      floorY,
+      placementApplyOptionsFromState(state),
+    );
+    refreshBarrelPlacementEditorUi(state);
+  }
+
+  function hasBarrelPlacementApplyWork(state) {
+    const options = placementApplyOptionsFromState(state);
+    return Boolean(
+      options.applyHubGroup ||
+        options.applySingleIds?.length ||
+        options.fireSyncIds?.length ||
+        options.applyAddedId ||
+        options.applyRemovedId,
+    );
+  }
+
+  function handleAddOilBarrelPlacement() {
+    const root = sceneRef.current ?? levelRef.current?.group;
+    if (!root) return;
+    const floorY = levelRef.current?.floorY ?? 0;
+    handleOilBarrelPlacementChange(
+      addBarrelToPlacement(oilBarrelPlacementRef.current, root, floorY),
+    );
+  }
+
+  function handleOilBarrelPlacementChange(next) {
+    if (hasBarrelPlacementApplyWork(next)) {
+      applyOilBarrelPlacementState(next);
+    } else {
+      refreshBarrelPlacementEditorUi(next);
+    }
+    const cleared = clearPlacementApplyRequests(next);
+    if (
+      cleared.target &&
+      !isBarrelPlacementGroupTarget(cleared.target)
+    ) {
+      oilBarrelLastPickedPropIdRef.current = cleared.target;
+    }
+    oilBarrelPlacementRef.current = cleared;
+    setOilBarrelPlacement(cleared);
+    saveOilBarrelPlacementState(cleared);
+  }
+
+  const handleOilBarrelPlacementPickRef = useRef(null);
+
+  function handleOilBarrelPlacementPick(propId) {
+    const next = applyBarrelPlacementPick(
+      oilBarrelPlacementRef.current,
+      propId,
+      oilBarrelLastPickedPropIdRef.current,
+    );
+    oilBarrelLastPickedPropIdRef.current = propId;
+    handleOilBarrelPlacementChange(next);
+  }
+  handleOilBarrelPlacementPickRef.current = handleOilBarrelPlacementPick;
+
+  function applyCargoModuleDoorTuning(tuning) {
+    const container = vx27ContainersRef.current.find(
+      (group) => group.userData?.vx27PropId === CARGO_CONTAINER_PROP_ID,
+    );
+    if (!container) return;
+    const current = readVx27ContainerDoorTuning(container);
+    applyVx27ContainerDoorTuning(
+      container,
+      { ...current, ...tuning },
+      { animate: false },
+    );
+  }
+
+  function handleCargoModuleDoorTuningChange(next) {
+    cargoModuleDoorTuningRef.current = next;
+    setCargoModuleDoorTuning(next);
+    saveCargoModuleDoorTuning(next);
+    applyCargoModuleDoorTuning(next);
+  }
+
+  function applyCargoConsolePlacement(placement) {
+    const panel = controlPanelsRef.current.find(
+      (group) =>
+        group.userData?.controlPanelPropId === CARGO_CONSOLE_PROP_ID,
+    );
+    if (!panel) return;
+    panel.position.x = placement.x;
+    panel.position.z = placement.z;
+    panel.rotation.y = placement.rotationY;
+    syncControlPanelCollidersRef.current?.();
+  }
+
+  function applyCargoBarrelPlacement(placement) {
+    const root = sceneRef.current ?? levelRef.current?.group;
+    if (!root) return;
+    let barrel = null;
+    root.traverse((obj) => {
+      if (barrel || obj.name !== "oil_barrel" || !obj.isGroup) return;
+      if (obj.userData?.roomId === "vx27_cargo_module_qa") barrel = obj;
+    });
+    if (!barrel) return;
+    barrel.position.x = placement.x;
+    barrel.position.z = placement.z;
+    barrel.updateMatrixWorld(true);
+  }
+
+  function applyCargoModuleProps(placement) {
+    applyCargoConsolePlacement(placement.console);
+    applyCargoBarrelPlacement(placement.barrel);
+  }
+
+  function handleCargoModulePropsChange(next) {
+    cargoModulePropsRef.current = next;
+    setCargoModuleProps(next);
+    saveCargoModulePropsPlacement(next);
+    applyCargoModuleProps(next);
+  }
+
   const syncControlPanelCollidersRef = useRef(null);
   const playerPlacementRef = useRef({ x: 0, z: 0, y: 0 });
   const arenaLiveRef = useRef(null);
@@ -1224,8 +1430,6 @@ export default function FpsGame() {
   const flashbangCountRef = useRef(DEFAULT_FLASHBANG_COUNT);
   const grenadeCooldownRemainingRef = useRef(0);
   const grenadeCooldownBarRef = useRef(null);
-  const grenadeCooldownHintUntilRef = useRef(0);
-  const grenadeCooldownHintRef = useRef(null);
   const [grenFrameWidthRem, setGrenFrameWidthRem] = useState(12.3);
   const [grenFrameScale, setGrenFrameScale] = useState(1);
   const [grenFrameX, setGrenFrameX] = useState(17);
@@ -1554,22 +1758,86 @@ export default function FpsGame() {
     inputRef.current?.setTouchMode(touchControlsActive);
   }, [touchControlsActive]);
 
+  useEffect(() => {
+    oilBarrelPlacementRef.current = oilBarrelPlacement;
+  }, [oilBarrelPlacement]);
+
+  useEffect(() => {
+    oilBarrelPlacementTuneEnabledRef.current = oilBarrelPlacementTuneEnabled;
+    oilBarrelPlacementTuneGateRef.current = oilBarrelPlacementTuneEnabled;
+    if (!loadDone || !oilBarrelPlacementTuneEnabled) {
+      const root = sceneRef.current ?? levelRef.current?.group;
+      if (root) disposeBarrelPlacementHighlights(root);
+      return;
+    }
+    safeExitPointerLock();
+    const root = sceneRef.current ?? levelRef.current?.group;
+    if (root) {
+      const prepared = enterBarrelPlacementEditor(
+        root,
+        oilBarrelPlacementRef.current,
+      );
+      oilBarrelPlacementRef.current = prepared;
+      setOilBarrelPlacement(prepared);
+      saveOilBarrelPlacementState(prepared);
+    }
+    refreshBarrelPlacementEditorUi(oilBarrelPlacementRef.current);
+  }, [loadDone, oilBarrelPlacementTuneEnabled]);
+
+  useEffect(() => {
+    cargoModuleDoorTuningRef.current = cargoModuleDoorTuning;
+  }, [cargoModuleDoorTuning]);
+
+  useEffect(() => {
+    if (!loadDone || !cargoModuleDoorTuneEnabled) return;
+    applyCargoModuleDoorTuning(cargoModuleDoorTuningRef.current);
+  }, [loadDone, cargoModuleDoorTuneEnabled]);
+
+  useEffect(() => {
+    cargoModulePropsRef.current = cargoModuleProps;
+  }, [cargoModuleProps]);
+
+  useEffect(() => {
+    if (!loadDone || !cargoModulePropsTuneEnabled) return;
+    applyCargoModuleProps(cargoModulePropsRef.current);
+  }, [loadDone, cargoModulePropsTuneEnabled]);
+
   const refreshGameplayHintHudRef = useRef(() => {});
+
+  invertYRef.current = invertYLook;
   const refreshGameplayHintHud = () => {
+    const now = performance.now();
+    const loadDone = loadDoneRef.current;
+    const showHud = showHudRef.current;
+    const settingsOpen = settingsOpenRef.current;
+    const controlsOpen = controlsOpenRef.current;
+    const consoleHackOpen = consoleHackOpenRef.current;
+
     tickGameplayHintDisplay(
-      gameplayHintRef.current ?? document.getElementById("gameplayHint"),
+      centerPromptStateRef.current,
       gameplayHintRuntimeRef.current,
       {
-        now: performance.now(),
-        loadDone: loadDoneRef.current,
-        showHud: showHudRef.current,
-        settingsOpen: settingsOpenRef.current,
-        controlsOpen: controlsOpenRef.current,
+        now,
+        loadDone,
+        showHud,
+        settingsOpen,
+        controlsOpen,
         isDay: sunIsDayRef.current,
         flashlightOn: flashlightOnRef.current,
         bindings: bindingsRef.current,
         dismissed: gameplayHintsDismissedRef.current,
         dayNightEnabled: DAY_NIGHT_SWITCHER_ENABLED,
+      },
+    );
+    tickCenterInteractPrompt(
+      centerInteractPromptRef.current,
+      centerPromptStateRef.current,
+      now,
+      {
+        pulseVisible:
+          loadDone && showHud && !settingsOpen && !controlsOpen,
+        persistentVisible:
+          loadDone && !settingsOpen && !controlsOpen && !consoleHackOpen,
       },
     );
   };
@@ -1831,6 +2099,8 @@ export default function FpsGame() {
       let vx27DoorInteractMeshesCache = collectVx27DoorInteractMeshes(
         vx27ContainersRef.current
       );
+      const oilBarrelPickMeshesCache = collectOilBarrelPickMeshes(level.group);
+      oilBarrelPickMeshesRef.current = oilBarrelPickMeshesCache;
       if (vx27ContainersRef.current.length > 0) {
         const firstGroup = vx27ContainersRef.current[0];
         const propMaterial = firstGroup.userData.vx27PropDef?.materialTuning;
@@ -1848,7 +2118,6 @@ export default function FpsGame() {
       const syncInteriorLighting = () => {
         oilBarrelFireLightsRef.current = collectOilBarrelFireLights(level.group);
         initOilBarrelFireLightFlicker(oilBarrelFireLightsRef.current);
-        initVx27ContainerCeilingLightFlicker(vx27ContainersRef.current);
         rebuildFlickerLights();
         rebuildOilBarrelRuntimeIndex();
         roomCullablesRef.current = buildRoomCullables(
@@ -2256,588 +2525,33 @@ export default function FpsGame() {
         }
       }
 
-      function showGrenadeCooldownHint() {
-        grenadeCooldownHintUntilRef.current =
-          performance.now() + GRENADE_COOLDOWN_HINT_MS;
-      }
-
-      function updateGrenadeCooldownHint() {
-        const el = grenadeCooldownHintRef.current;
-        if (!el) return;
-        if (!showHudRef.current) {
-          el.classList.remove("grenadeCooldownHint--visible");
-          el.style.opacity = "0";
-          el.style.visibility = "hidden";
-          el.setAttribute("aria-hidden", "true");
-          return;
-        }
-        const now = performance.now();
-        const until = grenadeCooldownHintUntilRef.current;
-        if (until <= 0) return;
-
-        const fadeEnd = until + GRENADE_COOLDOWN_HINT_FADE_MS;
-        if (now >= fadeEnd) {
-          grenadeCooldownHintUntilRef.current = 0;
-          el.classList.remove("grenadeCooldownHint--visible");
-          el.style.opacity = "0";
-          el.style.visibility = "hidden";
-          el.setAttribute("aria-hidden", "true");
-          return;
-        }
-
-        el.textContent = "Grenade cooling down";
-        el.classList.add("grenadeCooldownHint--visible");
-        el.setAttribute("aria-hidden", "false");
-        el.style.visibility = "visible";
-        if (now < until) {
-          el.style.opacity = "1";
-        } else {
-          const fadeT = (now - until) / GRENADE_COOLDOWN_HINT_FADE_MS;
-          el.style.opacity = String(Math.max(0, 1 - fadeT));
-        }
-      }
-      const BULLET_MAX_RANGE = 55;
-      const _muzzlePos = new THREE.Vector3();
-      const _muzzleDir = new THREE.Vector3();
-      const targetConfig = level.targetConfig;
-
-      const liveTargetsScratch = [];
-      function refreshLiveTargets() {
-        liveTargetsScratch.length = 0;
-        for (const t of level.targets) {
-          if (t.visible && t.userData.health > 0) liveTargetsScratch.push(t);
-        }
-        return liveTargetsScratch;
-      }
-
-      function getLiveTargets() {
-        return refreshLiveTargets();
-      }
-
-      const flashbangLosRaycaster = new THREE.Raycaster();
-      flashbangLosRaycaster.layers.enable(WORLD_LAYER);
-      flashbangLosRaycaster.layers.enable(ROOM_INTERIOR_LAYER);
-      const _flashBlindPos = new THREE.Vector3();
-      const _flashBlindDir = new THREE.Vector3();
-      const _flashBlindNdc = new THREE.Vector3();
-
-      /** True when the blast is on-screen and not blocked by level geometry. */
-      function canFlashbangBlindPlayer(explosionPos) {
-        const blindRadius = getGrenadeParams().flashbangBlindRadius ?? 18;
-        _flashBlindPos.copy(explosionPos);
-        _flashBlindPos.y += 0.35;
-
-        const dist = camera.position.distanceTo(_flashBlindPos);
-        if (dist > blindRadius) return false;
-
-        _flashBlindNdc.copy(_flashBlindPos).project(camera);
-        if (_flashBlindNdc.z > 1) return false;
-        if (
-          Math.abs(_flashBlindNdc.x) > 1.3 ||
-          Math.abs(_flashBlindNdc.y) > 1.3
-        ) {
-          return false;
-        }
-
-        _flashBlindDir.subVectors(_flashBlindPos, camera.position);
-        const distLen = _flashBlindDir.length();
-        if (distLen < 0.08) return true;
-
-        if (!hasLineOfSightToPoint(camera.position, _flashBlindPos, levelHitMeshes)) {
-          return false;
-        }
-
-        _flashBlindDir.multiplyScalar(1 / distLen);
-        flashbangLosRaycaster.set(camera.position, _flashBlindDir);
-        flashbangLosRaycaster.far = distLen + 0.2;
-        flashbangLosRaycaster.near = 0.05;
-
-        for (const hit of flashbangLosRaycaster.intersectObjects(
-          getLiveTargets(),
-          true
-        )) {
-          if (hit.object.isSprite) continue;
-          if (hit.distance < distLen - 0.45) return false;
-        }
-
-        return true;
-      }
-
-      function scheduleRespawn(mesh) {
-        const delayMs = targetConfig.respawnDelay * 1000;
-        setTimeout(() => {
-          if (disposed) return;
-          const fixed = mesh.userData.fixedSpawn;
-          if (fixed) {
-            const pos = resolveAuthoredSpawnPosition(fixed.x, fixed.z, {
-              bounds: level.arenaBounds,
-              colliders: allColliders,
-              targets: level.targets,
-              config: targetConfig,
-              skip: mesh,
-              spawnPoint: fixed,
-              spawnCtx: targetSpawnCtx,
-            });
-            if (!pos) return;
-            activateTargetAt(
-              mesh,
-              pos.x,
-              pos.z,
-              targetConfig,
-              pos.y ?? fixed.y ?? 0,
-              fixed.yaw
-            );
-            return;
-          }
-          const pos = pickRandomSpawnPosition({
-            bounds: level.arenaBounds,
-            colliders: allColliders,
-            targets: level.targets,
-            config: targetConfig,
-            skip: mesh,
-            floorHoles: level.floorHoles,
-            spawnCtx: targetSpawnCtx,
-          });
-          if (!pos) return;
-          activateTargetAt(mesh, pos.x, pos.z, targetConfig, pos.y);
-        }, delayMs);
-      }
-
-      function scheduleKillDrops(deathPos, zone) {
-        const rndAngle = Math.random() * Math.PI * 2;
-        const rndOff = 0.3 + Math.random() * 0.5;
-        const hpDelay = 800 + Math.random() * 400;
-        const ammoDelay = 1800 + Math.random() * 400;
-        const grenDelay = 2200 + Math.random() * 500;
-
-        const dropAt = (angle, delayMs, spawn) => {
-          setTimeout(() => {
-            spawn(
-              new THREE.Vector3(
-                deathPos.x + Math.cos(angle) * rndOff,
-                deathPos.y,
-                deathPos.z + Math.sin(angle) * rndOff
-              )
-            );
-          }, delayMs);
-        };
-
-        if (DEV_DROP_ALL_REWARDS) {
-          dropAt(rndAngle, hpDelay, (p) =>
-            hpOrbs.push(spawnHpOrb(scene, p, level.floorY))
-          );
-          dropAt(rndAngle + Math.PI * 0.66, ammoDelay, (p) =>
-            ammoDrops.push(spawnAmmoDrop(scene, p, level.floorY))
-          );
-          dropAt(rndAngle + Math.PI * 1.33, grenDelay, (p) =>
-            grenadeDrops.push(spawnGrenadeDrop(scene, p, level.floorY))
-          );
-          return;
-        }
-
-        if (zone === "head" || playerHealthRef.current < 50) {
-          dropAt(rndAngle, hpDelay, (p) =>
-            hpOrbs.push(spawnHpOrb(scene, p, level.floorY))
-          );
-        }
-        if (shouldDropAmmoCrate(spareMagsRef.current, ammoDropSpareThresholdRef.current)) {
-          dropAt(rndAngle + Math.PI, ammoDelay, (p) =>
-            ammoDrops.push(spawnAmmoDrop(scene, p, level.floorY))
-          );
-        }
-        if (rollGrenadeDrop(grenadeCountRef.current)) {
-          dropAt(rndAngle + Math.PI * 0.5, grenDelay, (p) =>
-            grenadeDrops.push(spawnGrenadeDrop(scene, p, level.floorY))
-          );
-        }
-      }
-
-      function scheduleGrenadeKillDrops(deathPos) {
-        const rndAngle = Math.random() * Math.PI * 2;
-        const rndOff = 0.3 + Math.random() * 0.5;
-        const hpDelay = 800 + Math.random() * 400;
-        const ammoDelay = 1800 + Math.random() * 400;
-        const grenDelay = 2200 + Math.random() * 500;
-
-        const dropAt = (angle, delayMs, spawn) => {
-          setTimeout(() => {
-            spawn(
-              new THREE.Vector3(
-                deathPos.x + Math.cos(angle) * rndOff,
-                deathPos.y,
-                deathPos.z + Math.sin(angle) * rndOff
-              )
-            );
-          }, delayMs);
-        };
-
-        if (DEV_DROP_ALL_REWARDS) {
-          dropAt(rndAngle, hpDelay, (p) =>
-            hpOrbs.push(spawnHpOrb(scene, p, level.floorY))
-          );
-          dropAt(rndAngle + Math.PI * 0.66, ammoDelay, (p) =>
-            ammoDrops.push(spawnAmmoDrop(scene, p, level.floorY))
-          );
-          dropAt(rndAngle + Math.PI * 1.33, grenDelay, (p) =>
-            grenadeDrops.push(spawnGrenadeDrop(scene, p, level.floorY))
-          );
-          return;
-        }
-
-        dropAt(rndAngle, hpDelay, (p) =>
-          hpOrbs.push(spawnHpOrb(scene, p, level.floorY))
+      function showGrenadeCooldownHint(now) {
+        pulseCenterPrompt(
+          centerPromptStateRef.current,
+          "Grenade cooling down",
+          now,
         );
-        if (shouldDropAmmoCrate(spareMagsRef.current, ammoDropSpareThresholdRef.current)) {
-          dropAt(rndAngle + Math.PI, ammoDelay, (p) =>
-            ammoDrops.push(spawnAmmoDrop(scene, p, level.floorY))
-          );
-        }
-        if (rollGrenadeDrop(grenadeCountRef.current)) {
-          dropAt(rndAngle + Math.PI * 0.5, grenDelay, (p) =>
-            grenadeDrops.push(spawnGrenadeDrop(scene, p, level.floorY))
-          );
-        }
       }
 
-      function flushBloodAfterRagdoll() {
-        if (!bloodAfterRagdoll.length) return;
-        for (const pending of bloodAfterRagdoll) {
-          const splatter = spawnBloodSplatter(
-            scene,
-            pending.point,
-            pending.dir,
-            pending.damage,
-          );
-          if (splatter) bloodSplatters.push(splatter);
-          if (pending.mesh) {
-            spawnBloodMarkOnTarget(
-              pending.mesh,
-              pending.point,
-              pending.face ?? null,
-              pending.dir,
-              pending.damage,
-            );
-          }
-        }
-        bloodAfterRagdoll.length = 0;
-      }
-
-      function flushPendingKillBlood() {
-        if (!pendingKillBlood.length) return;
-        for (let i = pendingKillBlood.length - 1; i >= 0; i -= 1) {
-          const pending = pendingKillBlood[i];
-          if (!pending.mesh?.userData?.ragdoll) continue;
-          bloodAfterRagdoll.push(pending);
-          pendingKillBlood.splice(i, 1);
-        }
-      }
-
-      function playTargetHitSound(mesh, hitPoint, hitZone) {
-        sounds.playEnemyHit(scene, hitPoint, {
-          headshot: hitZone === "head",
-        });
-      }
-
-      function playTargetDeathSound(mesh, hitPoint, hitZone) {
-        const pos = hitPoint?.clone?.() ?? mesh.position.clone();
-        if (!hitPoint) {
-          const h = mesh.userData?.height ?? 1.8;
-          pos.y += h * 0.55;
-        }
-        sounds.playEnemyDeath(scene, pos, {
-          headshot: hitZone === "head",
-          blast: hitZone === "grenade",
-        });
-      }
-
-      function playTargetHoleFallSound(mesh, position) {
-        const pos = position?.clone?.() ?? mesh.position.clone();
-        sounds.playHoleFallDeathWorld(scene, pos);
-      }
-
-      function awardCombatScoreAt(mesh, hitResult, hitPoint) {
-        const scoreResult = applyCombatScore(mesh, hitResult);
-        if (scoreResult.score <= 0) return;
-
-        playerScoreRef.current += scoreResult.score;
-        if (showHudRef.current) {
-          updateScoreHud(scoreHudRef.current, playerScoreRef.current);
-        }
-
-        if (hitResult.killed && hitPoint && scorePopupLayer && !deathStateRef.current) {
-          scorePopupLayer.spawn({
-            point: hitPoint,
-            text: formatKillCallout(
-              hitResult.zone,
-              scoreResult.score,
-              mesh.id,
-            ),
-            zone: hitResult.zone,
-          });
-        }
-      }
-
-      function applyHit(hit, bulletDirection, targetMesh) {
-        const mesh = targetMesh ?? hit.object;
-        const { killed, zone, damage } = applyTargetHit(mesh, hit.point, bulletDirection);
-        if (zone !== "miss") {
-          awardCombatScoreAt(mesh, { zone, damage, killed }, hit.point);
-          playTargetHitSound(mesh, hit.point, zone);
-          if (killed) {
-            playTargetDeathSound(mesh, hit.point, zone);
-          }
-          const splatterDamage = Math.max(damage, 4);
-          if (killed) {
-            pendingKillBlood.push({
-              mesh,
-              point: hit.point.clone(),
-              dir: bulletDirection?.clone?.() ?? bulletDirection,
-              face: hit.face ?? null,
-              damage: splatterDamage,
-            });
-          } else {
-            const splatter = spawnBloodSplatter(
-              scene,
-              hit.point,
-              bulletDirection,
-              splatterDamage,
-            );
-            if (splatter) bloodSplatters.push(splatter);
-            spawnBloodMarkOnTarget(
-              mesh,
-              hit.point,
-              hit.face,
-              bulletDirection,
-              splatterDamage,
-            );
-          }
-        }
-        if (killed) {
-          const deathPos = mesh.position.clone();
-          scheduleKillDrops(deathPos, zone);
-          startDeathAnimation(mesh, bulletDirection, {
-            scene,
-            colliders:
-              mesh.userData.predictiveDeathColliders ??
-              collidersForRagdollNear(
-                deathPos.x,
-                deathPos.z,
-                allColliders,
-                vx27ContainersRef.current
-              ),
-            floorY: level.floorY,
-            bounds: level.bounds,
-            hitZone: zone,
-            hitPoint: hit.point,
-          });
-        }
-      }
-
-      function applyGrenadeHit(mesh, hitPoint, blastDir, damage) {
-        const ud = mesh.userData;
-        if (ud.health <= 0) return { killed: false };
-        ud.health = Math.max(0, ud.health - damage);
-        ud.repairCooldown = ud.repairDelayAfterHit ?? 3;
-        const ratio = ud.health / ud.maxHealth;
-        const killed = ud.health <= 0;
-        awardCombatScoreAt(mesh, { zone: "grenade", damage, killed }, hitPoint);
-        if (killed) {
-          scheduleGrenadeKillDrops(mesh.position.clone());
-        }
-        return { killed, health: ud.health, ratio };
-      }
-
-      function flashMuzzle() {
-        if (!weapon) return;
-        const palette = getLaserPalette(playerHealthRef.current > 100);
-        weapon.muzzleFlash.color.setHex(palette.muzzle);
-        weapon.muzzleFlash.intensity = 5;
-        if (flashTimeout) clearTimeout(flashTimeout);
-        flashTimeout = setTimeout(() => {
-          weapon.muzzleFlash.intensity = 0;
-        }, 60);
-      }
-
-      let burstShotsLeft = 0;
-      let burstTimer = 0;
-      let autoFireTimer = 0;
-
-      function getActiveWeaponConfig() {
-        return getPrimaryWeaponConfig(activePrimaryId);
-      }
-
-      function getActiveTuningRef() {
-        return activePrimaryId === "pistol" ? pistolTuningRef : weaponTuningRef;
-      }
-
-      function syncAmmoPoolSnapshot() {
-        ammoPoolSnapshotRef.current = {
-          rifle: {
-            rounds: ammoPool.rifle.rounds,
-            spare: ammoPool.rifle.spare,
+      function tickCenterInteractPromptHud(now) {
+        tickCenterInteractPrompt(
+          centerInteractPromptRef.current,
+          centerPromptStateRef.current,
+          now,
+          {
+            pulseVisible:
+              loadDoneRef.current &&
+              showHudRef.current &&
+              !settingsOpenRef.current &&
+              !controlsOpenRef.current,
+            persistentVisible:
+              loadDoneRef.current &&
+              !settingsOpenRef.current &&
+              !controlsOpenRef.current &&
+              !consoleHackOpenRef.current,
           },
-          pistol: {
-            rounds: ammoPool.pistol.rounds,
-            spare: ammoPool.pistol.spare,
-          },
-        };
-      }
-
-      function persistActiveAmmo() {
-        ammoPool[activePrimaryId].rounds = roundsInMagRef.current;
-        ammoPool[activePrimaryId].spare = spareMagsRef.current;
-        syncAmmoPoolSnapshot();
-      }
-
-      function applyFireModeForWeapon(id) {
-        const mode = resolveFireModeForWeapon(
-          id,
-          fireModeByWeaponRef.current[id],
-        );
-        fireModeByWeaponRef.current[id] = mode;
-        fireModeRef.current = mode;
-        setFireMode(mode);
-      }
-
-      function setFireModeForActiveWeapon(mode) {
-        const resolved = resolveFireModeForWeapon(activePrimaryId, mode);
-        fireModeByWeaponRef.current[activePrimaryId] = resolved;
-        fireModeRef.current = resolved;
-        setFireMode(resolved);
-      }
-
-      function loadActiveAmmo(id) {
-        const cfg = getPrimaryWeaponConfig(id);
-        const store = ammoPool[id];
-        roundsInMagRef.current = store.rounds;
-        spareMagsRef.current = store.spare;
-        activePrimaryIdRef.current = id;
-        setActivePrimaryWeapon(id);
-        setActiveMagazineSize(cfg.magazineSize);
-        setActiveLowAmmoThreshold(cfg.lowAmmoThreshold);
-        setRoundsInMag(store.rounds);
-        setSpareMags(store.spare);
-        applyFireModeForWeapon(id);
-      }
-
-      function setActivePrimaryWeaponView(id) {
-        activePrimaryId = id;
-        activePrimaryIdRef.current = id;
-        weapon = primaryWeapons[id];
-        weaponRef.current = weapon;
-      }
-
-      function syncAmmoToUi() {
-        setAmmoStateRef.current?.(
-          roundsInMagRef.current,
-          spareMagsRef.current
         );
       }
-
-      function tryReload(force) {
-        const cfg = getActiveWeaponConfig();
-        if (spareMagsRef.current <= 0) return false;
-        if (!force && roundsInMagRef.current >= cfg.lowAmmoThreshold) {
-          return false;
-        }
-        spareMagsRef.current -= 1;
-        roundsInMagRef.current = Math.min(
-          roundsInMagRef.current + cfg.magazineSize,
-          cfg.magazineSize * 2
-        );
-        persistActiveAmmo();
-        scheduleGameplayHudSyncRef.current();
-        sounds.playSupplyPickup();
-        return true;
-      }
-
-      function fireOneRound() {
-        if (roundsInMagRef.current <= 0 && !tryReload(true)) return false;
-
-        roundsInMagRef.current -= 1;
-        persistActiveAmmo();
-        scheduleGameplayHudSyncRef.current();
-
-        weapon.getMuzzleWorld(_muzzlePos, _muzzleDir, camera);
-        hitRaycaster.setFromCamera(screenCenter, camera);
-
-        const camDir = hitRaycaster.ray.direction.clone();
-        const radioactive = playerHealthRef.current > 100;
-        flashMuzzle();
-        sounds.play("laser_shot", { volume: 0.65 });
-        const ads = weapon.getAimBlend?.() ?? 0;
-        const scale = 1 - ads * 0.45;
-        player.addAimRecoil(scale);
-        weapon.applyFireKick(ads);
-
-        refreshLiveTargets();
-        shootRaycaster.set(hitRaycaster.ray.origin, camDir);
-        shootRaycaster.far = BULLET_MAX_RANGE;
-        const targetHits = shootRaycaster.intersectObjects(
-          liveTargetsScratch,
-          true
-        );
-        const surfaceHits = shootRaycaster.intersectObjects(
-          levelHitMeshes,
-          false
-        );
-        const bestHit = pickClosestBulletHit(targetHits, surfaceHits);
-        if (bestHit) {
-          let targetNode = bestHit.object;
-          while (targetNode && !targetNode.userData?.isTarget) {
-            targetNode = targetNode.parent;
-          }
-          if (targetNode?.userData?.isTarget && targetNode.userData.health > 0) {
-            applyHit(bestHit, camDir, targetNode);
-          } else {
-            applyBulletSurfaceHit(bestHit, camDir, radioactive);
-          }
-        }
-        return true;
-      }
-
-      function processWeaponFire(dt) {
-        if (!weapon || weaponSwap.isBusy()) return;
-        if ((weapon.getHolsterAmount?.() ?? 0) > 0.02) return;
-
-        const cfg = getActiveWeaponConfig();
-        const mode =
-          cfg.fireModes.length === 1 ? cfg.fireModes[0] : fireModeRef.current;
-        if (
-          burstShotsLeft === 0 &&
-          mode === "burst" &&
-          input.consumeShoot()
-        ) {
-          burstShotsLeft = BURST_SHOT_COUNT;
-          burstTimer = 0;
-        }
-
-        if (burstShotsLeft > 0) {
-          burstTimer -= dt;
-          while (burstShotsLeft > 0 && burstTimer <= 0) {
-            if (!fireOneRound()) {
-              burstShotsLeft = 0;
-              break;
-            }
-            burstShotsLeft -= 1;
-            burstTimer = burstShotsLeft > 0 ? BURST_INTERVAL : 0;
-          }
-          return;
-        }
-
-        if (mode === "single" && input.consumeShoot()) {
-          fireOneRound();
-        } else if (mode === "auto") {
-          autoFireTimer -= dt;
-          if (
-            input.isShootHeld() &&
-            (input.consumeShoot() || autoFireTimer <= 0)
-          ) {
-            if (fireOneRound()) autoFireTimer = AUTO_FIRE_INTERVAL;
-          }
-        }
-      }
-
       let lastTime = performance.now();
 
       function syncPointerLocked() {
@@ -2845,1110 +2559,192 @@ export default function FpsGame() {
         if (locked) sounds.resume();
       }
 
-      function animate(now) {
-        if (disposed || !gameReady || !level?.group) return;
-        if (!level.group.parent) scene.add(level.group);
-        try {
-        flushBloodAfterRagdoll();
-        flushPendingRagdolls();
-        flushKillPredictiveGpuWarm();
-        flushPendingKillBlood();
-        tickOilBarrelInteriorVideo(camera, oilBarrelRuntimeIndex);
-        sounds.updateOilBarrelFire(
-          oilBarrelRuntimeIndex.fireLights,
-          oilBarrelTuningRef.current.interiorFire !== false
-        );
-        const rawFrameDt = Math.min((now - lastTime) / 1000, 0.15);
-        const dt = Math.min(rawFrameDt, 0.05);
-        lastTime = now;
-        if (dt > 0) simTime += dt;
-        if (dt > 0 && player && settingsOpenRef.current && playerCoordsMenuRef.current) {
-          const yawDeg = (player.getYaw() * 180) / Math.PI;
-          const footY = player.getFootY();
-          const px = camera.position.x;
-          const pz = camera.position.z;
-          const text =
-            `X ${px.toFixed(3)}  Z ${pz.toFixed(3)}  foot ${footY.toFixed(3)}  eye ${camera.position.y.toFixed(3)}  yaw ${yawDeg.toFixed(1)}°`;
-          const json = JSON.stringify({
-            x: +px.toFixed(3),
-            z: +pz.toFixed(3),
-            footY: +footY.toFixed(3),
-            eyeY: +camera.position.y.toFixed(3),
-            yawDeg: +yawDeg.toFixed(1),
-          });
-          playerCoordsMenuRef.current.textContent = text;
-          playerCoordsMenuRef.current.dataset.coords = json;
-        }
+      const liveTargetsScratch = [];
+      const gameLoopCtx = {
+        isDisposed: () => disposed,
+        scene,
+        level,
+        camera,
+        player,
+        input,
+        get weapon() { return weapon; },
+        set weapon(v) { weapon = v; },
+        sounds,
+        renderer,
+        get sky() { return sky; },
+        arena,
+        rain,
+        snow,
+        lastTime: performance.now(),
+        simTime: 0,
+        grenadeHeld: false,
+        healthRegenTimer: 0,
+        radioactiveOverflowDecayTimer: 0,
+        _lastHostileCount: -1,
+        get activePrimaryId() { return activePrimaryId; },
+        set activePrimaryId(v) { activePrimaryId = v; },
+        get flashTimeout() { return flashTimeout; },
+        set flashTimeout(v) { flashTimeout = v; },
+        grenades,
+        bloodSplatters,
+        pendingKillBlood,
+        bloodAfterRagdoll,
+        hpOrbs,
+        ammoDrops,
+        grenadeDrops,
+        collectibleEntries,
+        liveTargetsScratch,
+        allColliders,
+        levelHitMeshes,
+        primaryWeapons,
+        weaponSwap,
+        ammoPool,
+        hitRaycaster,
+        shootRaycaster,
+        screenCenter,
+        canvas,
+        flickerLights,
+        oilBarrelRuntimeIndex,
+        screenCrosshairRef,
+        crosshairTuningRef,
+        rainEnabledRef,
+        snowEnabledRef,
+        rainIntensityRef,
+        snowIntensityRef,
+        snowStickRateRef,
+        outdoorLights,
+        targetSpawnCtx,
+        get scorePopupLayer() { return scorePopupLayer; },
+        vx27DoorInteractMeshesCache,
+        get oilBarrelPickMeshesCache() {
+          return oilBarrelPickMeshesRef.current;
+        },
+        oilBarrelPlacementTuneEnabledRef,
+        oilBarrelPlacementRef,
+        handleOilBarrelPlacementPickRef,
+        syncAllColliders,
+        rollGrenadeDrop,
+        playerHealthRef,
+        playerScoreRef,
+        showHudRef,
+        scoreHudRef,
+        deathStateRef,
+        spareMagsRef,
+        grenadeCountRef,
+        flashbangCountRef,
+        ammoDropSpareThresholdRef,
+        roundsInMagRef,
+        fireModeRef,
+        fireModeByWeaponRef,
+        activePrimaryIdRef,
+        weaponRef,
+        pistolTuningRef,
+        weaponTuningRef,
+        walkBobTuningRef,
+        stairWalkTuningRef,
+        ammoPoolSnapshotRef,
+        scheduleGameplayHudSyncRef,
+        settingsOpenRef,
+        playerCoordsMenuRef,
+        rebindActionRef,
+        bindingsRef,
+        controlsOpenRef,
+        consoleHackOpenRef,
+        holeFallCryPlayedRef,
+        playerPlacementRef,
+        playerLivesRef,
+        grenadeSuicideRef,
+        deathOverlayRef,
+        deathReasonRef,
+        flashbangOverlayRef,
+        flashbangBlindStartRef,
+        compassTapeRef,
+        compassViewportRef,
+        compassMarkersRef,
+        compassBlipsRef,
+        touchShowInteractRef,
+        touchShowHackRef,
+        centerInteractPromptRef,
+        centerPromptStateRef,
+        controlPanelsRef,
+        openConsoleHackRef,
+        dayNightCurNightnessRef,
+        dayNightTargetNightnessRef,
+        dayNightDemoCycleElapsedRef,
+        dayNightToggleRef,
+        sunIsDayRef,
+        gameplayHintsDismissedRef,
+        gameplayHintRuntimeRef,
+        refreshGameplayHintHudRef,
+        flashlightOnRef,
+        selectedWeaponSlotRef,
+        grenadeCooldownRemainingRef,
+        missionTimeRef,
+        hostileCountRef,
+        missionTimerHudRef,
+        hostileCountHudRef,
+        damageVignetteRef,
+        hurtVignetteRef,
+        hurtVignetteFlashEndRef,
+        walkPowerRef,
+        loadDoneRef,
+        pickupFlashLayerRef,
+        vx27ContainersRef,
+        vx27ContainerCullablesRef,
+        roomCullablesRef,
+        arenaLiveRef,
+        sunRef,
+        moonRef,
+        oilBarrelTuningRef,
+        oilBarrelFireLightsRef,
+        roomLightsRef,
+        roundDisplayTuningRef,
+        gameRootRef,
+        rendererRef,
+        arenaHalf,
+        attachWall,
+        applyDayNightRef,
+        setPlayerHealth,
+        setGrenadeCount,
+        setFlashbangCount,
+        setPlayerLives,
+        setSelectedWeaponSlot,
+        setFireMode,
+        setActivePrimaryWeapon,
+        setActiveMagazineSize,
+        setActiveLowAmmoThreshold,
+        setRoundsInMag,
+        setSpareMags,
+        setTouchShowInteract,
+        setTouchShowHack,
+        showDeathOverlay,
+        beginDeathOverlayFade,
+        hideDeathOverlay,
+        updateFlashbangOverlay,
+        updateFlashbangBlindVisuals,
+        safeRequestPointerLock,
+        updateDamageVignette,
+        updateHurtVignette,
+        updateWalkPowerHud,
+        updateScoreHud,
+        updateMissionTimerHud,
+        updateHostileCountHud,
+        triggerPlayerHurtFeedback,
+        secondaryWeaponEmptyMessage,
+        isThrowableSecondarySlot,
+        showGrenadeCooldownHint,
+        updateGrenadeCooldownHud,
+        tickCenterInteractPrompt: tickCenterInteractPromptHud,
+      };
+      attachCombatRuntime(gameLoopCtx);
+      const animate = createGameLoop(gameLoopCtx, {
+        isDisposed: () => disposed,
+        isReady: () => gameReady,
+        scheduleNextFrame: (fn) => {
+          rafId = requestAnimationFrame(fn);
+        },
+      });
 
-        // Candle-flicker the warm interior lights. Uses rAF's absolute
-        // timestamp so the wobble keeps phase across frame-time hitches.
-        updateCandleFlicker(flickerLights, now * 0.001);
-
-        const locked = input.isLocked();
-        const pointerActive = input.isPointerActive();
-        const touchMode = input.isTouchMode();
-        const aimHeld =
-          !rebindActionRef.current &&
-          isBindingDown(input, bindingsRef.current, "aim");
-        const aimTarget = aimHeld ? 1 : 0;
-
-        // Death sequence (two phases):
-        //   1. FREEZE  — overlay is fully opaque, player is not respawned,
-        //                input/physics/weapons are disabled. Stays until the
-        //                player clicks to respawn (after a brief minimum
-        //                display time to prevent accidental click-through).
-        //   2. FADE    — player has just been respawned; the overlay fades
-        //                out over `DEATH_FADE_MS` while the player can
-        //                already move and shoot.
-        // `frozen` is the only thing that gates input/physics; the fade
-        // phase deliberately does NOT block gameplay.
-        const deathState = deathStateRef.current;
-        let frozen = false;
-        if (deathState) {
-          if (!deathState.respawned) {
-            const canRespawn = now >= deathState.minDisplayEnd;
-            if (canRespawn && input.consumeShoot()) {
-              player.respawn();
-              weapon?.replayRaise?.();
-              deathState.respawned = true;
-              playerHealthRef.current = 100;
-              setPlayerHealth(100);
-              grenadeCountRef.current = getGrenadeParams().grenadeCount;
-              setGrenadeCount(grenadeCountRef.current);
-              flashbangBlindStartRef.current = 0;
-              updateFlashbangOverlay(flashbangOverlayRef.current, 0);
-              deathState.fadeEndTime = now + DEATH_FADE_MS;
-              beginDeathOverlayFade(deathOverlayRef.current);
-            }
-          }
-          if (deathState.respawned && now >= deathState.fadeEndTime) {
-            hideDeathOverlay(deathOverlayRef.current);
-            deathStateRef.current = null;
-          } else {
-            frozen = !deathState.respawned;
-          }
-        }
-
-        const canUseWeapons =
-          !frozen &&
-          !rebindActionRef.current &&
-          !settingsOpenRef.current &&
-          !controlsOpenRef.current &&
-          !consoleHackOpenRef.current;
-
-        if (consoleHackOpenRef.current) {
-          input.discardLookDelta?.();
-          if (!touchMode && document.pointerLockElement !== canvas) {
-            safeRequestPointerLock(canvas);
-          }
-        }
-
-        if (!frozen && !consoleHackOpenRef.current) {
-          player.update(input, dt);
-          playerPlacementRef.current = {
-            x: player.getX(),
-            z: player.getZ(),
-            y: player.getFootY(),
-          };
-
-          if (player.isFallingThroughHole?.()) {
-            if (!holeFallCryPlayedRef.current) {
-              holeFallCryPlayedRef.current = true;
-              sounds.playHoleFallDeath();
-            }
-          } else {
-            holeFallCryPlayedRef.current = false;
-          }
-
-          if (
-            playerHealthRef.current > 0 &&
-            tickOilBarrelFireProximityDamage(
-              level.group,
-              camera.position,
-              dt,
-              oilBarrelTuningRef.current,
-              levelHitMeshes
-            )
-          ) {
-            const newHp = Math.max(
-              0,
-              playerHealthRef.current - OIL_BARREL_FIRE_PROXIMITY_DAMAGE
-            );
-            playerHealthRef.current = newHp;
-            setPlayerHealth(newHp);
-            triggerPlayerHurtFeedback(hurtVignetteFlashEndRef, sounds);
-          }
-
-          // Death-fall: dropped through a floor hole — trigger after the fall
-          // animation (foot crosses kill depth), not on hole entry. Hole entry
-          // only commits movement lock + tumble in PlayerController.
-          if (
-            !deathStateRef.current &&
-            player.getFootY() < level.floorY - DEATH_FALL_DROP
-          ) {
-            const reason = "You fell to your death";
-            playerLivesRef.current = Math.max(0, playerLivesRef.current - 1);
-            setPlayerLives(playerLivesRef.current);
-            playerHealthRef.current = 0;
-            setPlayerHealth(0);
-            deathStateRef.current = {
-              reason,
-              respawned: false,
-              minDisplayEnd: now + DEATH_MIN_DISPLAY_MS,
-              fadeEndTime: Infinity,
-            };
-            showDeathOverlay(
-              deathOverlayRef.current,
-              deathReasonRef.current,
-              reason
-            );
-            frozen = true;
-          }
-          if (
-            !deathStateRef.current &&
-            playerHealthRef.current <= 0
-          ) {
-            const reason = grenadeSuicideRef.current
-              ? "Suicide is never the answer"
-              : "You were killed by an enemy";
-            grenadeSuicideRef.current = false;
-            playerLivesRef.current = Math.max(0, playerLivesRef.current - 1);
-            setPlayerLives(playerLivesRef.current);
-            playerHealthRef.current = 0;
-            setPlayerHealth(0);
-            sounds.playPlayerDeath();
-            deathStateRef.current = {
-              reason,
-              respawned: false,
-              minDisplayEnd: now + DEATH_MIN_DISPLAY_MS,
-              fadeEndTime: Infinity,
-            };
-            showDeathOverlay(
-              deathOverlayRef.current,
-              deathReasonRef.current,
-              reason
-            );
-            frozen = true;
-          }
-        }
-        if (showHudRef.current && compassTapeRef.current && compassViewportRef.current) {
-          const yawDeg = (player.getYaw() * 180) / Math.PI;
-          const bearing = (((-yawDeg % 360) + 360) % 360);
-          const viewport = compassViewportRef.current;
-          const tape = compassTapeRef.current;
-          const pxPerDeg = viewport.offsetWidth / 105;
-          tape.style.setProperty("--compass-px-per-deg", `${pxPerDeg}px`);
-          const center = viewport.offsetWidth * 0.5;
-          tape.style.transform = `translateX(${center - bearing * pxPerDeg}px)`;
-          if (collectibleEntries.length > 0 && compassMarkersRef.current) {
-            ensureCompassCollectibleMarkers(
-              compassMarkersRef.current,
-              collectibleEntries
-            );
-            updateCompassCollectibleMarkers(
-              collectibleEntries,
-              camera.position.x,
-              camera.position.z,
-              player.getYaw(),
-              viewport,
-              pxPerDeg
-            );
-          }
-          if (compassBlipsRef.current) {
-            const px = camera.position.x;
-            const pz = camera.position.z;
-            const yaw = player.getYaw();
-            if (level?.targets) {
-              updateCompassEnemyBlips(
-                compassBlipsRef.current,
-                level.targets,
-                px,
-                pz,
-                yaw,
-                viewport,
-                pxPerDeg
-              );
-            }
-            const levelDrops = collectibleEntries
-              .filter((e) => !e.collected && e.drop?.mesh?.position)
-              .map((e) => e.drop);
-            const allDrops = [...hpOrbs, ...ammoDrops, ...grenadeDrops, ...levelDrops]
-              .filter((d) => !d.collected && d.mesh?.position);
-            updateCompassRewardBlips(
-              compassBlipsRef.current,
-              allDrops,
-              px,
-              pz,
-              yaw,
-              viewport,
-              pxPerDeg
-            );
-          }
-        }
-        camera.updateMatrixWorld(true);
-
-        const canInteract =
-          pointerActive &&
-          !frozen &&
-          !rebindActionRef.current &&
-          !settingsOpenRef.current &&
-          !controlsOpenRef.current &&
-          !consoleHackOpenRef.current;
-        let doorTarget = null;
-        if (canInteract && vx27DoorInteractMeshesCache.length > 0) {
-          hitRaycaster.setFromCamera(screenCenter, camera);
-          doorTarget = pickVx27DoorUnderCrosshair(
-            hitRaycaster,
-            vx27DoorInteractMeshesCache
-          );
-        }
-        if (touchMode) {
-          const showDoor = Boolean(doorTarget);
-          if (showDoor !== touchShowInteractRef.current) {
-            touchShowInteractRef.current = showDoor;
-            setTouchShowInteract(showDoor);
-          }
-        }
-        const doorPromptEl = doorInteractPromptRef.current;
-        if (doorPromptEl) {
-          if (doorTarget) {
-            doorPromptEl.textContent = getVx27DoorInteractLabel(
-              doorTarget.group,
-              doorTarget.end,
-              doorTarget.side
-            );
-            doorPromptEl.classList.add("doorInteractPromptVisible");
-            doorPromptEl.setAttribute("aria-hidden", "false");
-          } else {
-            doorPromptEl.textContent = "";
-            doorPromptEl.classList.remove("doorInteractPromptVisible");
-            doorPromptEl.setAttribute("aria-hidden", "true");
-          }
-        }
-        if (
-          doorTarget &&
-          canInteract &&
-          wasBindingPressed(input, bindingsRef.current, "interact")
-        ) {
-          toggleVx27ContainerDoorLeaf(
-            doorTarget.group,
-            doorTarget.end,
-            doorTarget.side
-          );
-        }
-
-        updateControlPanelScreenCHackFlashes(
-          controlPanelsRef.current,
-          dayNightCurNightnessRef.current,
-          now
-        );
-
-        let hackTarget = null;
-        if (
-          !consoleHackOpenRef.current &&
-          !settingsOpenRef.current &&
-          !controlsOpenRef.current &&
-          !frozen &&
-          controlPanelsRef.current.length > 0
-        ) {
-          hackTarget = findNearestHackableControlPanel(
-            camera,
-            controlPanelsRef.current
-          );
-        }
-        const showHackPrompt = Boolean(hackTarget) && !doorTarget;
-        updateControlPanelHackPrompt(
-          consoleHackPromptRef.current,
-          bindingsRef.current,
-          showHackPrompt
-        );
-        if (touchMode) {
-          const showHack = showHackPrompt && canInteract;
-          if (showHack !== touchShowHackRef.current) {
-            touchShowHackRef.current = showHack;
-            setTouchShowHack(showHack);
-          }
-        }
-        if (
-          hackTarget &&
-          showHackPrompt &&
-          canInteract &&
-          wasBindingPressed(input, bindingsRef.current, "hack")
-        ) {
-          openConsoleHackRef.current(hackTarget);
-        }
-
-        if (
-          canUseWeapons &&
-          activePrimaryId === "rifle" &&
-          wasBindingPressed(input, bindingsRef.current, "flashlight")
-        ) {
-          const nowOn = weapon?.toggleFlashlight();
-          if (nowOn !== undefined) {
-            flashlightOnRef.current = nowOn;
-            dismissGameplayHint(gameplayHintsDismissedRef.current, "flashlight");
-            clearGameplayHintPulse(gameplayHintRuntimeRef.current);
-            refreshGameplayHintHudRef.current();
-          }
-        }
-
-        if (
-          DAY_NIGHT_SWITCHER_ENABLED &&
-          canUseWeapons &&
-          wasBindingPressed(input, bindingsRef.current, "dayNightToggle")
-        ) {
-          dayNightToggleRef.current?.(!sunIsDayRef.current);
-          refreshGameplayHintHudRef.current();
-        }
-
-        const keyboardShoot =
-          canUseWeapons &&
-          isBindingDown(input, bindingsRef.current, "shoot");
-
-        if (!frozen && !consoleHackOpenRef.current) {
-          const rounds = roundsInMagRef.current;
-          const spare = spareMagsRef.current;
-          weaponSwap.update(dt, primaryWeapons, () => activePrimaryId, (id) => {
-            persistActiveAmmo();
-            setActivePrimaryWeaponView(id);
-            loadActiveAmmo(id);
-            primaryWeapons[id]?.replayRaise?.();
-          });
-
-          const cfg = getActiveWeaponConfig();
-          weapon?.update(camera, aimTarget, dt, getActiveTuningRef(), {
-            snapAim: !locked && !touchMode,
-            moveSpeed: player.getHorizontalSpeed(),
-            onStairs: player.isOnStairs(),
-            walkBobTuning: resolveWalkBobTuning(walkBobTuningRef.current),
-            stairWalkTuning: normalizeStairWalkTuning(stairWalkTuningRef.current),
-            nightness: dayNightCurNightnessRef.current,
-            roundCount: rounds,
-            roundDisplayLow:
-              rounds < cfg.lowAmmoThreshold || (rounds === 0 && spare === 0),
-            roundDisplayHp: playerHealthRef.current,
-            roundDisplayStamina: player.getStamina(),
-            roundDisplayTuningRef,
-            onTorchShadowStart: () => {
-              if (!rendererRef.current) return;
-              beginShadowStartupWindow();
-              requestShadowMapUpdate(rendererRef.current);
-            },
-          });
-          const torchLit = weapon?.isFlashlightOn?.();
-          if (torchLit !== undefined) flashlightOnRef.current = torchLit;
-          for (const id of ["rifle", "pistol"]) {
-            const w = primaryWeapons[id];
-            if (!w || w === weapon || !w.holder.visible) continue;
-            w.update(camera, 0, dt, id === "pistol" ? pistolTuningRef : weaponTuningRef, {
-              snapAim: true,
-              roundDisplayTuningRef:
-                id === "rifle" ? roundDisplayTuningRef : undefined,
-            });
-          }
-        }
-
-        const aimBlend = weapon?.getAimBlend() ?? 0;
-        const activeWeaponCfg = getActiveWeaponConfig();
-        const showGunReticule = activeWeaponCfg.viewOptions.gunReticule;
-        const standardCrosshairOnly =
-          activeWeaponCfg.viewOptions.standardCrosshairOnly;
-        screenCrosshairRef.current?.update({
-          aimBlend,
-          tuning: crosshairTuningRef.current,
-          showGunReticule,
-          standardCrosshairOnly,
-          doorTarget: Boolean(doorTarget),
-          camera,
-          canvasHeight: canvas.clientHeight,
-        });
-        const targetFov = THREE.MathUtils.lerp(HIP_FOV, ADS_FOV, aimBlend);
-        const fovBlendSpeed = resolveAimBlendSpeed(aimTarget, aimBlend);
-        camera.fov +=
-          (targetFov - camera.fov) * (1 - Math.exp(-fovBlendSpeed * dt));
-        camera.updateProjectionMatrix();
-
-        if (canUseWeapons && (pointerActive || keyboardShoot)) {
-          processWeaponFire(dt);
-        }
-
-        if (
-          !rebindActionRef.current &&
-          !settingsOpenRef.current &&
-          !controlsOpenRef.current &&
-          wasBindingPressed(input, bindingsRef.current, "reload")
-        ) {
-          tryReload();
-        }
-
-        if (
-          !rebindActionRef.current &&
-          !settingsOpenRef.current &&
-          !controlsOpenRef.current &&
-          wasBindingPressed(input, bindingsRef.current, "cycleFireMode")
-        ) {
-          const modes = getActiveWeaponConfig().fireModes;
-          if (modes.length > 1) {
-            const i = modes.indexOf(fireModeRef.current);
-            const next = modes[(i + 1) % modes.length];
-            setFireModeForActiveWeapon(next);
-          }
-        }
-
-        if (
-          !frozen &&
-          !rebindActionRef.current &&
-          !settingsOpenRef.current &&
-          !controlsOpenRef.current &&
-          !weaponSwap.isBusy()
-        ) {
-          const slotPick = getPrimaryWeaponIdFromSlotInput(input);
-          const swapToggle =
-            wasBindingPressed(input, bindingsRef.current, "swapWeapon") ||
-            wasPrimarySwapPressed(input);
-          const nextId =
-            slotPick ??
-            (swapToggle ? getOtherPrimaryWeaponId(activePrimaryId) : null);
-          if (nextId && nextId !== activePrimaryId) {
-            persistActiveAmmo();
-            weaponSwap.requestSwap(nextId, activePrimaryId, primaryWeapons);
-          }
-        }
-
-        if (
-          !frozen &&
-          !rebindActionRef.current &&
-          !settingsOpenRef.current &&
-          !controlsOpenRef.current
-        ) {
-          for (let slot = 1; slot <= 4; slot += 1) {
-            if (
-              input.wasPressed(`Digit${slot}`) ||
-              input.wasPressed(`Numpad${slot}`)
-            ) {
-              setSelectedWeaponSlot(slot);
-              break;
-            }
-          }
-        }
-
-        if (grenadeCooldownRemainingRef.current > 0) {
-          grenadeCooldownRemainingRef.current = Math.max(
-            0,
-            grenadeCooldownRemainingRef.current - dt,
-          );
-        }
-        updateGrenadeCooldownHud();
-        updateGrenadeCooldownHint();
-
-        // Grenade / flashbang: hold G to preview, release to throw
-        const activeSlot = selectedWeaponSlotRef.current;
-        const throwingGrenade = activeSlot === GRENADE_WEAPON_SLOT;
-        const throwingFlashbang = activeSlot === FLASHBANG_WEAPON_SLOT;
-        const cooldownReady = grenadeCooldownRemainingRef.current <= 0;
-        const canThrowSecondary =
-          cooldownReady &&
-          ((throwingGrenade && grenadeCountRef.current > 0) ||
-            (throwingFlashbang && flashbangCountRef.current > 0));
-        const gDown = isBindingDown(input, bindingsRef.current, "grenade");
-        if (
-          wasBindingPressed(input, bindingsRef.current, "grenade") &&
-          !frozen &&
-          isThrowableSecondarySlot(activeSlot)
-        ) {
-          if (!cooldownReady) {
-            showGrenadeCooldownHint();
-          } else if (!canThrowSecondary) {
-            const emptyMsg = secondaryWeaponEmptyMessage(activeSlot);
-            if (emptyMsg) {
-              pulseGameplayHint(
-                gameplayHintRuntimeRef.current,
-                emptyMsg,
-                performance.now(),
-              );
-              refreshGameplayHintHudRef.current();
-            }
-          }
-        }
-        if (gDown && !grenadeHeld && !frozen && canThrowSecondary) {
-          grenadeHeld = true;
-        }
-        if (grenadeHeld && gDown && !frozen && canThrowSecondary) {
-          updateTrajectoryPreview(
-            scene,
-            camera,
-            level.floorY,
-            allColliders,
-            level.bounds,
-            groundSupportFromLevel(level, 0.05)
-          );
-        } else if (gDown && !canThrowSecondary) {
-          hideTrajectoryPreview();
-        }
-        if (grenadeHeld && !gDown) {
-          grenadeHeld = false;
-          hideTrajectoryPreview();
-          if (!frozen && canThrowSecondary) {
-            if (throwingGrenade) {
-              grenadeCountRef.current--;
-              setGrenadeCount(grenadeCountRef.current);
-            } else if (throwingFlashbang) {
-              flashbangCountRef.current--;
-              setFlashbangCount(flashbangCountRef.current);
-            }
-            const g = spawnGrenade(
-              scene,
-              camera,
-              level.floorY,
-              allColliders,
-              level.bounds,
-              level.floorHoles ?? [],
-              groundSupportFromLevel(level, 0.05),
-              throwingFlashbang ? PROJECTILE_FLASHBANG : undefined
-            );
-            grenades.push(g);
-            sounds.playGrenadeWhoosh({ volume: 0.8 });
-            grenadeCooldownRemainingRef.current = GRENADE_THROW_COOLDOWN_SEC;
-            updateGrenadeCooldownHud();
-          }
-        }
-
-        const dnTarget = dayNightTargetNightnessRef.current;
-        let dnCur = dayNightCurNightnessRef.current;
-        if (dnCur !== dnTarget) {
-          const dnStep = dt / DAY_NIGHT_FADE_DURATION;
-          dnCur =
-            dnTarget > dnCur
-              ? Math.min(dnTarget, dnCur + dnStep)
-              : Math.max(dnTarget, dnCur - dnStep);
-          dayNightCurNightnessRef.current = dnCur;
-          applyDayNightRef.current?.(dnCur);
-        }
-        const hudRoot = gameRootRef.current;
-        if (hudRoot) {
-          hudRoot.style.setProperty(
-            "--hud-night-grayscale",
-            String(dayNightCurNightnessRef.current)
-          );
-        }
-
-        if (
-          DAY_NIGHT_DEMO_CYCLE_ENABLED &&
-          !frozen &&
-          !settingsOpenRef.current &&
-          !controlsOpenRef.current
-        ) {
-          dayNightDemoCycleElapsedRef.current += dt;
-          if (dayNightDemoCycleElapsedRef.current >= DAY_NIGHT_DEMO_CYCLE_SEC) {
-            dayNightDemoCycleElapsedRef.current = 0;
-            dayNightToggleRef.current?.(!sunIsDayRef.current, {
-              persist: false,
-            });
-          }
-        }
-
-        refreshGameplayHintHudRef.current();
-
-        refreshLiveTargets();
-        if (
-          !frozen &&
-          locked &&
-          !settingsOpenRef.current &&
-          !controlsOpenRef.current &&
-          player
-        ) {
-          updateKillPredictiveCache({
-            playerX: player.getX(),
-            playerZ: player.getZ(),
-            camera,
-            liveTargets: liveTargetsScratch,
-            levelHitMeshes,
-            raycaster: hitRaycaster,
-            scene,
-            allColliders,
-            containers: vx27ContainersRef.current,
-            dt,
-          });
-        }
-        updateBloodSplatters(bloodSplatters, dt, scene);
-        scorePopupLayer?.update(camera, dt);
-        updateBulletHoles(dt);
-
-        updateGrenades(
-          grenades,
-          dt,
-          scene,
-          getLiveTargets,
-          applyGrenadeHit,
-          (mesh, blastDir, opts) => {
-            playTargetDeathSound(mesh, opts?.hitPoint, opts?.hitZone);
-            startDeathAnimation(mesh, blastDir, opts);
-          },
-          {
-            scene,
-            colliders: allColliders,
-            floorY: level.floorY,
-            bounds: level.bounds,
-            floorHoles: level.floorHoles ?? [],
-            groundSupport: groundSupportFromLevel(level, 0.05),
-            simTime,
-            hitMeshes: levelHitMeshes,
-            onBloodSplatter: (splatter) => {
-              if (splatter) bloodSplatters.push(splatter);
-            },
-            onFloorHit: (pos, impact) => {
-              sounds.playGrenadeFloorHit(scene, pos, { impact });
-            },
-            onExplode: (pos, isFlashbang) => {
-              sounds.playGrenadeExplosion(scene, pos);
-              triggerScreenShake(camera.position, pos);
-              if (isFlashbang) return;
-              const distToPlayer = camera.position.distanceTo(pos);
-              if (distToPlayer >= getGrenadeParams().blastRadius) return;
-              _flashBlindPos.copy(pos);
-              _flashBlindPos.y += 0.35;
-              if (
-                !hasLineOfSightToPoint(
-                  _flashBlindPos,
-                  camera.position,
-                  levelHitMeshes,
-                  { blockEpsilon: 0.35 }
-                )
-              ) {
-                return;
-              }
-              const newHp = Math.max(0, playerHealthRef.current - 60);
-              playerHealthRef.current = newHp;
-              setPlayerHealth(newHp);
-              triggerPlayerHurtFeedback(hurtVignetteFlashEndRef, sounds);
-              if (newHp <= 0) grenadeSuicideRef.current = true;
-            },
-            countdownDuration: sounds.getGrenadeCountdownDuration(),
-            onCountdown: (pos, playbackRate) => {
-              sounds.playGrenadeCountdown(scene, pos, { playbackRate });
-            },
-            canFlashbangBlindPlayer,
-            onPlayerBlinded: () => {
-              flashbangBlindStartRef.current = performance.now();
-            },
-            onTargetBlinded: (mesh, time) => {
-              blindTargetFromFlashbang(mesh, time);
-            },
-            viewerPos: camera.position,
-          }
-        );
-        applyScreenShake(camera, dt);
-        updateFlashbangBlindVisuals(level.targets, simTime);
-        updateFlashbangOverlay(
-          flashbangOverlayRef.current,
-          flashbangBlindStartRef.current
-        );
-        if (flashbangBlindStartRef.current) {
-          const blindElapsed =
-            (performance.now() - flashbangBlindStartRef.current) / 1000;
-          if (blindElapsed >= getFlashbangBlindDurationSec()) {
-            flashbangBlindStartRef.current = 0;
-          }
-        }
-
-        // Health auto-regen: 1 HP every 10 seconds while below 100
-        if (playerHealthRef.current > 0 && playerHealthRef.current < 100) {
-          healthRegenTimer += dt;
-          if (healthRegenTimer >= HEALTH_REGEN_INTERVAL) {
-            healthRegenTimer -= HEALTH_REGEN_INTERVAL;
-            const newHp = Math.min(100, playerHealthRef.current + HEALTH_REGEN_AMOUNT);
-            playerHealthRef.current = newHp;
-            setPlayerHealth(newHp);
-          }
-          radioactiveOverflowDecayTimer = 0;
-        } else if (playerHealthRef.current > 100) {
-          healthRegenTimer = 0;
-          radioactiveOverflowDecayTimer += dt;
-          if (radioactiveOverflowDecayTimer >= RADIOACTIVE_OVERFLOW_DECAY_INTERVAL_SEC) {
-            radioactiveOverflowDecayTimer -= RADIOACTIVE_OVERFLOW_DECAY_INTERVAL_SEC;
-            const newHp = Math.max(
-              100,
-              playerHealthRef.current - RADIOACTIVE_OVERFLOW_DECAY_PCT
-            );
-            if (newHp !== playerHealthRef.current) {
-              playerHealthRef.current = newHp;
-              player.syncStaminaMaxFromHp();
-              setPlayerHealth(newHp);
-            }
-          }
-        } else {
-          healthRegenTimer = 0;
-          radioactiveOverflowDecayTimer = 0;
-        }
-
-        updateTargetsRepair(level.targets, dt);
-        updateLiveTargetsFloorHoles(
-          level.targets,
-          dt,
-          level.floorY,
-          level.floorHoles ?? [],
-          (mesh) => {
-            deactivateTarget(mesh);
-            scheduleRespawn(mesh);
-          },
-          (mesh, position) => {
-            playTargetHoleFallSound(mesh, position);
-          },
-        );
-        if (showHudRef.current) {
-          updateTargetHealthBars(level.targets, dt, camera);
-        }
-        flushAllPendingRagdolls();
-        flushPendingKillBlood();
-        updateDeathAnimations(level.targets, dt, (mesh) => {
-          deactivateTarget(mesh);
-          scheduleRespawn(mesh);
-        }, {
-          colliders: allColliders,
-          floorY: level.floorY,
-          bounds: level.bounds,
-          floorHoles: level.floorHoles ?? [],
-          onBodyFloorHit: (pos, impact) => {
-            sounds.playBodyFloorHit(scene, pos, { impact });
-          },
-          onHoleFall: (mesh, position) => {
-            playTargetHoleFallSound(mesh, position);
-          },
-        });
-
-
-        updateHpOrbs(
-          hpOrbs, dt, camera.position,
-          (value) => {
-            playerHealthRef.current += value;
-            player.syncStaminaMaxFromHp();
-            pickupFlashLayerRef.current?.show("hp");
-            sounds.playHpPickup();
-            scheduleGameplayHudSyncRef.current();
-          },
-          allColliders,
-          level.bounds,
-          level.floorHoles ?? [],
-        );
-
-        updateAmmoDrops(
-          ammoDrops, dt, camera.position,
-          (value, drop) => {
-            if (drop?.compassMarkerId) {
-              hideCompassCollectibleMarker(collectibleEntries, drop.compassMarkerId);
-            }
-            roundsInMagRef.current += value;
-            persistActiveAmmo();
-            pickupFlashLayerRef.current?.show("ammo");
-            sounds.playSupplyPickup();
-            scheduleGameplayHudSyncRef.current();
-          },
-          allColliders,
-          level.bounds,
-          level.floorHoles ?? [],
-        );
-
-        updateLevelCollectibles(
-          collectibleEntries,
-          dt,
-          player.getX(),
-          player.getFootY(),
-          player.getZ(),
-          (value, drop, entry) => {
-            if (drop?.compassMarkerId) {
-              hideCompassCollectibleMarker(collectibleEntries, drop.compassMarkerId);
-            }
-            const kind = entry?.type ?? drop?.rewardType ?? "ammo";
-            if (kind === "hp") {
-              playerHealthRef.current = Math.min(
-                100,
-                playerHealthRef.current + (value ?? 10)
-              );
-              setPlayerHealth(playerHealthRef.current);
-              pickupFlashLayerRef.current?.show("hp");
-              sounds.playHpPickup();
-            } else if (kind === "grenade") {
-              grenadeCountRef.current += value ?? 1;
-              setGrenadeCount(grenadeCountRef.current);
-              pickupFlashLayerRef.current?.show("grenade");
-              sounds.playSupplyPickup();
-            } else if (kind === "flashbang") {
-              flashbangCountRef.current += value ?? 1;
-              setFlashbangCount(flashbangCountRef.current);
-              pickupFlashLayerRef.current?.show("grenade");
-              sounds.playSupplyPickup();
-            } else if (kind === "score") {
-              const credits = value ?? SCORE_PACK_DEFAULT_VALUE;
-              playerScoreRef.current += credits;
-              updateScoreHud(scoreHudRef.current, playerScoreRef.current);
-              pickupFlashLayerRef.current?.show({
-                type: "score",
-                label: `+ ${credits} CREDITS`,
-              });
-              sounds.playSupplyPickup();
-            } else {
-              roundsInMagRef.current += value ?? 10;
-              persistActiveAmmo();
-              pickupFlashLayerRef.current?.show("ammo");
-              sounds.playSupplyPickup();
-            }
-            scheduleGameplayHudSyncRef.current();
-          },
-          {
-            testRespawn: LEVEL_COLLECTIBLE_TEST_RESPAWN,
-            scene: level.pickupsGroup ?? scene,
-            arena,
-            catwalkDeckY: level.catwalkDeckY,
-            compassContainer: compassMarkersRef.current,
-          }
-        );
-
-        updateGrenadeDrops(
-          grenadeDrops,
-          dt,
-          camera.position,
-          (value) => {
-            grenadeCountRef.current += value;
-            pickupFlashLayerRef.current?.show("grenade");
-            sounds.playSupplyPickup();
-            scheduleGameplayHudSyncRef.current();
-          },
-          allColliders,
-          level.bounds,
-          level.floorHoles ?? []
-        );
-
-        if (!frozen) {
-          missionTimeRef.current += dt;
-          if (showHudRef.current) {
-            const secs = Math.floor(missionTimeRef.current);
-            if (secs !== Math.floor(missionTimeRef.current - dt)) {
-              updateMissionTimerHud(missionTimerHudRef.current, secs);
-            }
-          }
-        }
-        let aliveCount = 0;
-        for (const t of level.targets) {
-          if (t.visible && t.userData.health > 0 && !t.userData.dying) aliveCount++;
-        }
-        if (aliveCount !== _lastHostileCount) {
-          _lastHostileCount = aliveCount;
-          hostileCountRef.current = aliveCount;
-          if (showHudRef.current) {
-            updateHostileCountHud(hostileCountHudRef.current, aliveCount);
-          }
-        }
-
-        if (showHudRef.current) {
-          updateDamageVignette(
-            damageVignetteRef.current,
-            playerHealthRef.current,
-            loadDoneRef.current && !deathStateRef.current
-          );
-          updateHurtVignette(
-            hurtVignetteRef.current,
-            hurtVignetteFlashEndRef.current
-          );
-          updateWalkPowerHud(
-            walkPowerRef.current,
-            player.getStamina(),
-            player.getStaminaMax(),
-            playerHealthRef.current,
-            loadDoneRef.current && !deathStateRef.current
-          );
-        }
-
-        input.endFrame();
-        sun.target.updateMatrixWorld();
-
-        resetCameraRenderLayers(camera);
-        const { visibleCount: visibleRoomCount } = updateRoomCulling(
-          roomCullablesRef.current,
-          camera,
-          {
-            x: player.getX(),
-            z: player.getZ(),
-            footY: player.getFootY(),
-          },
-          arenaHalf,
-          attachWall,
-          level.catwalkDeckY,
-          level.doorwayOpenings ?? [],
-          arena.wallThickness ?? 0.5
-        );
-
-        const playerVx27Container = resolveVx27ContainerForPlayer(
-          player.getX(),
-          player.getZ(),
-          vx27ContainersRef.current,
-          allColliders
-        );
-        const { anyInteriorPass: inContainerPass } = updateVx27ContainerCulling(
-          vx27ContainerCullablesRef.current,
-          camera,
-          playerVx27Container
-        );
-        updateVx27ContainerBeaconLights(vx27ContainersRef.current);
-        updateVx27ContainerDoorAnimations(vx27ContainersRef.current, dt);
-        let doorCollidersDirty = false;
-        for (const doorGroup of vx27ContainersRef.current) {
-          if (!consumeVx27DoorColliderDirty(doorGroup)) continue;
-          doorCollidersDirty = true;
-          syncVx27ContainerCollider(
-            level.colliders,
-            doorGroup.userData.vx27PropId,
-            readVx27ContainerPlacement(doorGroup),
-            {
-              ...doorGroup.userData.vx27PropDef,
-              interiorInsets: doorGroup.userData.vx27InteriorInsets,
-              edgeRadius: doorGroup.userData.vx27EdgeRadius,
-              exteriorCornerRadius: doorGroup.userData.vx27ExteriorCornerRadius,
-              scale: doorGroup.userData.vx27Scale,
-              width: doorGroup.userData.vx27Width,
-              height: doorGroup.userData.vx27Height,
-              length: doorGroup.userData.vx27Length,
-              doorTuning: doorGroup.userData.vx27DoorTuning,
-            }
-          );
-        }
-        if (doorCollidersDirty) syncAllColliders();
-
-        const interiorLevelFrame = isInteriorEnvironmentLevel(arenaLiveRef.current);
-        const inRoomBody =
-          interiorLevelFrame ||
-          isIndoorLightingZone(
-            player.getX(),
-            player.getZ(),
-            player.getFootY(),
-            arena.rooms,
-            arenaHalf,
-            attachWall,
-            level.catwalkDeckY,
-            level.doorwayOpenings ?? [],
-            arena.wallThickness ?? 0.5,
-            arena.floorExtensions ?? []
-          );
-        // Room pass follows camera frustum (+ body-in-room). Viewmodel lighting follows
-        // feet / door threshold only — not raw frustum (service-room bbox is huge).
-        const inRoomPass =
-          interiorLevelFrame ||
-          inRoomBody ||
-          visibleRoomCount > 0 ||
-          inContainerPass;
-        const viewmodelLightingZone =
-          interiorLevelFrame
-            ? "room"
-            : resolveViewmodelLightingZone({
-                x: player.getX(),
-                z: player.getZ(),
-                footY: player.getFootY(),
-                rooms: arena.rooms,
-                arenaHalf,
-                attachWall,
-                arenaWallThickness: arena.wallThickness ?? 0.5,
-                catwalkDeckY: level.catwalkDeckY,
-                colliders: allColliders,
-              });
-        syncLightLayersForZone(
-          scene,
-          viewmodelLightingZone,
-          outdoorLights,
-          roomLightsRef.current
-        );
-        syncOilBarrelFireLightLayers(
-          oilBarrelFireLightsRef.current,
-          isEnclosedViewmodelZone(viewmodelLightingZone)
-        );
-
-        const rainOccluders =
-          rain?.occluders ??
-          buildRainOccluderSlabs(
-            level.groundSurfaces,
-            level.catwalkDeckY,
-            level.ceilingColliders.filter((c) => c.kind === "deck"),
-            level.stairColliders
-          );
-        const snowOccluders =
-          snow?.occluders ??
-          buildSnowOccluderSlabs(
-            level.groundSurfaces,
-            level.catwalkDeckY,
-            level.ceilingColliders.filter((c) => c.kind === "deck"),
-            level.stairColliders
-          );
-
-        const snowActive =
-          snowEnabledRef.current && viewmodelLightingZone !== "container";
-
-        updateRain(rain, camera, dt, {
-          active:
-            rainEnabledRef.current &&
-            !snowEnabledRef.current &&
-            viewmodelLightingZone !== "container",
-          enclosed: inRoomBody,
-          playerX: player.getX(),
-          attachWall,
-          arenaHalf,
-          wallThickness: arena.wallThickness ?? 0.5,
-          occluders: rainOccluders,
-          intensity: rainIntensityRef.current,
-          floorY: arena.floorY ?? 0,
-        });
-
-        updateSnow(snow, camera, dt, now * 0.001, {
-          active: snowActive,
-          enclosed: inRoomBody,
-          allowSettle: snowActive && !inRoomBody,
-          intensity: snowIntensityRef.current,
-          stickRate: snowStickRateRef.current,
-          playerX: player.getX(),
-          attachWall,
-          arenaHalf,
-          wallThickness: arena.wallThickness ?? 0.5,
-          occluders: snowOccluders,
-          floorY: arena.floorY ?? 0,
-        });
-
-        const barrelFireShadowCount = updateOilBarrelFireShadowBudget(
-          oilBarrelRuntimeIndex.fireLights,
-          camera.position,
-          oilBarrelTuningRef.current
-        );
-        applyFrameShadowUpdates(renderer, {
-          sunCastsShadow:
-            (sunRef.current?.castShadow && sunRef.current.intensity > 0.001) ||
-            false,
-          moonCastsShadow:
-            (moonRef.current?.castShadow && moonRef.current.intensity > 0.001) ||
-            false,
-          dayNightAnimating:
-            dayNightCurNightnessRef.current !==
-            dayNightTargetNightnessRef.current,
-          flashlightShadow: weapon?.isFlashlightCastingShadow?.() ?? false,
-          barrelFireShadowCount,
-        });
-
-        sky?.update(camera);
-        renderSceneWithLayeredLighting(renderer, scene, camera, {
-          skyRoot: sky?.mesh ?? null,
-          skipRoomPass: !inRoomPass,
-        });
-        if (
-          level?.targets &&
-          showHudRef.current &&
-          hasVisibleTargetHealthBars(level.targets)
-        ) {
-          renderTargetHealthBarsPass(renderer, scene, camera, level.targets);
-        }
-        renderCrosshairPass(renderer, scene, camera);
-        renderViewmodelPass(renderer, scene, camera);
-        } catch (err) {
-          if (!disposed) console.error("Frame render failed:", err);
-        }
-        if (!disposed && gameReady) {
-          rafId = requestAnimationFrame(animate);
-        }
-      }
 
       onCanvasClick = (e) => {
         if (e.target !== canvas) return;
@@ -3969,7 +2765,23 @@ export default function FpsGame() {
           beginDeathOverlayFade(deathOverlayRef.current);
         }
         if (!consoleHackOpenRef.current) {
-          safeRequestPointerLock(canvas);
+          if (oilBarrelPlacementTuneEnabledRef.current) {
+            const meshes = oilBarrelPickMeshesRef.current;
+            if (meshes.length) {
+              const ndc = ndcFromCanvasPointer(canvas, e.clientX, e.clientY);
+              const propId = pickOilBarrelPropAtNdc(
+                hitRaycaster,
+                camera,
+                ndc,
+                meshes,
+              );
+              if (propId && handleOilBarrelPlacementPickRef.current) {
+                handleOilBarrelPlacementPickRef.current(propId);
+              }
+            }
+          } else {
+            safeRequestPointerLock(canvas);
+          }
         }
       };
       onPointerLockChange = () => syncPointerLocked();
@@ -4148,10 +2960,6 @@ export default function FpsGame() {
       scorePopupLayer = createScorePopupLayer(scorePopupContainer);
 
       gameReady = true;
-      gameRootRef.current?.style.setProperty(
-        "--hud-night-grayscale",
-        String(dayNightCurNightnessRef.current)
-      );
       reportLoad(100, "Ready");
       setAssetsReady(true);
       rafId = requestAnimationFrame(animate);
@@ -4273,9 +3081,9 @@ export default function FpsGame() {
         !flashlightOnRef.current &&
         !gameplayHintsDismissedRef.current.has("flashlight")
       ) {
-        pulseGameplayHint(
-          gameplayHintRuntimeRef.current,
-          hintMessageForId(bindingsRef.current, "flashlight"),
+        pulseFlashlightGameplayHint(
+          centerPromptStateRef.current,
+          bindingsRef.current,
           performance.now(),
         );
       }
@@ -4405,6 +3213,18 @@ export default function FpsGame() {
               <div className="loadingBarFill" style={{ width: `${loadProgress}%` }} />
             </div>
             <div className="loadingAssetLabel">{loadAssetLabel}</div>
+            <label className="loadingDevToggle">
+              <input
+                type="checkbox"
+                checked={gpuPreloadEnabled}
+                onChange={(e) => {
+                  const enabled = e.target.checked;
+                  setGpuPreloadEnabled(enabled);
+                  saveGpuPreloadEnabled(enabled);
+                }}
+              />
+              <span>GPU preload (off = faster reload)</span>
+            </label>
           </>
         )}
         {!loadDone ? (
@@ -5100,44 +3920,76 @@ export default function FpsGame() {
               >
                 Copy coordinates JSON
               </button>
-              <p className="settingsGroupLabel">Ammo HUD</p>
+              <p className="settingsGroupLabel">Oil barrels</p>
               <label className="settingRow">
                 <input
                   type="checkbox"
-                  checked={hudBottomBarTuneEnabled}
+                  checked={oilBarrelPlacementTuneEnabled}
                   onChange={(e) => {
                     const enabled = e.target.checked;
-                    setHudBottomBarTuneEnabled(enabled);
-                    saveHudBottomBarTuneEnabled(enabled);
+                    setOilBarrelPlacementTuneEnabled(enabled);
+                    saveOilBarrelPlacementTuneEnabled(enabled);
                   }}
                 />
-                <span>Bottom bar layout tuning wizard</span>
+                <span>Oil barrel placement panel</span>
               </label>
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                Live sliders for ROUNDS / MAG / MAGS and the fire-mode carousel on
-                the ammo bar. Copy JSON when aligned.
+                Move the container pile as a group or tune one barrel. Copy JSON
+                into <code>level1.json</code> props when aligned.
               </p>
-              <p className="settingsGroupLabel">VX-27 container</p>
+              <p className="settingsGroupLabel">VX-27 cargo module</p>
               <label className="settingRow">
                 <input
                   type="checkbox"
-                  checked={vx27ContainerCeilingLight}
+                  checked={cargoModuleDoorTuneEnabled}
                   onChange={(e) => {
                     const enabled = e.target.checked;
-                    setVx27ContainerCeilingLight(enabled);
-                    vx27ContainerCeilingLightRef.current = enabled;
-                    saveVx27ContainerCeilingLightEnabled(enabled);
-                    setVx27ContainerCeilingLightEnabled(
-                      vx27ContainersRef.current,
-                      enabled
-                    );
+                    setCargoModuleDoorTuneEnabled(enabled);
+                    saveCargoModuleDoorTuneEnabled(enabled);
                   }}
                 />
-                Container ceiling light
+                <span>Cargo door geometry panel</span>
               </label>
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                Static blue ceiling light inside VX-27 containers. Off for
-                comparing sun leak on end caps and doors.
+                Bottom-right panel — hinge, width/height, frame inframe, and open
+                angles. Copy JSON into <code>level1.json</code>{" "}
+                <code>doorTuning</code> when aligned.
+              </p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={cargoModulePropsTuneEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setCargoModulePropsTuneEnabled(enabled);
+                    saveCargoModulePropsTuneEnabled(enabled);
+                    if (enabled) {
+                      applyCargoModuleProps(cargoModulePropsRef.current);
+                    }
+                  }}
+                />
+                <span>Cargo console &amp; barrel placement panel</span>
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Bottom-left panel — move the interior console and fire barrel.
+                Copy JSON into <code>level1.json</code> props when aligned.
+              </p>
+              <p className="settingsGroupLabel">Load screen</p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={gpuPreloadEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setGpuPreloadEnabled(enabled);
+                    saveGpuPreloadEnabled(enabled);
+                  }}
+                />
+                <span>GPU preload on load</span>
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Off skips the load-screen shader bake for faster dev reloads.
+                Also on the loading screen — takes effect on the next warm-up.
               </p>
             </SettingsSection>
             </div>
@@ -5174,13 +4026,26 @@ export default function FpsGame() {
         </button>
       )}
       <PickupFlashLayer ref={pickupFlashLayerRef} />
-      {hudBottomBarTuneEnabled ? (
-        <HudBottomBarTunePanel
-          tuning={hudBottomBarTuning}
-          onChange={(next) => {
-            setHudBottomBarTuning(next);
-            saveHudBottomBarTuning(next);
-          }}
+      {loadDone && oilBarrelPlacementTuneEnabled ? (
+        <OilBarrelPlacementTunePanel
+          state={oilBarrelPlacement}
+          sceneRoot={sceneRef.current ?? levelRef.current?.group}
+          floorY={levelRef.current?.floorY ?? 0}
+          onChange={handleOilBarrelPlacementChange}
+          onAddBarrel={handleAddOilBarrelPlacement}
+          onClose={closeOilBarrelPlacementTune}
+        />
+      ) : null}
+      {loadDone && cargoModuleDoorTuneEnabled ? (
+        <Vx27ContainerDoorTunePanel
+          tuning={cargoModuleDoorTuning}
+          onChange={handleCargoModuleDoorTuningChange}
+        />
+      ) : null}
+      {loadDone && cargoModulePropsTuneEnabled ? (
+        <CargoModulePropsTunePanel
+          placement={cargoModuleProps}
+          onChange={handleCargoModulePropsChange}
         />
       ) : null}
       <HudPrimaryWeaponStack
@@ -5200,33 +4065,7 @@ export default function FpsGame() {
         layoutStyle={weaponSlotLayoutStyle}
         cooldownBarRef={grenadeCooldownBarRef}
       />
-      <div
-        id="gameplayHint"
-        ref={gameplayHintRef}
-        className="gameplayHint"
-        role="status"
-        aria-live="polite"
-        aria-hidden="true"
-      />
-      <div
-        ref={grenadeCooldownHintRef}
-        className="grenadeCooldownHint"
-        role="status"
-        aria-live="polite"
-        aria-hidden="true"
-      />
-      <div
-        ref={doorInteractPromptRef}
-        className="doorInteractPrompt"
-        aria-hidden="true"
-      />
-      <div
-        ref={consoleHackPromptRef}
-        className="gameplayHint consoleHackPrompt"
-        role="status"
-        aria-live="polite"
-        aria-hidden="true"
-      />
+      <CenterInteractPrompt promptRef={centerInteractPromptRef} />
       <div
         ref={deathOverlayRef}
         className="deathOverlay"

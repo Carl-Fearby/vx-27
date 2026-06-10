@@ -1,932 +1,2064 @@
 {
-  "generatedAt": "2026-06-10T16:07:32.950Z",
-  "head": "2b1b924",
-  "count": 185,
+  "generatedAt": "2026-06-10T22:09:20.012Z",
+  "head": "b26df9c",
+  "count": 186,
+  "codebase": {
+    "files": 238,
+    "lines": 79713,
+    "nonBlankLines": 72657
+  },
+  "historyStats": {
+    "filesChanged": 2119,
+    "insertions": 118544,
+    "deletions": 38622,
+    "binaryFiles": 620
+  },
   "commits": [
+    {
+      "sha": "b26df9c",
+      "date": "2026-06-10",
+      "subject": "Fix kill-frame ragdoll timing and catwalk grenade bounce.",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 103,
+        "deletions": 30,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "2b1b924",
       "date": "2026-06-10",
-      "subject": "Regenerate version history after v0.1.46 deploy."
+      "subject": "Regenerate version history after v0.1.46 deploy.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 13,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "542a64d",
       "date": "2026-06-10",
-      "subject": "Fix v0.1.46 release commit hash in version history."
+      "subject": "Fix v0.1.46 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "2f22f4e",
       "date": "2026-06-10",
-      "subject": "Release v0.1.46: Grenade cooldown HUD and throw perf."
+      "subject": "Release v0.1.46: Grenade cooldown HUD and throw perf.",
+      "stats": {
+        "filesChanged": 8,
+        "insertions": 395,
+        "deletions": 53,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "93e0f9b",
       "date": "2026-06-10",
-      "subject": "Fix v0.1.45 release commit hash in version history."
+      "subject": "Fix v0.1.45 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 14,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "cb2295c",
       "date": "2026-06-10",
-      "subject": "Release v0.1.45: Ragdoll kill stability and respawn timing."
+      "subject": "Release v0.1.45: Ragdoll kill stability and respawn timing.",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 103,
+        "deletions": 52,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "811f76e",
       "date": "2026-06-10",
-      "subject": "Fix v0.1.44 release commit hash in version history."
+      "subject": "Fix v0.1.44 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 14,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "e177a65",
       "date": "2026-06-10",
-      "subject": "Release v0.1.44: Grenade container shell collision."
+      "subject": "Release v0.1.44: Grenade container shell collision.",
+      "stats": {
+        "filesChanged": 7,
+        "insertions": 341,
+        "deletions": 101,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "f26a8dd",
       "date": "2026-06-10",
-      "subject": "Fix v0.1.43 release commit hash in version history."
+      "subject": "Fix v0.1.43 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "96fe395",
       "date": "2026-06-10",
-      "subject": "Release v0.1.43: Ragdoll settle fix and container day-view culling."
+      "subject": "Release v0.1.43: Ragdoll settle fix and container day-view culling.",
+      "stats": {
+        "filesChanged": 9,
+        "insertions": 255,
+        "deletions": 78,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "89cf7a0",
       "date": "2026-06-10",
-      "subject": "Add VX-27 ceiling troffer with ten spread pin lights and flicker sync fixes."
+      "subject": "Add VX-27 ceiling troffer with ten spread pin lights and flicker sync fixes.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 222,
+        "deletions": 32,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "d452cde",
       "date": "2026-06-10",
-      "subject": "Fix v0.1.42 release commit hash in version history."
+      "subject": "Fix v0.1.42 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "d80492c",
       "date": "2026-06-10",
-      "subject": "Release v0.1.42: Harsh container ceiling flicker and gameplay polish."
+      "subject": "Release v0.1.42: Harsh container ceiling flicker and gameplay polish.",
+      "stats": {
+        "filesChanged": 8,
+        "insertions": 135,
+        "deletions": 10,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "b402a14",
       "date": "2026-06-10",
-      "subject": "Revert \"Restore cinematic VX-27 container lighting with flicker and door spill.\""
+      "subject": "Revert \"Restore cinematic VX-27 container lighting with flicker and door spill.\"",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 38,
+        "deletions": 709,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "586fe3e",
       "date": "2026-06-10",
-      "subject": "Restore cinematic VX-27 container lighting with flicker and door spill."
+      "subject": "Restore cinematic VX-27 container lighting with flicker and door spill.",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 709,
+        "deletions": 38,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "4e14af6",
       "date": "2026-06-10",
-      "subject": "Arm torch shadows after a brief idle standstill to cut dark-mode hitches."
+      "subject": "Arm torch shadows after a brief idle standstill to cut dark-mode hitches.",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 281,
+        "deletions": 97,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "e41104e",
       "date": "2026-06-10",
-      "subject": "Hide NODE BREACH security nodes in the grid until the player trips them."
+      "subject": "Hide NODE BREACH security nodes in the grid until the player trips them.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 2,
+        "deletions": 2,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "e412200",
       "date": "2026-06-10",
-      "subject": "Restore smooth movement at night by dropping shadow arming at dusk."
+      "subject": "Restore smooth movement at night by dropping shadow arming at dusk.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 10,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "9336326",
       "date": "2026-06-10",
-      "subject": "Fix flashlight hitch without reintroducing move stutter."
+      "subject": "Fix flashlight hitch without reintroducing move stutter.",
+      "stats": {
+        "filesChanged": 3,
+        "insertions": 28,
+        "deletions": 7,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "6575855",
       "date": "2026-06-10",
-      "subject": "Move fire-mode HUD to right-side carousel with night-aware bullets."
+      "subject": "Move fire-mode HUD to right-side carousel with night-aware bullets.",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 447,
+        "deletions": 104,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "b2b29a0",
       "date": "2026-06-09",
-      "subject": "Harden Fasthosts FTP upload retries after v0.1.41 deploy."
+      "subject": "Harden Fasthosts FTP upload retries after v0.1.41 deploy.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 17,
+        "deletions": 6,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "2d109fe",
       "date": "2026-06-09",
-      "subject": "Refresh git commit history after v0.1.41 deploy build."
+      "subject": "Refresh git commit history after v0.1.41 deploy build.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 18,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "d75738f",
       "date": "2026-06-09",
-      "subject": "Fix v0.1.41 release commit hash in version history."
+      "subject": "Fix v0.1.41 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "d173649",
       "date": "2026-06-09",
-      "subject": "Release v0.1.41: Enemy vocal distance falloff and HMR preload fix."
+      "subject": "Release v0.1.41: Enemy vocal distance falloff and HMR preload fix.",
+      "stats": {
+        "filesChanged": 7,
+        "insertions": 196,
+        "deletions": 63,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "096f2cf",
       "date": "2026-06-09",
-      "subject": "Refresh git commit history after v0.1.40 production build."
+      "subject": "Refresh git commit history after v0.1.40 production build.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 8,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "4579869",
       "date": "2026-06-09",
-      "subject": "Refresh git commit history after v0.1.40 deploy build."
+      "subject": "Refresh git commit history after v0.1.40 deploy build.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 18,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "dd8cb84",
       "date": "2026-06-09",
-      "subject": "Fix v0.1.40 release commit hash in version history."
+      "subject": "Fix v0.1.40 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "7e261c0",
       "date": "2026-06-09",
-      "subject": "Release v0.1.40: Static blue container ceiling light."
+      "subject": "Release v0.1.40: Static blue container ceiling light.",
+      "stats": {
+        "filesChanged": 9,
+        "insertions": 101,
+        "deletions": 676,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "530ba8b",
       "date": "2026-06-09",
-      "subject": "Add FTP upload retries to deploy script for transient 425 errors."
+      "subject": "Add FTP upload retries to deploy script for transient 425 errors.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 30,
+        "deletions": 6,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "ecbea12",
       "date": "2026-06-09",
-      "subject": "Refresh git commit history after v0.1.39 deploy build."
+      "subject": "Refresh git commit history after v0.1.39 deploy build.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 23,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "531678c",
       "date": "2026-06-09",
-      "subject": "Fix v0.1.39 release commit hash in version history."
+      "subject": "Fix v0.1.39 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "b7e39d5",
       "date": "2026-06-09",
-      "subject": "Release v0.1.39: VX-27 beacons, door egress lighting, and kill pre-bake."
+      "subject": "Release v0.1.39: VX-27 beacons, door egress lighting, and kill pre-bake.",
+      "stats": {
+        "filesChanged": 14,
+        "insertions": 1595,
+        "deletions": 162,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "5a02a38",
       "date": "2026-06-09",
-      "subject": "Seal VX-27 door gaps and add blue rotating container beacon light."
+      "subject": "Seal VX-27 door gaps and add blue rotating container beacon light.",
+      "stats": {
+        "filesChanged": 4,
+        "insertions": 385,
+        "deletions": 32,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "9a58596",
       "date": "2026-06-09",
-      "subject": "Add VX-27 container interior lighting, door pass split, and session features."
+      "subject": "Add VX-27 container interior lighting, door pass split, and session features.",
+      "stats": {
+        "filesChanged": 28,
+        "insertions": 1963,
+        "deletions": 629,
+        "binaryFiles": 1
+      }
     },
     {
       "sha": "a177424",
       "date": "2026-06-09",
-      "subject": "Refresh git commit history after v0.1.38 deploy build."
+      "subject": "Refresh git commit history after v0.1.38 deploy build.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 18,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "5e4b770",
       "date": "2026-06-09",
-      "subject": "Fix v0.1.38 release commit hash in version history."
+      "subject": "Fix v0.1.38 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "602af4a",
       "date": "2026-06-09",
-      "subject": "Release v0.1.38: Console hack gameplay and score collectibles."
+      "subject": "Release v0.1.38: Console hack gameplay and score collectibles.",
+      "stats": {
+        "filesChanged": 3,
+        "insertions": 17,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "a20b0e9",
       "date": "2026-06-09",
-      "subject": "Add console hack gameplay, score token, and screen flash polish."
+      "subject": "Add console hack gameplay, score token, and screen flash polish.",
+      "stats": {
+        "filesChanged": 66,
+        "insertions": 4533,
+        "deletions": 427,
+        "binaryFiles": 36
+      }
     },
     {
       "sha": "faa3936",
       "date": "2026-06-08",
-      "subject": "Refresh git commit history after v0.1.37 deploy build."
+      "subject": "Refresh git commit history after v0.1.37 deploy build.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 8,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "7870aa7",
       "date": "2026-06-08",
-      "subject": "Refresh git commit history after v0.1.37 release notes."
+      "subject": "Refresh git commit history after v0.1.37 release notes.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 13,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "0a905e0",
       "date": "2026-06-08",
-      "subject": "Expand v0.1.37 release notes for rain and snow modules."
+      "subject": "Expand v0.1.37 release notes for rain and snow modules.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 4,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "85a071d",
       "date": "2026-06-08",
-      "subject": "Fix v0.1.37 release commit hash in version history."
+      "subject": "Fix v0.1.37 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 14,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "8bec826",
       "date": "2026-06-08",
-      "subject": "Release v0.1.37: Console hack minigame."
+      "subject": "Release v0.1.37: Console hack minigame.",
+      "stats": {
+        "filesChanged": 15,
+        "insertions": 1744,
+        "deletions": 156,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "a04abb2",
       "date": "2026-06-08",
-      "subject": "Add NODE BREACH console hack UI with animated grid nodes and layout wizard."
+      "subject": "Add NODE BREACH console hack UI with animated grid nodes and layout wizard.",
+      "stats": {
+        "filesChanged": 18,
+        "insertions": 3301,
+        "deletions": 35,
+        "binaryFiles": 3
+      }
     },
     {
       "sha": "934eafa",
       "date": "2026-06-07",
-      "subject": "Fix v0.1.36 release commit hash in version history."
+      "subject": "Fix v0.1.36 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "58ace08",
       "date": "2026-06-07",
-      "subject": "Release v0.1.36: Viewmodel receives world shadows."
+      "subject": "Release v0.1.36: Viewmodel receives world shadows.",
+      "stats": {
+        "filesChanged": 4,
+        "insertions": 15,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "bb3110a",
       "date": "2026-06-07",
-      "subject": "Fix v0.1.35 release commit hash in version history."
+      "subject": "Fix v0.1.35 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "cd97cd8",
       "date": "2026-06-07",
-      "subject": "Release v0.1.35: Container viewmodel lighting zones."
+      "subject": "Release v0.1.35: Container viewmodel lighting zones.",
+      "stats": {
+        "filesChanged": 9,
+        "insertions": 233,
+        "deletions": 51,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "1a0e8bd",
       "date": "2026-06-07",
-      "subject": "Refresh git commit history after deploy prebuild."
+      "subject": "Refresh git commit history after deploy prebuild.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 28,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "8fd17ed",
       "date": "2026-06-07",
-      "subject": "Fix v0.1.34 release commit hash in version history."
+      "subject": "Fix v0.1.34 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "c1d0797",
       "date": "2026-06-07",
-      "subject": "Release v0.1.34: Gun screen HP bar."
+      "subject": "Release v0.1.34: Gun screen HP bar.",
+      "stats": {
+        "filesChanged": 4,
+        "insertions": 61,
+        "deletions": 69,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "044c486",
       "date": "2026-06-07",
-      "subject": "Fix v0.1.33 release commit hash in version history."
+      "subject": "Fix v0.1.33 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "ec6e550",
       "date": "2026-06-07",
-      "subject": "Release v0.1.33: Gun screen HP/stamina and primary slot keys."
+      "subject": "Release v0.1.33: Gun screen HP/stamina and primary slot keys.",
+      "stats": {
+        "filesChanged": 9,
+        "insertions": 308,
+        "deletions": 40,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "78c99b4",
       "date": "2026-06-07",
-      "subject": "Refresh git commit history after deploy prebuild."
+      "subject": "Refresh git commit history after deploy prebuild.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 13,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "90e73c9",
       "date": "2026-06-07",
-      "subject": "Fix v0.1.32 release commit hash in version history."
+      "subject": "Fix v0.1.32 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "63caa9e",
       "date": "2026-06-07",
-      "subject": "Release v0.1.32: Primary weapons, pistol swap, and HUD weapon stack."
+      "subject": "Release v0.1.32: Primary weapons, pistol swap, and HUD weapon stack.",
+      "stats": {
+        "filesChanged": 36,
+        "insertions": 3762,
+        "deletions": 490,
+        "binaryFiles": 3
+      }
     },
     {
       "sha": "85f5f6c",
       "date": "2026-06-06",
-      "subject": "Refresh git commit history after deploy prebuild."
+      "subject": "Refresh git commit history after deploy prebuild.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 18,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "aaa7bc7",
       "date": "2026-06-06",
-      "subject": "Fix v0.1.31 release commit hash in version history."
+      "subject": "Fix v0.1.31 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "b4f2e97",
       "date": "2026-06-06",
-      "subject": "Release v0.1.31: Console hack prompt and sheltered outdoor panels."
+      "subject": "Release v0.1.31: Console hack prompt and sheltered outdoor panels.",
+      "stats": {
+        "filesChanged": 16,
+        "insertions": 528,
+        "deletions": 38,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "6689bd1",
       "date": "2026-06-06",
-      "subject": "Refresh git commit history after deploy prebuild."
+      "subject": "Refresh git commit history after deploy prebuild.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 8,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "858aba0",
       "date": "2026-06-06",
-      "subject": "Refresh git commit history after v0.1.30 release."
+      "subject": "Refresh git commit history after v0.1.30 release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 18,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "0833c56",
       "date": "2026-06-06",
-      "subject": "Fix v0.1.30 release commit hash in version history."
+      "subject": "Fix v0.1.30 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "702d7de",
       "date": "2026-06-06",
-      "subject": "Release v0.1.30: Arena consoles and hitscan-only combat."
+      "subject": "Release v0.1.30: Arena consoles and hitscan-only combat.",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 82,
+        "deletions": 24,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "fcd4020",
       "date": "2026-06-06",
-      "subject": "Refresh git commit history after v0.1.29 release."
+      "subject": "Refresh git commit history after v0.1.29 release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 23,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "14da513",
       "date": "2026-06-06",
-      "subject": "Fix v0.1.29 release commit hash in version history."
+      "subject": "Fix v0.1.29 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "54bdcde",
       "date": "2026-06-06",
-      "subject": "Release v0.1.29: Control panel texture stability."
+      "subject": "Release v0.1.29: Control panel texture stability.",
+      "stats": {
+        "filesChanged": 3,
+        "insertions": 15,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "34f8ea6",
       "date": "2026-06-05",
-      "subject": "Refresh git commit history after v0.1.28 release."
+      "subject": "Refresh git commit history after v0.1.28 release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 8,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "13def86",
       "date": "2026-06-05",
-      "subject": "Fix v0.1.28 release commit hash in version history."
+      "subject": "Fix v0.1.28 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "8f94568",
       "date": "2026-06-05",
-      "subject": "Release v0.1.28: Service room consoles and level 2 corridor."
+      "subject": "Release v0.1.28: Service room consoles and level 2 corridor.",
+      "stats": {
+        "filesChanged": 25,
+        "insertions": 1655,
+        "deletions": 175,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "bf63bfa",
       "date": "2026-06-05",
-      "subject": "Refresh git commit history after v0.1.27 release."
+      "subject": "Refresh git commit history after v0.1.27 release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 18,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "8eedb2d",
       "date": "2026-06-05",
-      "subject": "Fix v0.1.27 release commit hash in version history."
+      "subject": "Fix v0.1.27 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "b652373",
       "date": "2026-06-05",
-      "subject": "Release v0.1.27: Compass enemy and reward blips."
+      "subject": "Release v0.1.27: Compass enemy and reward blips.",
+      "stats": {
+        "filesChanged": 7,
+        "insertions": 212,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "4a5fe1f",
       "date": "2026-06-05",
-      "subject": "Refresh git commit history after deploy build."
+      "subject": "Refresh git commit history after deploy build.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 8,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "1d251fe",
       "date": "2026-06-05",
-      "subject": "Refresh git commit history after v0.1.26 deploy."
+      "subject": "Refresh git commit history after v0.1.26 deploy.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 8,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "f51f628",
       "date": "2026-06-05",
-      "subject": "Fix v0.1.26 release commit hash in version history."
+      "subject": "Fix v0.1.26 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 14,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "b57e21f",
       "date": "2026-06-05",
-      "subject": "Release v0.1.26: Radioactive HP and stamina overflow rules."
+      "subject": "Release v0.1.26: Radioactive HP and stamina overflow rules.",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 92,
+        "deletions": 22,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "5dfa59e",
       "date": "2026-06-05",
-      "subject": "Fix v0.1.25 release commit hash in version history."
+      "subject": "Fix v0.1.25 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 9,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "8928cac",
       "date": "2026-06-05",
-      "subject": "Release v0.1.25: Combat scoring and kill callouts."
+      "subject": "Release v0.1.25: Combat scoring and kill callouts.",
+      "stats": {
+        "filesChanged": 9,
+        "insertions": 489,
+        "deletions": 59,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "20c4587",
       "date": "2026-06-05",
-      "subject": "Update marketing homepage for v0.1.24 features."
+      "subject": "Update marketing homepage for v0.1.24 features.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 74,
+        "deletions": 42,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "cc0e04a",
       "date": "2026-06-05",
-      "subject": "Fix v0.1.24 release commit hash in version history."
+      "subject": "Fix v0.1.24 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 9,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "a8d797f",
       "date": "2026-06-05",
-      "subject": "Release v0.1.24: iPad touch controls and credits section."
+      "subject": "Release v0.1.24: iPad touch controls and credits section.",
+      "stats": {
+        "filesChanged": 14,
+        "insertions": 678,
+        "deletions": 19,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "ff68ed3",
       "date": "2026-06-05",
-      "subject": "Refresh git commit history after v0.1.23 release."
+      "subject": "Refresh git commit history after v0.1.23 release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 8,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "bcaffe8",
       "date": "2026-06-05",
-      "subject": "Fix v0.1.23 release commit hash in version history."
+      "subject": "Fix v0.1.23 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 9,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "457f51c",
       "date": "2026-06-05",
-      "subject": "Release v0.1.23: Contextual gameplay hints."
+      "subject": "Release v0.1.23: Contextual gameplay hints.",
+      "stats": {
+        "filesChanged": 7,
+        "insertions": 366,
+        "deletions": 8,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "6a9ccf4",
       "date": "2026-06-05",
-      "subject": "Refresh git commit history after v0.1.22 release."
+      "subject": "Refresh git commit history after v0.1.22 release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 13,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "1b69f35",
       "date": "2026-06-05",
-      "subject": "Fix v0.1.22 release commit hash in version history."
+      "subject": "Fix v0.1.22 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "a8c83f4",
       "date": "2026-06-05",
-      "subject": "Release v0.1.22: Control panel foot fix and laser tracers."
+      "subject": "Release v0.1.22: Control panel foot fix and laser tracers.",
+      "stats": {
+        "filesChanged": 12,
+        "insertions": 263,
+        "deletions": 486,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "89f385d",
       "date": "2026-06-05",
-      "subject": "Fix v0.1.21 release commit hash in version history."
+      "subject": "Fix v0.1.21 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "7b07a8a",
       "date": "2026-06-05",
-      "subject": "Release v0.1.21: Control panel polish, SE barrel pile, lighting and hurt audio."
+      "subject": "Release v0.1.21: Control panel polish, SE barrel pile, lighting and hurt audio.",
+      "stats": {
+        "filesChanged": 23,
+        "insertions": 658,
+        "deletions": 167,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "1575ba5",
       "date": "2026-06-05",
-      "subject": "Refresh git commit history after v0.1.20 release."
+      "subject": "Refresh git commit history after v0.1.20 release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 13,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "091643d",
       "date": "2026-06-05",
-      "subject": "Fix v0.1.20 release commit hash in version history."
+      "subject": "Fix v0.1.20 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "e02ee37",
       "date": "2026-06-05",
-      "subject": "Release v0.1.20: Control panel texturing and service room collision."
+      "subject": "Release v0.1.20: Control panel texturing and service room collision.",
+      "stats": {
+        "filesChanged": 77,
+        "insertions": 3179,
+        "deletions": 4448,
+        "binaryFiles": 23
+      }
     },
     {
       "sha": "288e22d",
       "date": "2026-06-04",
-      "subject": "Fix v0.1.19 release commit hash in version history."
+      "subject": "Fix v0.1.19 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "c14b90e",
       "date": "2026-06-04",
-      "subject": "Release v0.1.19: Pillar-shell service room and catwalk gun lighting."
+      "subject": "Release v0.1.19: Pillar-shell service room and catwalk gun lighting.",
+      "stats": {
+        "filesChanged": 16,
+        "insertions": 881,
+        "deletions": 70,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "9a04014",
       "date": "2026-06-04",
-      "subject": "Stamp v0.1.18 release commit hash and refresh git version history."
+      "subject": "Stamp v0.1.18 release commit hash and refresh git version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 24,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "01bd050",
       "date": "2026-06-04",
-      "subject": "Release v0.1.18: Doorway wall halves, HUD night, ADS tuning."
+      "subject": "Release v0.1.18: Doorway wall halves, HUD night, ADS tuning.",
+      "stats": {
+        "filesChanged": 3,
+        "insertions": 17,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "080e26e",
       "date": "2026-06-04",
-      "subject": "Fix doorway walls with back-to-back half slabs and HUD night styling."
+      "subject": "Fix doorway walls with back-to-back half slabs and HUD night styling.",
+      "stats": {
+        "filesChanged": 8,
+        "insertions": 235,
+        "deletions": 70,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "06524e7",
       "date": "2026-06-04",
-      "subject": "Bake in 30% ADS sensitivity for look and movement."
+      "subject": "Bake in 30% ADS sensitivity for look and movement.",
+      "stats": {
+        "filesChanged": 3,
+        "insertions": 24,
+        "deletions": 11,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "0d89a40",
       "date": "2026-06-04",
-      "subject": "Stamp v0.1.17 release commit hash and refresh git version history."
+      "subject": "Stamp v0.1.17 release commit hash and refresh git version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 14,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "55abbc2",
       "date": "2026-06-04",
-      "subject": "Release v0.1.17: Enemy hit audio and demo day/night cycle."
+      "subject": "Release v0.1.17: Enemy hit audio and demo day/night cycle.",
+      "stats": {
+        "filesChanged": 13,
+        "insertions": 288,
+        "deletions": 72,
+        "binaryFiles": 4
+      }
     },
     {
       "sha": "7253f21",
       "date": "2026-06-04",
-      "subject": "Refresh git version history after v0.1.16 deploy build."
+      "subject": "Refresh git version history after v0.1.16 deploy build.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 8,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "2bf9b6c",
       "date": "2026-06-04",
-      "subject": "Stamp v0.1.16 release commit hash and refresh git version history."
+      "subject": "Stamp v0.1.16 release commit hash and refresh git version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 14,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "09f4114",
       "date": "2026-06-04",
-      "subject": "Release v0.1.16: Hole falls, death vocals, service room barrels."
+      "subject": "Release v0.1.16: Hole falls, death vocals, service room barrels.",
+      "stats": {
+        "filesChanged": 14,
+        "insertions": 287,
+        "deletions": 35,
+        "binaryFiles": 4
+      }
     },
     {
       "sha": "effe35e",
       "date": "2026-06-04",
-      "subject": "Refresh git version history after v0.1.15 deploy build."
+      "subject": "Refresh git version history after v0.1.15 deploy build.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 8,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "87d7d2b",
       "date": "2026-06-04",
-      "subject": "Stamp v0.1.15 release commit hash and refresh git version history."
+      "subject": "Stamp v0.1.15 release commit hash and refresh git version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 14,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "9517bec",
       "date": "2026-06-04",
-      "subject": "Release v0.1.15: cleanup, marketing sparkle, deploy-ready."
+      "subject": "Release v0.1.15: cleanup, marketing sparkle, deploy-ready.",
+      "stats": {
+        "filesChanged": 25,
+        "insertions": 381,
+        "deletions": 1334,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "5009702",
       "date": "2026-06-04",
-      "subject": "Stamp v0.1.14 release commit hash and refresh git version history."
+      "subject": "Stamp v0.1.14 release commit hash and refresh git version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 49,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "feb297d",
       "date": "2026-06-04",
-      "subject": "Release v0.1.14: GPU preload on load screen."
+      "subject": "Release v0.1.14: GPU preload on load screen.",
+      "stats": {
+        "filesChanged": 11,
+        "insertions": 824,
+        "deletions": 139,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "d590d15",
       "date": "2026-06-04",
-      "subject": "Merge pull request #2 from Carl-Fearby/fix/working-on-optimizations"
+      "subject": "Merge pull request #2 from Carl-Fearby/fix/working-on-optimizations",
+      "stats": {
+        "filesChanged": 0,
+        "insertions": 0,
+        "deletions": 0,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "d2a1f71",
       "date": "2026-06-04",
-      "subject": "SLight level changes"
+      "subject": "SLight level changes",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 2,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "7bf1500",
       "date": "2026-06-04",
-      "subject": "Merge pull request #1 from Carl-Fearby/fix/working-on-optimizations"
+      "subject": "Merge pull request #1 from Carl-Fearby/fix/working-on-optimizations",
+      "stats": {
+        "filesChanged": 0,
+        "insertions": 0,
+        "deletions": 0,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "1c5bb16",
       "date": "2026-06-04",
-      "subject": "Working on getting the glicthes gone"
+      "subject": "Working on getting the glicthes gone",
+      "stats": {
+        "filesChanged": 6,
+        "insertions": 39,
+        "deletions": 68,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "c7d5146",
       "date": "2026-06-03",
-      "subject": "Working on getting the glicthes gone"
+      "subject": "Working on getting the glicthes gone",
+      "stats": {
+        "filesChanged": 4,
+        "insertions": 158,
+        "deletions": 13,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "570d97d",
       "date": "2026-06-03",
-      "subject": "Working on getting the glicthes gone"
+      "subject": "Working on getting the glicthes gone",
+      "stats": {
+        "filesChanged": 8,
+        "insertions": 526,
+        "deletions": 68,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "fc4edc3",
       "date": "2026-06-03",
-      "subject": "Add stair back-fill ramp so treads stay the walk surface."
+      "subject": "Add stair back-fill ramp so treads stay the walk surface.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 90,
+        "deletions": 23,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "6942106",
       "date": "2026-06-03",
-      "subject": "Disable GPU warmup and add perf debug tools after stair hitch investigation."
+      "subject": "Disable GPU warmup and add perf debug tools after stair hitch investigation.",
+      "stats": {
+        "filesChanged": 17,
+        "insertions": 1988,
+        "deletions": 354,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "adc4072",
       "date": "2026-06-03",
-      "subject": "Trying to solve glitches between rooms"
+      "subject": "Trying to solve glitches between rooms",
+      "stats": {
+        "filesChanged": 20,
+        "insertions": 720,
+        "deletions": 1488,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "2e7ddce",
       "date": "2026-06-03",
-      "subject": "optmisations and alignment"
+      "subject": "optmisations and alignment",
+      "stats": {
+        "filesChanged": 131,
+        "insertions": 1320,
+        "deletions": 2028,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "044a012",
       "date": "2026-06-02",
-      "subject": "Fix v0.1.12 release commit hash in version history."
+      "subject": "Fix v0.1.12 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 12,
+        "deletions": 665,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "c0f0fe6",
       "date": "2026-06-02",
-      "subject": "Add bullet freeze fix documentation - root cause and solution"
+      "subject": "Add bullet freeze fix documentation - root cause and solution",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 95,
+        "deletions": 0,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "d69bda4",
       "date": "2026-06-02",
-      "subject": "Fix bullet freeze: dedicate GPU warmup to bullet materials only - Create dedicated warmupBulletMaterialsGpu() function that keeps test bullets in scene - Render all 12 warmup frames through full gameplay pipeline (layeredRenderWithRoom) - Bullets stay in scene during warmup to ensure materials compile in exact gameplay context - Removes generic warm() wrapper that may have been dropping materials too early - Expected: First shot now smooth, no freeze on any bullet - Tested: Blue and green bullets both pre-compiled through full world/room passes"
+      "subject": "Fix bullet freeze: dedicate GPU warmup to bullet materials only - Create dedicated warmupBulletMaterialsGpu() function that keeps test bullets in scene - Render all 12 warmup frames through full gameplay pipeline (layeredRenderWithRoom) - Bullets stay in scene during warmup to ensure materials compile in exact gameplay context - Removes generic warm() wrapper that may have been dropping materials too early - Expected: First shot now smooth, no freeze on any bullet - Tested: Blue and green bullets both pre-compiled through full world/room passes",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 67,
+        "deletions": 18,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "4405f41",
       "date": "2026-06-02",
-      "subject": "Add comprehensive bullet FPS optimization summary and deployment guide"
+      "subject": "Add comprehensive bullet FPS optimization summary and deployment guide",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 257,
+        "deletions": 0,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "1193121",
       "date": "2026-06-02",
-      "subject": "Add bullet FPS quick verification checklist for testing"
+      "subject": "Add bullet FPS quick verification checklist for testing",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 132,
+        "deletions": 0,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "f3b43b7",
       "date": "2026-06-02",
-      "subject": "Add bullet FPS optimization verification guide and testing documentation"
+      "subject": "Add bullet FPS optimization verification guide and testing documentation",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 181,
+        "deletions": 0,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "30dadfd",
       "date": "2026-06-02",
-      "subject": "Bullet FPS optimization: shared pool materials, stronger GPU warmup - Removed per-shot material creation in bullet pool (was creating glow material each shot) - Consolidated to two shared materials (normal + radioactive) reused across all bolts - Removed per-shot material disposal in removeBullet() - materials live for pool lifetime - Strengthened laser warmup from 5 to 10 frames for both blue and green bolts - Fixed warmup cleanup to properly handle material reuse without leaks - Impacts: First 3-4 shots now render at full FPS instead of hitching on shader/GPU setup"
+      "subject": "Bullet FPS optimization: shared pool materials, stronger GPU warmup - Removed per-shot material creation in bullet pool (was creating glow material each shot) - Consolidated to two shared materials (normal + radioactive) reused across all bolts - Removed per-shot material disposal in removeBullet() - materials live for pool lifetime - Strengthened laser warmup from 5 to 10 frames for both blue and green bolts - Fixed warmup cleanup to properly handle material reuse without leaks - Impacts: First 3-4 shots now render at full FPS instead of hitching on shader/GPU setup",
+      "stats": {
+        "filesChanged": 9,
+        "insertions": 243,
+        "deletions": 83,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "c8359d6",
       "date": "2026-06-02",
-      "subject": "Fix v0.1.11 release commit hash in version history."
+      "subject": "Fix v0.1.11 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "6246009",
       "date": "2026-06-02",
-      "subject": "Release v0.1.11: Play loop perf, wall occlusion, and SKY_LAYER rendering."
+      "subject": "Release v0.1.11: Play loop perf, wall occlusion, and SKY_LAYER rendering.",
+      "stats": {
+        "filesChanged": 16,
+        "insertions": 388,
+        "deletions": 180,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "3fe139b",
       "date": "2026-06-02",
-      "subject": "Fix v0.1.10 release commit hash in version history."
+      "subject": "Fix v0.1.10 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "dbe86d7",
       "date": "2026-06-02",
-      "subject": "Release v0.1.10: Sky crossfade, ragdoll z-fight, pickup preview warmup."
+      "subject": "Release v0.1.10: Sky crossfade, ragdoll z-fight, pickup preview warmup.",
+      "stats": {
+        "filesChanged": 10,
+        "insertions": 206,
+        "deletions": 89,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "9f26fae",
       "date": "2026-06-02",
-      "subject": "Fix v0.1.9 release commit hash in version history."
+      "subject": "Fix v0.1.9 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "a4e3d37",
       "date": "2026-06-02",
-      "subject": "Release v0.1.9: GPU warmup, kill perf, and Three.js 0.184."
+      "subject": "Release v0.1.9: GPU warmup, kill perf, and Three.js 0.184.",
+      "stats": {
+        "filesChanged": 20,
+        "insertions": 1168,
+        "deletions": 187,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "c6e32b9",
       "date": "2026-06-02",
-      "subject": "Upgrade three.js from 0.182.0 to 0.183.0."
+      "subject": "Upgrade three.js from 0.182.0 to 0.183.0.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 5,
+        "deletions": 5,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "e864c24",
       "date": "2026-06-02",
-      "subject": "Fix v0.1.8 release commit hash in version history."
+      "subject": "Fix v0.1.8 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "e380a1b",
       "date": "2026-06-02",
-      "subject": "Release v0.1.8: Sun lens flare occlusion and two-pass sky render."
+      "subject": "Release v0.1.8: Sun lens flare occlusion and two-pass sky render.",
+      "stats": {
+        "filesChanged": 6,
+        "insertions": 141,
+        "deletions": 24,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "615cce4",
       "date": "2026-06-02",
-      "subject": "Fix v0.1.7 release commit hash in version history."
+      "subject": "Fix v0.1.7 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "54b168b",
       "date": "2026-06-02",
-      "subject": "Release v0.1.7: Three.js 0.182 upgrade and shadow pipeline fix."
+      "subject": "Release v0.1.7: Three.js 0.182 upgrade and shadow pipeline fix.",
+      "stats": {
+        "filesChanged": 9,
+        "insertions": 83,
+        "deletions": 99,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "2f61655",
       "date": "2026-06-02",
-      "subject": "Revert three.js to 0.176.0 and harden layered sky rendering."
+      "subject": "Revert three.js to 0.176.0 and harden layered sky rendering.",
+      "stats": {
+        "filesChanged": 3,
+        "insertions": 18,
+        "deletions": 12,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "78351df",
       "date": "2026-06-02",
-      "subject": "Upgrade three.js from 0.176.0 to 0.184.0."
+      "subject": "Upgrade three.js from 0.176.0 to 0.184.0.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 5,
+        "deletions": 5,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "3f536b9",
       "date": "2026-06-02",
-      "subject": "Improve perf debugging, input defaults, and Safari audio reliability."
+      "subject": "Improve perf debugging, input defaults, and Safari audio reliability.",
+      "stats": {
+        "filesChanged": 10,
+        "insertions": 409,
+        "deletions": 57,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "f846bd1",
       "date": "2026-06-02",
-      "subject": "Fix v0.1.6 release commit hash in version history."
+      "subject": "Fix v0.1.6 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "6ab74d5",
       "date": "2026-06-02",
-      "subject": "Release v0.1.6: credits cargo preview, release tooling, tuning defaults."
+      "subject": "Release v0.1.6: credits cargo preview, release tooling, tuning defaults.",
+      "stats": {
+        "filesChanged": 7,
+        "insertions": 365,
+        "deletions": 10,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "f83996e",
       "date": "2026-06-02",
-      "subject": "Add AGENTS.md: agent guide for repository"
+      "subject": "Add AGENTS.md: agent guide for repository",
+      "stats": {
+        "filesChanged": 7,
+        "insertions": 113,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "4ddbdb6",
       "date": "2026-06-02",
-      "subject": "Final touches to the container"
+      "subject": "Final touches to the container",
+      "stats": {
+        "filesChanged": 6,
+        "insertions": 272,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "a62eace",
       "date": "2026-06-02",
-      "subject": "Update marketing and credits for v0.1.5 container work."
+      "subject": "Update marketing and credits for v0.1.5 container work.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 16,
+        "deletions": 6,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "d881a13",
       "date": "2026-06-02",
-      "subject": "Fix v0.1.5 release commit hash in version history."
+      "subject": "Fix v0.1.5 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "3c7bdef",
       "date": "2026-06-02",
-      "subject": "Release v0.1.5: container WebP textures and FPS optimizations."
+      "subject": "Release v0.1.5: container WebP textures and FPS optimizations.",
+      "stats": {
+        "filesChanged": 107,
+        "insertions": 512,
+        "deletions": 169,
+        "binaryFiles": 90
+      }
     },
     {
       "sha": "13ad718",
       "date": "2026-06-02",
-      "subject": "Release v0.1.4: container polish, marketing, credits."
+      "subject": "Release v0.1.4: container polish, marketing, credits.",
+      "stats": {
+        "filesChanged": 6,
+        "insertions": 57,
+        "deletions": 3,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "7dcea67",
       "date": "2026-06-02",
-      "subject": "Revert \"Remove dev tuning wizards from main (preserved on dev branch).\""
+      "subject": "Revert \"Remove dev tuning wizards from main (preserved on dev branch).\"",
+      "stats": {
+        "filesChanged": 13,
+        "insertions": 5225,
+        "deletions": 19,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "78f4f7c",
       "date": "2026-06-02",
-      "subject": "Remove dev tuning wizards from main (preserved on dev branch)."
+      "subject": "Remove dev tuning wizards from main (preserved on dev branch).",
+      "stats": {
+        "filesChanged": 13,
+        "insertions": 19,
+        "deletions": 5225,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "57de6b7",
       "date": "2026-06-02",
-      "subject": "VX-27 doors/decals, barrel pile by container, tune panel sync."
+      "subject": "VX-27 doors/decals, barrel pile by container, tune panel sync.",
+      "stats": {
+        "filesChanged": 9,
+        "insertions": 604,
+        "deletions": 192,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "f286a50",
       "date": "2026-06-02",
-      "subject": "Release v0.1.3: VX-27 cargo container, door interact, HUD ammo polish."
+      "subject": "Release v0.1.3: VX-27 cargo container, door interact, HUD ammo polish.",
+      "stats": {
+        "filesChanged": 75,
+        "insertions": 6208,
+        "deletions": 50,
+        "binaryFiles": 53
+      }
     },
     {
       "sha": "1363d4f",
       "date": "2026-06-01",
-      "subject": "Release v0.1.2: HUD hide keeps crosshair, fix compass pointer leak."
+      "subject": "Release v0.1.2: HUD hide keeps crosshair, fix compass pointer leak.",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 23,
+        "deletions": 7,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "4256f37",
       "date": "2026-06-01",
-      "subject": "Release v0.1.1: catwalk shadows, H HUD toggle, HTTPS dev."
+      "subject": "Release v0.1.1: catwalk shadows, H HUD toggle, HTTPS dev.",
+      "stats": {
+        "filesChanged": 19,
+        "insertions": 297,
+        "deletions": 39,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "fb108e2",
       "date": "2026-06-01",
-      "subject": "Add version page, marketing SEO, favicons, and deploy hardening."
+      "subject": "Add version page, marketing SEO, favicons, and deploy hardening.",
+      "stats": {
+        "filesChanged": 28,
+        "insertions": 1070,
+        "deletions": 21,
+        "binaryFiles": 5
+      }
     },
     {
       "sha": "fda8e26",
       "date": "2026-06-01",
-      "subject": "chore: remove GameEngine2.zip from the repository."
+      "subject": "chore: remove GameEngine2.zip from the repository.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 0,
+        "deletions": 0,
+        "binaryFiles": 1
+      }
     },
     {
       "sha": "610316f",
       "date": "2026-06-01",
-      "subject": "Improve barrel fire lighting, shrink sky/UI assets, and polish site defaults."
+      "subject": "Improve barrel fire lighting, shrink sky/UI assets, and polish site defaults.",
+      "stats": {
+        "filesChanged": 70,
+        "insertions": 1653,
+        "deletions": 296,
+        "binaryFiles": 36
+      }
     },
     {
       "sha": "54f92a3",
       "date": "2026-06-01",
-      "subject": "Add weapon flashlight, fix room bullet decals, and dual barrel fire lights."
+      "subject": "Add weapon flashlight, fix room bullet decals, and dual barrel fire lights.",
+      "stats": {
+        "filesChanged": 15,
+        "insertions": 628,
+        "deletions": 180,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "f873b18",
       "date": "2026-06-01",
-      "subject": "Fix attached-room floor z-fighting and catwalk exterior wall visibility."
+      "subject": "Fix attached-room floor z-fighting and catwalk exterior wall visibility.",
+      "stats": {
+        "filesChanged": 6,
+        "insertions": 295,
+        "deletions": 88,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "95a21f2",
       "date": "2026-06-01",
-      "subject": "Split marketing site from game route and fix attached-room catwalk layering."
+      "subject": "Split marketing site from game route and fix attached-room catwalk layering.",
+      "stats": {
+        "filesChanged": 22,
+        "insertions": 2290,
+        "deletions": 164,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "541e37d",
       "date": "2026-05-31",
-      "subject": "Fix catwalk forced crouch and oil barrel flame UV stretch."
+      "subject": "Fix catwalk forced crouch and oil barrel flame UV stretch.",
+      "stats": {
+        "filesChanged": 4,
+        "insertions": 29,
+        "deletions": 33,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "963f3e9",
       "date": "2026-05-31",
-      "subject": "Credits polish, AI-authored barrel pile, and gapless fire loop."
+      "subject": "Credits polish, AI-authored barrel pile, and gapless fire loop.",
+      "stats": {
+        "filesChanged": 191,
+        "insertions": 5467,
+        "deletions": 9381,
+        "binaryFiles": 134
+      }
     },
     {
       "sha": "651d20f",
       "date": "2026-05-30",
-      "subject": "STOP POINT: oil barrel no-fire pile (8 props + 2 seeds)."
+      "subject": "STOP POINT: oil barrel no-fire pile (8 props + 2 seeds).",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 140,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "af228b3",
       "date": "2026-05-30",
-      "subject": "Align oil barrel rim with wall texture and compress WebP assets."
+      "subject": "Align oil barrel rim with wall texture and compress WebP assets.",
+      "stats": {
+        "filesChanged": 23,
+        "insertions": 204,
+        "deletions": 138,
+        "binaryFiles": 16
+      }
     },
     {
       "sha": "6367060",
       "date": "2026-05-30",
-      "subject": "Add oil barrel interior, WebP texture pack, and related level fixes."
+      "subject": "Add oil barrel interior, WebP texture pack, and related level fixes.",
+      "stats": {
+        "filesChanged": 44,
+        "insertions": 1103,
+        "deletions": 193,
+        "binaryFiles": 29
+      }
     },
     {
       "sha": "09f961f",
       "date": "2026-05-30",
-      "subject": "Add textured oil barrel prop with live material tuning."
+      "subject": "Add textured oil barrel prop with live material tuning.",
+      "stats": {
+        "filesChanged": 32,
+        "insertions": 1464,
+        "deletions": 469,
+        "binaryFiles": 16
+      }
     },
     {
       "sha": "3a34bbc",
       "date": "2026-05-30",
-      "subject": "Fix catwalk movement bob, deck collisions, and pickup shadows."
+      "subject": "Fix catwalk movement bob, deck collisions, and pickup shadows.",
+      "stats": {
+        "filesChanged": 10,
+        "insertions": 563,
+        "deletions": 87,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "ac6c549",
       "date": "2026-05-30",
-      "subject": "Fix catwalk/stair movement, collectibles, and add collider debug overlay."
+      "subject": "Fix catwalk/stair movement, collectibles, and add collider debug overlay.",
+      "stats": {
+        "filesChanged": 18,
+        "insertions": 2051,
+        "deletions": 187,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "a7a28fb",
       "date": "2026-05-29",
-      "subject": "Fix catwalk and stair walk support; add compass HUD and collectibles."
+      "subject": "Fix catwalk and stair walk support; add compass HUD and collectibles.",
+      "stats": {
+        "filesChanged": 31,
+        "insertions": 2279,
+        "deletions": 399,
+        "binaryFiles": 4
+      }
     },
     {
       "sha": "e4b9565",
       "date": "2026-05-29",
-      "subject": "Enhance credits finale, soundtrack player, and 3D crate previews."
+      "subject": "Enhance credits finale, soundtrack player, and 3D crate previews.",
+      "stats": {
+        "filesChanged": 9,
+        "insertions": 910,
+        "deletions": 83,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "f9ffaa4",
       "date": "2026-05-29",
-      "subject": "Fix stair climb, rear walk-through, and portal snap."
+      "subject": "Fix stair climb, rear walk-through, and portal snap.",
+      "stats": {
+        "filesChanged": 6,
+        "insertions": 986,
+        "deletions": 443,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "b24bb70",
       "date": "2026-05-29",
-      "subject": "Fix walk-through behind stairs at floor level."
+      "subject": "Fix walk-through behind stairs at floor level.",
+      "stats": {
+        "filesChanged": 3,
+        "insertions": 59,
+        "deletions": 73,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "127d180",
       "date": "2026-05-29",
-      "subject": "Add cinematic credits page and improve stair under-slope blocking."
+      "subject": "Add cinematic credits page and improve stair under-slope blocking.",
+      "stats": {
+        "filesChanged": 12,
+        "insertions": 2934,
+        "deletions": 24,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "c2854df",
       "date": "2026-05-29",
-      "subject": "Add flashbangs, stair fixes, and loading-screen music guard."
+      "subject": "Add flashbangs, stair fixes, and loading-screen music guard.",
+      "stats": {
+        "filesChanged": 14,
+        "insertions": 1196,
+        "deletions": 237,
+        "binaryFiles": 2
+      }
     },
     {
       "sha": "2b47cd4",
       "date": "2026-05-28",
-      "subject": "Fix stair walking and add stair walk tuning wizard."
+      "subject": "Fix stair walking and add stair walk tuning wizard.",
+      "stats": {
+        "filesChanged": 18,
+        "insertions": 1172,
+        "deletions": 302,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "da24d71",
       "date": "2026-05-28",
-      "subject": "Add combat VFX, level meta, doorway fixes, and lighting cleanup."
+      "subject": "Add combat VFX, level meta, doorway fixes, and lighting cleanup.",
+      "stats": {
+        "filesChanged": 82,
+        "insertions": 4790,
+        "deletions": 980,
+        "binaryFiles": 53
+      }
     },
     {
       "sha": "05f6fb0",
       "date": "2026-05-28",
-      "subject": "Add audio, loading flow, stamina HUD, and dev stability fixes."
+      "subject": "Add audio, loading flow, stamina HUD, and dev stability fixes.",
+      "stats": {
+        "filesChanged": 31,
+        "insertions": 3348,
+        "deletions": 744,
+        "binaryFiles": 8
+      }
     },
     {
       "sha": "7061070",
       "date": "2026-05-27",
-      "subject": "wip"
+      "subject": "wip",
+      "stats": {
+        "filesChanged": 10,
+        "insertions": 310,
+        "deletions": 48,
+        "binaryFiles": 1
+      }
     },
     {
       "sha": "36fb137",
       "date": "2026-05-27",
-      "subject": "WIP"
+      "subject": "WIP",
+      "stats": {
+        "filesChanged": 7,
+        "insertions": 147,
+        "deletions": 142,
+        "binaryFiles": 2
+      }
     },
     {
       "sha": "4ffc327",
       "date": "2026-05-27",
-      "subject": "Add grenade system with lathe-tuned model, drops, self-damage, and reward balancing"
+      "subject": "Add grenade system with lathe-tuned model, drops, self-damage, and reward balancing",
+      "stats": {
+        "filesChanged": 27,
+        "insertions": 1153,
+        "deletions": 21,
+        "binaryFiles": 23
+      }
     },
     {
       "sha": "e32f998",
       "date": "2026-05-26",
-      "subject": "Add ammo crate with end caps, death drops, 3D pickup overlay, and loading cooldown"
+      "subject": "Add ammo crate with end caps, death drops, 3D pickup overlay, and loading cooldown",
+      "stats": {
+        "filesChanged": 36,
+        "insertions": 4115,
+        "deletions": 217,
+        "binaryFiles": 23
+      }
     },
     {
       "sha": "1074651",
       "date": "2026-05-26",
-      "subject": "Fix compass direction and add enemy dots, update HUD ammo/health colors"
+      "subject": "Fix compass direction and add enemy dots, update HUD ammo/health colors",
+      "stats": {
+        "filesChanged": 3,
+        "insertions": 59,
+        "deletions": 8,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "ac8ba1d",
       "date": "2026-05-25",
-      "subject": "HUD overhaul: health bar, compass, fire mode, weapon raise, arch doorway"
+      "subject": "HUD overhaul: health bar, compass, fire mode, weapon raise, arch doorway",
+      "stats": {
+        "filesChanged": 18,
+        "insertions": 1663,
+        "deletions": 271,
+        "binaryFiles": 6
+      }
     },
     {
       "sha": "6912a33",
       "date": "2026-05-24",
-      "subject": "Block stand-up and jump when overhead clearance is missing"
+      "subject": "Block stand-up and jump when overhead clearance is missing",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 113,
+        "deletions": 18,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "d0662f3",
       "date": "2026-05-24",
-      "subject": "Candle flicker, walkable wall tops, day/night keybind, input reset on unlock"
+      "subject": "Candle flicker, walkable wall tops, day/night keybind, input reset on unlock",
+      "stats": {
+        "filesChanged": 6,
+        "insertions": 243,
+        "deletions": 2,
+        "binaryFiles": 0
+      }
     },
     {
       "sha": "266306c",
       "date": "2026-05-24",
-      "subject": "Initial"
+      "subject": "Initial",
+      "stats": {
+        "filesChanged": 41,
+        "insertions": 5587,
+        "deletions": 632,
+        "binaryFiles": 9
+      }
     },
     {
       "sha": "6e44a38",
       "date": "2026-05-23",
-      "subject": "Initial commit: Next.js FPS arena prototype."
+      "subject": "Initial commit: Next.js FPS arena prototype.",
+      "stats": {
+        "filesChanged": 69,
+        "insertions": 15461,
+        "deletions": 0,
+        "binaryFiles": 35
+      }
     }
   ]
 }

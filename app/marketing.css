@@ -1696,6 +1696,12 @@ body {
   color: rgba(160, 200, 255, 0.65);
 }
 
+.mktVersionReleaseStats {
+  display: inline-block;
+  margin-left: 0.65rem;
+  color: rgba(150, 230, 255, 0.62);
+}
+
 .mktVersionRelease ul {
   margin: 0;
   padding-left: 1.1rem;
@@ -1786,6 +1792,10 @@ body {
   text-transform: uppercase;
   font-size: 0.56rem;
   letter-spacing: 0.08em;
+}
+
+.mktVersionCommitStats {
+  color: rgba(150, 230, 255, 0.62);
 }
 
 .mktVersionCommit p {

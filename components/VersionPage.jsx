@@ -24,6 +24,33 @@ function formatReleaseDate(iso) {
   });
 }
 
+function formatNumber(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "—";
+  return number.toLocaleString("en-GB");
+}
+
+function formatStatValue(value, suffix = "") {
+  const formatted = formatNumber(value);
+  return formatted === "—" ? formatted : `${formatted}${suffix}`;
+}
+
+function plural(value, singular, pluralText = `${singular}s`) {
+  return Number(value) === 1 ? singular : pluralText;
+}
+
+function formatCommitStats(stats) {
+  if (!stats) return "";
+  const filesChanged = stats.filesChanged ?? 0;
+  const binaryFiles = stats.binaryFiles ?? 0;
+  const binaryText = binaryFiles
+    ? ` / ${formatNumber(binaryFiles)} ${plural(binaryFiles, "binary")}`
+    : "";
+  return `+${formatNumber(stats.insertions ?? 0)} / -${formatNumber(
+    stats.deletions ?? 0
+  )} / ${formatNumber(filesChanged)} ${plural(filesChanged, "file")}${binaryText}`;
+}
+
 function shaMatches(a, b) {
   if (!a || !b) return false;
   return a === b || a.startsWith(b) || b.startsWith(a);
@@ -31,6 +58,9 @@ function shaMatches(a, b) {
 
 const RELEASE_BY_COMMIT = Object.fromEntries(
   VERSION_HISTORY.map((release) => [release.commit, release.version])
+);
+const COMMIT_BY_SHA = Object.fromEntries(
+  (gitCommitHistory.commits ?? []).map((entry) => [entry.sha, entry])
 );
 
 const BUILD = {
@@ -51,6 +81,18 @@ const ROWS = [
   { label: "Commit", value: BUILD.gitSha },
   { label: "Branch", value: BUILD.gitBranch },
   { label: "Built (UTC)", value: formatBuildTime(BUILD.buildTime) },
+  {
+    label: "Source lines",
+    value: formatStatValue(gitCommitHistory.codebase?.lines),
+  },
+  {
+    label: "Non-blank",
+    value: formatStatValue(gitCommitHistory.codebase?.nonBlankLines),
+  },
+  {
+    label: "Source files",
+    value: formatStatValue(gitCommitHistory.codebase?.files),
+  },
   ...STACK.map(({ label, value }) => ({
     label,
     value: String(value).replace(/^[\^~]/, ""),
@@ -119,6 +161,7 @@ export default function VersionPage() {
           <ol className="mktVersionHistoryList">
             {VERSION_HISTORY.map((release) => {
               const isCurrent = release.version === currentReleaseVersion;
+              const releaseStats = COMMIT_BY_SHA[release.commit]?.stats;
               return (
                 <li
                   key={release.version}
@@ -136,6 +179,11 @@ export default function VersionPage() {
                   <h3>{release.title}</h3>
                   <p className="mktVersionReleaseCommit">
                     <code>{release.commit}</code>
+                    {releaseStats ? (
+                      <span className="mktVersionReleaseStats">
+                        {formatCommitStats(releaseStats)}
+                      </span>
+                    ) : null}
                   </p>
                   <ul>
                     {release.changes.map((item) => (
@@ -154,6 +202,9 @@ export default function VersionPage() {
           <p className="mktVersionLead mktVersionLeadCompact">
             Auto-generated from <code>git log</code>
             {gitCommitHistory.count ? ` · ${gitCommitHistory.count} commits` : ""}
+            {gitCommitHistory.codebase?.lines
+              ? ` · ${formatNumber(gitCommitHistory.codebase.lines)} source lines`
+              : ""}
             {gitCommitHistory.generatedAt
               ? ` · snapshot ${formatBuildTime(gitCommitHistory.generatedAt)}`
               : ""}
@@ -164,6 +215,7 @@ export default function VersionPage() {
               const isHead = shaMatches(entry.sha, BUILD.gitSha);
               const release = RELEASE_BY_COMMIT[entry.sha];
               const isWip = /^wip$/i.test(entry.subject.trim());
+              const stats = formatCommitStats(entry.stats);
               return (
                 <li
                   key={entry.sha}
@@ -183,6 +235,9 @@ export default function VersionPage() {
                     ) : null}
                     {isHead ? (
                       <span className="mktVersionReleaseBadge">HEAD</span>
+                    ) : null}
+                    {stats ? (
+                      <span className="mktVersionCommitStats">{stats}</span>
                     ) : null}
                   </div>
                   <p>{entry.subject}</p>

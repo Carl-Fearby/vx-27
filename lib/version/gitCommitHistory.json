@@ -1,8 +1,13 @@
 {
-  "generatedAt": "2026-06-10T16:02:14.349Z",
-  "head": "542a64d",
-  "count": 184,
+  "generatedAt": "2026-06-10T16:07:32.950Z",
+  "head": "2b1b924",
+  "count": 185,
   "commits": [
+    {
+      "sha": "2b1b924",
+      "date": "2026-06-10",
+      "subject": "Regenerate version history after v0.1.46 deploy."
+    },
     {
       "sha": "542a64d",
       "date": "2026-06-10",

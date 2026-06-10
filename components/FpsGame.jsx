@@ -287,6 +287,7 @@ import {
   spawnHpOrb,
   startDeathAnimation,
   updateDeathAnimations,
+  flushAllPendingRagdolls,
   flushPendingRagdolls,
   prebuildRagdollTemplates,
   updateHpOrbs,
@@ -3597,6 +3598,8 @@ export default function FpsGame() {
         if (showHudRef.current) {
           updateTargetHealthBars(level.targets, dt, camera);
         }
+        flushAllPendingRagdolls();
+        flushPendingKillBlood();
         updateDeathAnimations(level.targets, dt, (mesh) => {
           deactivateTarget(mesh);
           scheduleRespawn(mesh);

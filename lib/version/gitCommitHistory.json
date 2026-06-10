@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-10T15:48:18.428Z",
-  "head": "93e0f9b",
-  "count": 182,
+  "generatedAt": "2026-06-10T16:02:14.349Z",
+  "head": "542a64d",
+  "count": 184,
   "commits": [
+    {
+      "sha": "542a64d",
+      "date": "2026-06-10",
+      "subject": "Fix v0.1.46 release commit hash in version history."
+    },
+    {
+      "sha": "2f22f4e",
+      "date": "2026-06-10",
+      "subject": "Release v0.1.46: Grenade cooldown HUD and throw perf."
+    },
     {
       "sha": "93e0f9b",
       "date": "2026-06-10",

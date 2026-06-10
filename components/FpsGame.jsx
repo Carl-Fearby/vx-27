@@ -3081,9 +3081,6 @@ export default function FpsGame() {
             clearGameplayHintPulse(gameplayHintRuntimeRef.current);
             refreshGameplayHintHudRef.current();
           }
-          if (nowOn && rendererRef.current) {
-            requestShadowMapUpdate(rendererRef.current);
-          }
         }
 
         if (
@@ -3123,7 +3120,14 @@ export default function FpsGame() {
             roundDisplayHp: playerHealthRef.current,
             roundDisplayStamina: player.getStamina(),
             roundDisplayTuningRef,
+            onTorchShadowStart: () => {
+              if (!rendererRef.current) return;
+              beginShadowStartupWindow();
+              requestShadowMapUpdate(rendererRef.current);
+            },
           });
+          const torchLit = weapon?.isFlashlightOn?.();
+          if (torchLit !== undefined) flashlightOnRef.current = torchLit;
           for (const id of ["rifle", "pistol"]) {
             const w = primaryWeapons[id];
             if (!w || w === weapon || !w.holder.visible) continue;

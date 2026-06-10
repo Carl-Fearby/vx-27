@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-10T15:18:21.456Z",
-  "head": "89cf7a0",
-  "count": 176,
+  "generatedAt": "2026-06-10T15:33:14.686Z",
+  "head": "f26a8dd",
+  "count": 178,
   "commits": [
+    {
+      "sha": "f26a8dd",
+      "date": "2026-06-10",
+      "subject": "Fix v0.1.43 release commit hash in version history."
+    },
+    {
+      "sha": "96fe395",
+      "date": "2026-06-10",
+      "subject": "Release v0.1.43: Ragdoll settle fix and container day-view culling."
+    },
     {
       "sha": "89cf7a0",
       "date": "2026-06-10",

@@ -1,8 +1,28 @@
 {
-  "generatedAt": "2026-06-09T12:55:36.544Z",
-  "head": "2d109fe",
-  "count": 165,
+  "generatedAt": "2026-06-10T00:01:26.279Z",
+  "head": "e412200",
+  "count": 169,
   "commits": [
+    {
+      "sha": "e412200",
+      "date": "2026-06-10",
+      "subject": "Restore smooth movement at night by dropping shadow arming at dusk."
+    },
+    {
+      "sha": "9336326",
+      "date": "2026-06-10",
+      "subject": "Fix flashlight hitch without reintroducing move stutter."
+    },
+    {
+      "sha": "6575855",
+      "date": "2026-06-10",
+      "subject": "Move fire-mode HUD to right-side carousel with night-aware bullets."
+    },
+    {
+      "sha": "b2b29a0",
+      "date": "2026-06-09",
+      "subject": "Harden Fasthosts FTP upload retries after v0.1.41 deploy."
+    },
     {
       "sha": "2d109fe",
       "date": "2026-06-09",

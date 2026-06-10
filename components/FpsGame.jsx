@@ -190,6 +190,7 @@ import {
   consumeVx27DoorColliderDirty,
   invalidateVx27ContainerColliderCache,
   refreshVx27ContainerRenderLayers,
+  initVx27ContainerCeilingLightFlicker,
   setVx27ContainerCeilingLightEnabled,
   setVx27ContainerMaterialTuning,
   updateVx27ContainerDoorAnimations,
@@ -1796,6 +1797,7 @@ export default function FpsGame() {
       const syncInteriorLighting = () => {
         oilBarrelFireLightsRef.current = collectOilBarrelFireLights(level.group);
         initOilBarrelFireLightFlicker(oilBarrelFireLightsRef.current);
+        initVx27ContainerCeilingLightFlicker(vx27ContainersRef.current);
         rebuildFlickerLights();
         rebuildOilBarrelRuntimeIndex();
         roomCullablesRef.current = buildRoomCullables(

@@ -2777,7 +2777,6 @@ export default function FpsGame() {
         // Candle-flicker the warm interior lights. Uses rAF's absolute
         // timestamp so the wobble keeps phase across frame-time hitches.
         updateCandleFlicker(flickerLights, now * 0.001);
-        updateVx27ContainerBeaconLights(vx27ContainersRef.current);
 
         const locked = input.isLocked();
         const pointerActive = input.isPointerActive();

@@ -1,8 +1,43 @@
 {
-  "generatedAt": "2026-06-10T00:01:26.279Z",
-  "head": "e412200",
-  "count": 169,
+  "generatedAt": "2026-06-10T15:18:21.456Z",
+  "head": "89cf7a0",
+  "count": 176,
   "commits": [
+    {
+      "sha": "89cf7a0",
+      "date": "2026-06-10",
+      "subject": "Add VX-27 ceiling troffer with ten spread pin lights and flicker sync fixes."
+    },
+    {
+      "sha": "d452cde",
+      "date": "2026-06-10",
+      "subject": "Fix v0.1.42 release commit hash in version history."
+    },
+    {
+      "sha": "d80492c",
+      "date": "2026-06-10",
+      "subject": "Release v0.1.42: Harsh container ceiling flicker and gameplay polish."
+    },
+    {
+      "sha": "b402a14",
+      "date": "2026-06-10",
+      "subject": "Revert \"Restore cinematic VX-27 container lighting with flicker and door spill.\""
+    },
+    {
+      "sha": "586fe3e",
+      "date": "2026-06-10",
+      "subject": "Restore cinematic VX-27 container lighting with flicker and door spill."
+    },
+    {
+      "sha": "4e14af6",
+      "date": "2026-06-10",
+      "subject": "Arm torch shadows after a brief idle standstill to cut dark-mode hitches."
+    },
+    {
+      "sha": "e41104e",
+      "date": "2026-06-10",
+      "subject": "Hide NODE BREACH security nodes in the grid until the player trips them."
+    },
     {
       "sha": "e412200",
       "date": "2026-06-10",

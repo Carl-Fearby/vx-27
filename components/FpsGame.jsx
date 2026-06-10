@@ -3644,7 +3644,7 @@ export default function FpsGame() {
           vx27ContainersRef.current,
           allColliders
         );
-        const { anyVisible: inContainerPass } = updateVx27ContainerCulling(
+        const { anyInteriorPass: inContainerPass } = updateVx27ContainerCulling(
           vx27ContainerCullablesRef.current,
           camera,
           playerVx27Container

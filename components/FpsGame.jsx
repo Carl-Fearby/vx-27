@@ -266,20 +266,12 @@ import {
 import { groundSupportFromLevel } from "@/lib/physics/GroundSupport";
 import {
   preloadGameGpu,
-  preloadThreeJsCompileGpu,
   settleGpuSpawnAfterLoad,
   resetGameGpuPreload,
   getGpuPreloadLoadLabel,
   getGpuPreloadMode,
   GPU_PRELOAD_READY_LABEL,
-  GPU_PRELOAD_SKIPPED_LABEL,
 } from "@/lib/dev/GpuPreload";
-import {
-  GPU_PRELOAD_MODES,
-  GPU_PRELOAD_MODE_LABELS,
-  loadGpuPreloadMode,
-  saveGpuPreloadMode,
-} from "@/lib/dev/GpuPreloadTuning";
 import {
   addBarrelToPlacement,
   applyOilBarrelPlacements,
@@ -1012,9 +1004,8 @@ export default function FpsGame() {
   const oilBarrelTuningRef = useRef(loadOilBarrelTuning());
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadAssetLabel, setLoadAssetLabel] = useState(
-    "Choose level and GPU warm-up"
+    "Initializing…"
   );
-  const [loadStarted, setLoadStarted] = useState(false);
   const [assetsReady, setAssetsReady] = useState(false);
   const [loadDone, setLoadDone] = useState(() => gameSessionStarted);
   const loadDoneRef = useRef(false);
@@ -1025,9 +1016,6 @@ export default function FpsGame() {
   const musicEnabledRef = useRef(true);
   const vx27ContainerCeilingLightRef = useRef(
     loadVx27ContainerCeilingLightEnabled()
-  );
-  const [gpuPreloadMode, setGpuPreloadMode] = useState(() =>
-    loadGpuPreloadMode()
   );
   const [oilBarrelPlacement, setOilBarrelPlacement] = useState(() =>
     loadOilBarrelPlacementState()
@@ -1438,6 +1426,7 @@ export default function FpsGame() {
   const flashbangCountRef = useRef(DEFAULT_FLASHBANG_COUNT);
   const grenadeCooldownRemainingRef = useRef(0);
   const grenadeCooldownBarRef = useRef(null);
+  const grenadeCooldownSegmentsRef = useRef(null);
   const [grenFrameWidthRem, setGrenFrameWidthRem] = useState(12.3);
   const [grenFrameScale, setGrenFrameScale] = useState(1);
   const [grenFrameX, setGrenFrameX] = useState(17);
@@ -1853,7 +1842,7 @@ export default function FpsGame() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !loadStarted) return;
+    if (!canvas) return;
 
     resetGameGpuPreload();
 
@@ -2471,42 +2460,70 @@ export default function FpsGame() {
       const screenCenter = new THREE.Vector2(0, 0);
 
       const currentWeaponLoad = ++weaponLoadId;
-      reportLoad(74, "View weapons (rifle + pistol)");
+      reportLoad(74, "View weapon");
       const rifleCfg = PRIMARY_WEAPONS.rifle;
-      const pistolCfg = PRIMARY_WEAPONS.pistol;
-      const weaponPromise = Promise.all([
-        loadViewWeapon(camera, scene, rifleCfg.modelUrl, {
+      const pendingPrimaryWeaponLoads = { rifle: null, pistol: null };
+      function primeLoadedPrimaryWeapon(id, loadedWeapon) {
+        if (id === "pistol") {
+          loadedWeapon.update(camera, 0, 0, pistolTuningRef, {
+            snapAim: true,
+          });
+          return;
+        }
+        loadedWeapon.update(camera, 0, 0, weaponTuningRef, {
+          roundDisplayTuningRef,
+        });
+      }
+      function loadPrimaryWeapon(id) {
+        if (disposed || currentWeaponLoad !== weaponLoadId) {
+          return Promise.resolve(null);
+        }
+        if (primaryWeapons[id]) return Promise.resolve(primaryWeapons[id]);
+        if (pendingPrimaryWeaponLoads[id]) return pendingPrimaryWeaponLoads[id];
+        const cfg = PRIMARY_WEAPONS[id] ?? rifleCfg;
+        pendingPrimaryWeaponLoads[id] = loadViewWeapon(camera, scene, cfg.modelUrl, {
           maxAnisotropy,
-          ...rifleCfg.viewOptions,
-          weaponId: "rifle",
-        }),
-        loadViewWeapon(camera, scene, pistolCfg.modelUrl, {
-          maxAnisotropy,
-          ...pistolCfg.viewOptions,
-          weaponId: "pistol",
-        }),
-      ])
-        .then(([rifle, pistol]) => {
+          ...cfg.viewOptions,
+          weaponId: id,
+        })
+        .then((loadedWeapon) => {
           if (disposed || currentWeaponLoad !== weaponLoadId) {
-            rifle?.dispose();
-            pistol?.dispose();
+            loadedWeapon?.dispose();
             return null;
           }
-          primaryWeapons.rifle = rifle;
-          primaryWeapons.pistol = pistol;
-          rifle.holder.visible = true;
-          pistol.holder.visible = false;
-          weapon = rifle;
-          weaponRef.current = rifle;
-          rifle.update(camera, 0, 0, weaponTuningRef, {
-            roundDisplayTuningRef,
-          });
-          return { rifle, pistol };
+          primaryWeapons[id] = loadedWeapon;
+          loadedWeapon.holder.visible = id === activePrimaryId;
+          primeLoadedPrimaryWeapon(id, loadedWeapon);
+          return loadedWeapon;
         })
         .catch((err) => {
-          console.error("Primary weapon models failed to load:", err);
+          console.error(`Primary weapon model failed to load (${id}):`, err);
           return null;
+        })
+        .finally(() => {
+          pendingPrimaryWeaponLoads[id] = null;
         });
+        return pendingPrimaryWeaponLoads[id];
+      }
+      function scheduleBackgroundPrimaryWeaponLoad(id) {
+        const run = () => {
+          if (!disposed && currentWeaponLoad === weaponLoadId) {
+            void loadPrimaryWeapon(id);
+          }
+        };
+        if (typeof window.requestIdleCallback === "function") {
+          window.requestIdleCallback(run, { timeout: 4000 });
+        } else {
+          window.setTimeout(run, 1500);
+        }
+      }
+      const weaponPromise = loadPrimaryWeapon("rifle").then((rifle) => {
+        if (!rifle || disposed || currentWeaponLoad !== weaponLoadId) return null;
+        weapon = rifle;
+        weaponRef.current = rifle;
+        rifle.holder.visible = true;
+        return rifle;
+      });
       hpOrbs = [];
       ammoDrops = [];
       grenades = [];
@@ -2524,7 +2541,11 @@ export default function FpsGame() {
         const rem = grenadeCooldownRemainingRef.current;
         const active = rem > 0;
         bar.classList.toggle("hudGrenadeCooldownBar--active", active);
-        const segments = bar.querySelector(".hudGrenadeCooldownSegments");
+        let segments = grenadeCooldownSegmentsRef.current;
+        if (!segments || segments.parentElement !== bar) {
+          segments = bar.querySelector(".hudGrenadeCooldownSegments");
+          grenadeCooldownSegmentsRef.current = segments;
+        }
         if (segments) {
           const remainingRatio = rem / GRENADE_THROW_COOLDOWN_SEC;
           // Full bar on throw → clip from the right → empty → hide.
@@ -2605,6 +2626,7 @@ export default function FpsGame() {
         allColliders,
         levelHitMeshes,
         primaryWeapons,
+        ensurePrimaryWeaponLoaded: loadPrimaryWeapon,
         weaponSwap,
         ammoPool,
         hitRaycaster,
@@ -2964,26 +2986,9 @@ export default function FpsGame() {
           frames: level.vx27ContainerMeshes?.length ? 8 : 4,
           isActive,
         });
-      } else if (gpuWarmMode === "three") {
-        await preloadThreeJsCompileGpu({
-          renderer,
-          scene,
-          camera,
-          level,
-          weapon,
-          sky,
-          spawnX,
-          spawnEyeY,
-          spawnZ,
-          spawnYaw,
-          isActive,
-        });
       }
       if (!isActive()) return;
-      reportLoad(
-        99,
-        gpuWarmMode === "off" ? GPU_PRELOAD_SKIPPED_LABEL : GPU_PRELOAD_READY_LABEL
-      );
+      reportLoad(99, GPU_PRELOAD_READY_LABEL);
 
       scorePopupContainer = document.createElement("div");
       scorePopupContainer.className = "killCalloutLayer";
@@ -2995,6 +3000,7 @@ export default function FpsGame() {
       reportLoad(100, "Ready");
       setAssetsReady(true);
       rafId = requestAnimationFrame(animate);
+      scheduleBackgroundPrimaryWeaponLoad("pistol");
     }
 
     init().catch((err) => {
@@ -3084,33 +3090,20 @@ export default function FpsGame() {
       resetArenaCeilingDayNightCache();
       safeExitPointerLock();
     };
-  }, [selectedLevel, loadStarted]);
+  }, [selectedLevel]);
 
   const handleLoadingLevelSelect = useCallback(
     (levelNumber) => {
-      if (loadDoneRef.current || loadStarted || !isPlayableLevel(levelNumber)) {
-        return;
-      }
+      if (loadDoneRef.current || !isPlayableLevel(levelNumber)) return;
       if (levelNumber === selectedLevel) return;
       saveSelectedLevel(levelNumber);
       setSelectedLevel(levelNumber);
+      setAssetsReady(false);
+      setLoadProgress(0);
+      setLoadAssetLabel("Switching level…");
     },
-    [selectedLevel, loadStarted]
+    [selectedLevel]
   );
-
-  const handleBeginLoad = () => {
-    if (loadStarted || loadDone) return;
-    setLoadStarted(true);
-    setAssetsReady(false);
-    setLoadProgress(0);
-    setLoadAssetLabel("Initializing…");
-  };
-
-  const handleGpuPreloadModeChange = (mode) => {
-    if (!GPU_PRELOAD_MODES.includes(mode) || loadStarted) return;
-    setGpuPreloadMode(mode);
-    saveGpuPreloadMode(mode);
-  };
 
   const handleDayNightChange = (isDay, { persist = true } = {}) => {
     if (!DAY_NIGHT_SWITCHER_ENABLED) return;
@@ -3206,7 +3199,7 @@ export default function FpsGame() {
       <div
         className={`loadingOverlay${loadDone ? " loadingDone" : ""}`}
         onClick={() => {
-          if (loadDone || !loadStarted || assetsReady) return;
+          if (loadDone || assetsReady) return;
           const s = soundsRef.current;
           if (!s) return;
           s.resume();
@@ -3219,60 +3212,29 @@ export default function FpsGame() {
         <div className="loadingHeroStack">
           <img src="/ui/logo.png" alt="VX-27" className="loadingLogo" />
         </div>
-        {!loadDone && !loadStarted ? (
-          <>
-            <div
-              className="loadingLevelSelect"
-              role="group"
-              aria-label="Select level"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {LEVEL_SELECT_OPTIONS.map(({ number, label }) => (
-                <button
-                  key={number}
-                  type="button"
-                  className={`loadingLevelBtn${selectedLevel === number ? " active" : ""}`}
-                  aria-pressed={selectedLevel === number}
-                  disabled={selectedLevel === number}
-                  onClick={() => handleLoadingLevelSelect(number)}
-                >
-                  <span className="loadingLevelBtnNum">Level {number}</span>
-                  <span className="loadingLevelBtnLabel">{label}</span>
-                </button>
-              ))}
-            </div>
-            <fieldset
-              className="loadingGpuWarmFieldset"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <legend className="loadingGpuWarmLegend">GPU warm-up</legend>
-              {GPU_PRELOAD_MODES.map((mode) => (
-                <label key={mode} className="loadingGpuWarmOption">
-                  <input
-                    type="radio"
-                    name="gpu-warm-mode"
-                    value={mode}
-                    checked={gpuPreloadMode === mode}
-                    onChange={() => handleGpuPreloadModeChange(mode)}
-                  />
-                  <span>{GPU_PRELOAD_MODE_LABELS[mode]}</span>
-                </label>
-              ))}
-            </fieldset>
-            <button
-              type="button"
-              className="loadingStartBtn loadingPreloadBtn"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleBeginLoad();
-              }}
-            >
-              Preload
-            </button>
-            <div className="loadingAssetLabel">{loadAssetLabel}</div>
-          </>
+        {!loadDone ? (
+          <div
+            className="loadingLevelSelect"
+            role="group"
+            aria-label="Select level"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {LEVEL_SELECT_OPTIONS.map(({ number, label }) => (
+              <button
+                key={number}
+                type="button"
+                className={`loadingLevelBtn${selectedLevel === number ? " active" : ""}`}
+                aria-pressed={selectedLevel === number}
+                disabled={selectedLevel === number}
+                onClick={() => handleLoadingLevelSelect(number)}
+              >
+                <span className="loadingLevelBtnNum">Level {number}</span>
+                <span className="loadingLevelBtnLabel">{label}</span>
+              </button>
+            ))}
+          </div>
         ) : null}
-        {!loadDone && loadStarted && assetsReady ? (
+        {!loadDone && assetsReady ? (
           <button
             type="button"
             className="loadingStartBtn"
@@ -3284,7 +3246,7 @@ export default function FpsGame() {
             Start Game
           </button>
         ) : null}
-        {!loadDone && loadStarted && !assetsReady ? (
+        {!loadDone && !assetsReady ? (
           <>
             <div className="loadingBarTrack">
               <div className="loadingBarFill" style={{ width: `${loadProgress}%` }} />
@@ -3940,7 +3902,7 @@ export default function FpsGame() {
                   value={selectedLevel}
                   onChange={(e) => {
                     const next = parseInt(e.target.value, 10);
-                    if (!AVAILABLE_LEVELS.includes(next)) return;
+                    if (!isPlayableLevel(next)) return;
                     saveSelectedLevel(next);
                     if (loadDoneRef.current) {
                       window.location.reload();
@@ -3960,8 +3922,8 @@ export default function FpsGame() {
                 </select>
               </div>
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                Also on the loading screen. In-game changes reload the page; on the
-                loading screen the selected level re-warms without a full refresh.
+                Also available on the loading screen. In-game changes reload the
+                page so the selected level can preload cleanly before Start Game.
               </p>
               <p className="settingsGroupLabel">Player position</p>
               <p className="settingsHint" style={{ marginTop: 0 }}>
@@ -4038,27 +4000,6 @@ export default function FpsGame() {
               <p className="settingsHint" style={{ marginTop: 0 }}>
                 Bottom-left panel — move the interior console and fire barrel.
                 Copy JSON into <code>level1.json</code> props when aligned.
-              </p>
-              <p className="settingsGroupLabel">Load screen GPU warm-up</p>
-              {GPU_PRELOAD_MODES.map((mode) => (
-                <label key={mode} className="settingRow">
-                  <input
-                    type="radio"
-                    name="settings-gpu-warm-mode"
-                    value={mode}
-                    checked={gpuPreloadMode === mode}
-                    onChange={() => {
-                      setGpuPreloadMode(mode);
-                      saveGpuPreloadMode(mode);
-                    }}
-                  />
-                  <span>{GPU_PRELOAD_MODE_LABELS[mode]}</span>
-                </label>
-              ))}
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Choose before Preload on the loading screen. Three.js compile
-                uses renderer.compileAsync only; full preload runs the gameplay
-                render path.
               </p>
             </SettingsSection>
             </div>

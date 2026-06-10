@@ -1952,6 +1952,32 @@ body {
   visibility: visible;
 }
 
+.grenadeCooldownHint {
+  position: fixed;
+  left: 50%;
+  top: calc(50% + 2.75rem);
+  transform: translateX(-50%);
+  z-index: 201;
+  padding: 0.55rem 1rem;
+  background: rgba(6, 12, 24, 0.92);
+  border: 1px solid rgba(94, 170, 255, 0.55);
+  border-radius: 3px;
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.55);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: clamp(0.72rem, 1.6vw, 0.88rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(230, 242, 255, 0.95);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  white-space: nowrap;
+}
+
+.grenadeCooldownHint--visible {
+  visibility: visible;
+}
+
 .gameplayHintKey {
   display: inline-flex;
   align-items: center;
@@ -2372,6 +2398,10 @@ body {
   transform: translate(var(--grenade-frame-x, 17px), var(--grenade-frame-y, 15px));
 }
 
+.hudSecondWeapon .hudGrenadeCooldownBar {
+  position: absolute;
+}
+
 .hudWeaponSlots {
   position: relative;
   width: var(--grenade-frame-w, min(12.3rem, 27.5vw));
@@ -2399,6 +2429,62 @@ body {
 
 .hudSecondWeaponFrame--selected {
   z-index: 4;
+}
+
+.hudSecondWeaponFrame--empty .hudSecondWeaponCount {
+  color: rgb(255, 90, 70);
+}
+
+.hudSecondWeaponFrame--empty .hudSecondWeaponIcon {
+  opacity: 0.65;
+}
+
+.hudSecondWeaponFrame--reserved {
+  opacity: 0.72;
+}
+
+.hudSecondWeaponCount--reserved {
+  color: rgba(140, 170, 200, 0.45);
+  font-size: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+.hudGrenadeCooldownBar {
+  position: absolute;
+  left: 6%;
+  right: 2%;
+  bottom: -0.55rem;
+  height: 0.48rem;
+  border-radius: 999px;
+  background: rgba(8, 20, 36, 0.85);
+  border: 1px solid rgba(80, 140, 200, 0.3);
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.hudGrenadeCooldownBar--active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.hudGrenadeCooldownSegments {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  /* Hard stops: blue 50% | orange 25% | red 25% (left → right). */
+  background: linear-gradient(
+    90deg,
+    #48a8ff 0%,
+    #48a8ff 50%,
+    #ff8822 50%,
+    #ff8822 75%,
+    #ff4433 75%,
+    #ff4433 100%
+  );
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 0.05s linear;
 }
 
 .hudSecondWeaponKey {

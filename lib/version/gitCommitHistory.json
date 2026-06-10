@@ -1,8 +1,18 @@
 {
-  "generatedAt": "2026-06-10T15:39:44.242Z",
-  "head": "811f76e",
-  "count": 180,
+  "generatedAt": "2026-06-10T15:48:18.428Z",
+  "head": "93e0f9b",
+  "count": 182,
   "commits": [
+    {
+      "sha": "93e0f9b",
+      "date": "2026-06-10",
+      "subject": "Fix v0.1.45 release commit hash in version history."
+    },
+    {
+      "sha": "cb2295c",
+      "date": "2026-06-10",
+      "subject": "Release v0.1.45: Ragdoll kill stability and respawn timing."
+    },
     {
       "sha": "811f76e",
       "date": "2026-06-10",

@@ -438,8 +438,12 @@ const WEAPON_SLOT_IDS = [1, 2, 3, 4];
 const GRENADE_WEAPON_SLOT = 1;
 const FLASHBANG_WEAPON_SLOT = 2;
 const DEFAULT_FLASHBANG_COUNT = 4;
+/** Seconds before another grenade/flashbang throw via G. */
+const GRENADE_THROW_COOLDOWN_SEC = 5;
+const GRENADE_COOLDOWN_HINT_MS = 1000;
+const GRENADE_COOLDOWN_HINT_FADE_MS = 450;
 
-/** Bottom-right super-weapon stack — keys 1–4 (slots 3–4 reserved). */
+/** Bottom-right super-weapon stack — keys 1–4. */
 const SECONDARY_WEAPON_UI = {
   [GRENADE_WEAPON_SLOT]: {
     label: "GRANADE",
@@ -449,6 +453,8 @@ const SECONDARY_WEAPON_UI = {
     label: "FLASHBANG",
     icon: "/ui/grenade.webp",
   },
+  3: { label: "", icon: null, reserved: true },
+  4: { label: "", icon: null, reserved: true },
 };
 
 /** TEMP — every kill drops HP + ammo + grenade for pickup sound testing. */
@@ -460,15 +466,28 @@ const DEFAULT_WEAPON_STACK_TUNE = {
   3: { x: -12, y: -52, scale: 0.8 },
 };
 
-/** Super-weapon slots with stock > 0 (hides empty reserved slots). */
-function getVisibleSecondarySlotIds(grenadeCount, flashbangCount) {
-  return WEAPON_SLOT_IDS.filter((slotId) => {
-    const ui = SECONDARY_WEAPON_UI[slotId];
-    if (!ui) return false;
-    if (slotId === GRENADE_WEAPON_SLOT) return grenadeCount > 0;
-    if (slotId === FLASHBANG_WEAPON_SLOT) return flashbangCount > 0;
-    return false;
-  });
+/** All super-weapon stack slots (1–4); stock may be zero on slots 1–2. */
+function getSecondaryWeaponSlotIds() {
+  return WEAPON_SLOT_IDS;
+}
+
+/** @param {number} slotId */
+function isThrowableSecondarySlot(slotId) {
+  return slotId === GRENADE_WEAPON_SLOT || slotId === FLASHBANG_WEAPON_SLOT;
+}
+
+/** @param {number} slotId @param {number} grenadeCount @param {number} flashbangCount */
+function getSecondarySlotStock(slotId, grenadeCount, flashbangCount) {
+  if (slotId === GRENADE_WEAPON_SLOT) return grenadeCount;
+  if (slotId === FLASHBANG_WEAPON_SLOT) return flashbangCount;
+  return null;
+}
+
+/** @param {number} slotId */
+function secondaryWeaponEmptyMessage(slotId) {
+  const ui = SECONDARY_WEAPON_UI[slotId];
+  if (!ui) return null;
+  return `No ${ui.label} left`;
 }
 
 const INVERT_Y_KEY = "fps-invert-y";
@@ -789,8 +808,9 @@ const WeaponSlotStack = memo(function WeaponSlotStack({
   frameX,
   frameY,
   layoutStyle,
+  cooldownBarRef,
 }) {
-  const visibleSlots = getVisibleSecondarySlotIds(grenadeCount, flashbangCount);
+  const visibleSlots = getSecondaryWeaponSlotIds();
   const stackSelected = resolveStackSelection(selectedWeaponSlot, visibleSlots);
 
   if (visibleSlots.length === 0) return null;
@@ -808,8 +828,9 @@ const WeaponSlotStack = memo(function WeaponSlotStack({
         {visibleSlots.map((slotId) => {
           const weaponUi = SECONDARY_WEAPON_UI[slotId];
           const isSelected = slotId === stackSelected;
-          const count =
-            slotId === GRENADE_WEAPON_SLOT ? grenadeCount : flashbangCount;
+          const stock = getSecondarySlotStock(slotId, grenadeCount, flashbangCount);
+          const isReserved = weaponUi?.reserved === true;
+          const isEmpty = stock != null && stock <= 0;
 
           return (
             <div
@@ -817,6 +838,8 @@ const WeaponSlotStack = memo(function WeaponSlotStack({
               className={[
                 "hudSecondWeaponFrame",
                 isSelected ? "hudSecondWeaponFrame--selected" : "",
+                isEmpty ? "hudSecondWeaponFrame--empty" : "",
+                isReserved ? "hudSecondWeaponFrame--reserved" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -828,19 +851,41 @@ const WeaponSlotStack = memo(function WeaponSlotStack({
             >
               <span className="hudSecondWeaponKey">{slotId}</span>
               <div className="hudSecondWeaponBody">
-                <img
-                  src={weaponUi.icon}
-                  className="hudSecondWeaponIcon"
-                  alt=""
-                />
-                <span className="hudSecondWeaponLabel">{weaponUi.label}</span>
-                <span className="hudSecondWeaponCount">
-                  {String(count).padStart(2, "0")}
-                </span>
+                {weaponUi?.icon ? (
+                  <img
+                    src={weaponUi.icon}
+                    className="hudSecondWeaponIcon"
+                    alt=""
+                  />
+                ) : (
+                  <span
+                    className="hudSecondWeaponIcon hudSecondWeaponIcon--placeholder"
+                    aria-hidden="true"
+                  />
+                )}
+                {weaponUi?.label ? (
+                  <span className="hudSecondWeaponLabel">{weaponUi.label}</span>
+                ) : null}
+                {stock != null ? (
+                  <span className="hudSecondWeaponCount">
+                    {String(stock).padStart(2, "0")}
+                  </span>
+                ) : (
+                  <span className="hudSecondWeaponCount hudSecondWeaponCount--reserved">
+                    —
+                  </span>
+                )}
               </div>
             </div>
           );
         })}
+      </div>
+      <div
+        ref={cooldownBarRef}
+        className="hudGrenadeCooldownBar"
+        aria-hidden="true"
+      >
+        <div className="hudGrenadeCooldownSegments" />
       </div>
     </div>
   );
@@ -1176,6 +1221,10 @@ export default function FpsGame() {
   const grenadeCountRef = useRef(getGrenadeParams().grenadeCount);
   const [flashbangCount, setFlashbangCount] = useState(DEFAULT_FLASHBANG_COUNT);
   const flashbangCountRef = useRef(DEFAULT_FLASHBANG_COUNT);
+  const grenadeCooldownRemainingRef = useRef(0);
+  const grenadeCooldownBarRef = useRef(null);
+  const grenadeCooldownHintUntilRef = useRef(0);
+  const grenadeCooldownHintRef = useRef(null);
   const [grenFrameWidthRem, setGrenFrameWidthRem] = useState(12.3);
   const [grenFrameScale, setGrenFrameScale] = useState(1);
   const [grenFrameX, setGrenFrameX] = useState(17);
@@ -2190,6 +2239,62 @@ export default function FpsGame() {
       let grenadeHeld = false;
       let simTime = 0;
       let _lastHostileCount = -1;
+
+      function updateGrenadeCooldownHud() {
+        const bar = grenadeCooldownBarRef.current;
+        if (!bar) return;
+        const rem = grenadeCooldownRemainingRef.current;
+        const active = rem > 0;
+        bar.classList.toggle("hudGrenadeCooldownBar--active", active);
+        const segments = bar.querySelector(".hudGrenadeCooldownSegments");
+        if (segments) {
+          const remainingRatio = rem / GRENADE_THROW_COOLDOWN_SEC;
+          // Full bar on throw → clip from the right → empty → hide.
+          const clipRight = (1 - remainingRatio) * 100;
+          segments.style.clipPath = `inset(0 ${clipRight}% 0 0)`;
+        }
+      }
+
+      function showGrenadeCooldownHint() {
+        grenadeCooldownHintUntilRef.current =
+          performance.now() + GRENADE_COOLDOWN_HINT_MS;
+      }
+
+      function updateGrenadeCooldownHint() {
+        const el = grenadeCooldownHintRef.current;
+        if (!el) return;
+        if (!showHudRef.current) {
+          el.classList.remove("grenadeCooldownHint--visible");
+          el.style.opacity = "0";
+          el.style.visibility = "hidden";
+          el.setAttribute("aria-hidden", "true");
+          return;
+        }
+        const now = performance.now();
+        const until = grenadeCooldownHintUntilRef.current;
+        if (until <= 0) return;
+
+        const fadeEnd = until + GRENADE_COOLDOWN_HINT_FADE_MS;
+        if (now >= fadeEnd) {
+          grenadeCooldownHintUntilRef.current = 0;
+          el.classList.remove("grenadeCooldownHint--visible");
+          el.style.opacity = "0";
+          el.style.visibility = "hidden";
+          el.setAttribute("aria-hidden", "true");
+          return;
+        }
+
+        el.textContent = "Grenade cooling down";
+        el.classList.add("grenadeCooldownHint--visible");
+        el.setAttribute("aria-hidden", "false");
+        el.style.visibility = "visible";
+        if (now < until) {
+          el.style.opacity = "1";
+        } else {
+          const fadeT = (now - until) / GRENADE_COOLDOWN_HINT_FADE_MS;
+          el.style.opacity = String(Math.max(0, 1 - fadeT));
+        }
+      }
       const BULLET_MAX_RANGE = 55;
       const _muzzlePos = new THREE.Vector3();
       const _muzzleDir = new THREE.Vector3();
@@ -3215,7 +3320,7 @@ export default function FpsGame() {
           !settingsOpenRef.current &&
           !controlsOpenRef.current
         ) {
-          for (let slot = 1; slot <= 4; slot++) {
+          for (let slot = 1; slot <= 4; slot += 1) {
             if (
               input.wasPressed(`Digit${slot}`) ||
               input.wasPressed(`Numpad${slot}`)
@@ -3226,14 +3331,44 @@ export default function FpsGame() {
           }
         }
 
+        if (grenadeCooldownRemainingRef.current > 0) {
+          grenadeCooldownRemainingRef.current = Math.max(
+            0,
+            grenadeCooldownRemainingRef.current - dt,
+          );
+        }
+        updateGrenadeCooldownHud();
+        updateGrenadeCooldownHint();
+
         // Grenade / flashbang: hold G to preview, release to throw
         const activeSlot = selectedWeaponSlotRef.current;
         const throwingGrenade = activeSlot === GRENADE_WEAPON_SLOT;
         const throwingFlashbang = activeSlot === FLASHBANG_WEAPON_SLOT;
+        const cooldownReady = grenadeCooldownRemainingRef.current <= 0;
         const canThrowSecondary =
-          (throwingGrenade && grenadeCountRef.current > 0) ||
-          (throwingFlashbang && flashbangCountRef.current > 0);
+          cooldownReady &&
+          ((throwingGrenade && grenadeCountRef.current > 0) ||
+            (throwingFlashbang && flashbangCountRef.current > 0));
         const gDown = isBindingDown(input, bindingsRef.current, "grenade");
+        if (
+          wasBindingPressed(input, bindingsRef.current, "grenade") &&
+          !frozen &&
+          isThrowableSecondarySlot(activeSlot)
+        ) {
+          if (!cooldownReady) {
+            showGrenadeCooldownHint();
+          } else if (!canThrowSecondary) {
+            const emptyMsg = secondaryWeaponEmptyMessage(activeSlot);
+            if (emptyMsg) {
+              pulseGameplayHint(
+                gameplayHintRuntimeRef.current,
+                emptyMsg,
+                performance.now(),
+              );
+              refreshGameplayHintHudRef.current();
+            }
+          }
+        }
         if (gDown && !grenadeHeld && !frozen && canThrowSecondary) {
           grenadeHeld = true;
         }
@@ -3272,6 +3407,8 @@ export default function FpsGame() {
             );
             grenades.push(g);
             sounds.playGrenadeWhoosh({ volume: 0.8 });
+            grenadeCooldownRemainingRef.current = GRENADE_THROW_COOLDOWN_SEC;
+            updateGrenadeCooldownHud();
           }
         }
 
@@ -5058,11 +5195,19 @@ export default function FpsGame() {
         frameX={grenFrameX}
         frameY={grenFrameY}
         layoutStyle={weaponSlotLayoutStyle}
+        cooldownBarRef={grenadeCooldownBarRef}
       />
       <div
         id="gameplayHint"
         ref={gameplayHintRef}
         className="gameplayHint"
+        role="status"
+        aria-live="polite"
+        aria-hidden="true"
+      />
+      <div
+        ref={grenadeCooldownHintRef}
+        className="grenadeCooldownHint"
         role="status"
         aria-live="polite"
         aria-hidden="true"

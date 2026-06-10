@@ -1,19 +1,30 @@
 {
-  "generatedAt": "2026-06-10T22:09:20.012Z",
-  "head": "b26df9c",
-  "count": 186,
+  "generatedAt": "2026-06-10T22:11:06.912Z",
+  "head": "4ffed67",
+  "count": 187,
   "codebase": {
     "files": 238,
-    "lines": 79713,
-    "nonBlankLines": 72657
+    "lines": 79715,
+    "nonBlankLines": 72659
   },
   "historyStats": {
-    "filesChanged": 2119,
-    "insertions": 118544,
-    "deletions": 38622,
+    "filesChanged": 2168,
+    "insertions": 126321,
+    "deletions": 41253,
     "binaryFiles": 620
   },
   "commits": [
+    {
+      "sha": "4ffed67",
+      "date": "2026-06-10",
+      "subject": "Release v0.1.47: Game loop refactor, cargo tuning, and container lighting.",
+      "stats": {
+        "filesChanged": 49,
+        "insertions": 7777,
+        "deletions": 2631,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "b26df9c",
       "date": "2026-06-10",

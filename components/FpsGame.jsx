@@ -193,6 +193,7 @@ import {
   initVx27ContainerCeilingLightFlicker,
   setVx27ContainerCeilingLightEnabled,
   setVx27ContainerMaterialTuning,
+  updateVx27ContainerBeaconLights,
   updateVx27ContainerDoorAnimations,
 } from "@/lib/vx27-container/Vx27Container";
 import {
@@ -2776,6 +2777,7 @@ export default function FpsGame() {
         // Candle-flicker the warm interior lights. Uses rAF's absolute
         // timestamp so the wobble keeps phase across frame-time hitches.
         updateCandleFlicker(flickerLights, now * 0.001);
+        updateVx27ContainerBeaconLights(vx27ContainersRef.current);
 
         const locked = input.isLocked();
         const pointerActive = input.isPointerActive();
@@ -3647,6 +3649,7 @@ export default function FpsGame() {
           camera,
           playerVx27Container
         );
+        updateVx27ContainerBeaconLights(vx27ContainersRef.current);
         updateVx27ContainerDoorAnimations(vx27ContainersRef.current, dt);
         let doorCollidersDirty = false;
         for (const doorGroup of vx27ContainersRef.current) {

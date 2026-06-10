@@ -183,6 +183,7 @@ import {
   refreshOilBarrelRenderLayers,
 } from "@/lib/oil-barrel/OilBarrel";
 import {
+  collectVx27ContainerDoorEgressLights,
   collectVx27ContainerRoomLights,
   preloadVx27ContainerAssets,
   resolveVx27ContainerForPlayer,
@@ -192,6 +193,7 @@ import {
   refreshVx27ContainerRenderLayers,
   setVx27ContainerCeilingLightEnabled,
   setVx27ContainerMaterialTuning,
+  updateVx27ContainerBeaconLights,
   updateVx27ContainerDoorAnimations,
 } from "@/lib/vx27-container/Vx27Container";
 import {
@@ -1728,10 +1730,20 @@ export default function FpsGame() {
       const vx27ContainerLights = collectVx27ContainerRoomLights(
         level.vx27ContainerMeshes
       );
+      const vx27DoorEgressLights = collectVx27ContainerDoorEgressLights(
+        level.vx27ContainerMeshes
+      );
       if (vx27ContainerLights.length) {
         roomLights.push(...vx27ContainerLights);
       }
-      if (level.interiorLights?.length || vx27ContainerLights.length) {
+      if (vx27DoorEgressLights.length) {
+        roomLights.push(...vx27DoorEgressLights);
+      }
+      if (
+        level.interiorLights?.length ||
+        vx27ContainerLights.length ||
+        vx27DoorEgressLights.length
+      ) {
         roomLightsRef.current = roomLights;
         resetLightingZoneCache();
         syncLightLayersForZone(scene, interiorLevel, outdoorLights, roomLights);
@@ -1788,7 +1800,8 @@ export default function FpsGame() {
         setVx27ContainerMaterialTuning(materialTuning, firstGroup);
         setVx27ContainerCeilingLightEnabled(
           vx27ContainersRef.current,
-          vx27ContainerCeilingLightRef.current
+          vx27ContainerCeilingLightRef.current,
+          { fromDevPanel: true }
         );
       }
       preloadBulletHoleTextures();
@@ -3646,6 +3659,11 @@ export default function FpsGame() {
           playerVx27Container
         );
         updateVx27ContainerDoorAnimations(vx27ContainersRef.current, dt);
+        updateVx27ContainerBeaconLights(
+          performance.now() * 0.001,
+          vx27ContainersRef.current,
+          { nightness: dayNightCurNightnessRef.current }
+        );
         let doorCollidersDirty = false;
         for (const doorGroup of vx27ContainersRef.current) {
           if (!consumeVx27DoorColliderDirty(doorGroup)) continue;
@@ -4985,7 +5003,8 @@ export default function FpsGame() {
                     saveVx27ContainerCeilingLightEnabled(enabled);
                     setVx27ContainerCeilingLightEnabled(
                       vx27ContainersRef.current,
-                      enabled
+                      enabled,
+                      { fromDevPanel: true }
                     );
                   }}
                 />

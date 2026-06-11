@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-11T23:22:14.139Z",
-  "head": "382a4ec",
-  "count": 202,
+  "generatedAt": "2026-06-11T23:23:05.383Z",
+  "head": "e38c9f5",
+  "count": 204,
   "codebase": {
     "files": 250,
-    "lines": 84607,
-    "nonBlankLines": 77211
+    "lines": 84624,
+    "nonBlankLines": 77227
   },
   "historyStats": {
-    "filesChanged": 2291,
-    "insertions": 132671,
-    "deletions": 42546,
+    "filesChanged": 2297,
+    "insertions": 132710,
+    "deletions": 42557,
     "binaryFiles": 632
   },
   "commits": [
+    {
+      "sha": "e38c9f5",
+      "date": "2026-06-12",
+      "subject": "Release v0.1.53: Version history sync and redeploy.",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 22,
+        "deletions": 5,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "aac474b",
+      "date": "2026-06-12",
+      "subject": "Refresh git commit history — sync HEAD to v0.1.52 post-release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 17,
+        "deletions": 6,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "382a4ec",
       "date": "2026-06-12",

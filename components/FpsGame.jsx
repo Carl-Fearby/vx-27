@@ -161,6 +161,11 @@ import {
 import { createRifleShop } from "@/lib/weapons/RifleShop";
 import { createDefaultWallShopStages } from "@/lib/weapons/WallWeaponShop";
 import {
+  applyDevStartBothPrimaryWeapons,
+  loadDevStartBothPrimaryWeapons,
+  saveDevStartBothPrimaryWeapons,
+} from "@/lib/weapons/DevStartWeaponsTuning.js";
+import {
   DEFAULT_PISTOL_ADS_POSE,
   DEFAULT_PISTOL_HIP_POSE,
   loadPistolTuning,
@@ -231,7 +236,6 @@ import {
 } from "@/lib/vx27-container/Vx27ContainerTuning";
 import {
   initOilBarrelFireLightFlicker,
-  updateOilBarrelFireShadowBudget,
 } from "@/lib/oil-barrel/OilBarrelFireLight";
 import {
   loadOilBarrelTuning,
@@ -362,6 +366,7 @@ import {
   updateBulletHoles,
 } from "@/lib/combat/BulletHoles";
 import { hasLineOfSightToPoint } from "@/lib/combat/LineOfSight";
+import { createLaserTracerSystem } from "@/lib/combat/LaserTracers";
 import {
   DEFAULT_ADS_POSE,
   DEFAULT_BODY_LOOK_DOWN_AMOUNT,
@@ -394,6 +399,16 @@ import {
   saveWeaponRoundDisplayTuning,
 } from "@/lib/weapons/WeaponRoundDisplayTuning";
 import {
+  DEFAULT_LASER_EMITTER_TUNING,
+  loadLaserEmitterTuning,
+  normalizeLaserEmitterTuning,
+  saveLaserEmitterTuning,
+} from "@/lib/weapons/LaserEmitterTuning";
+import {
+  loadPrimaryWeaponTuneEnabled,
+  savePrimaryWeaponTuneEnabled,
+} from "@/lib/weapons/PrimaryWeaponTuneTuning";
+import {
   shouldDropAmmoCrate,
   loadAmmoDropSpareThreshold,
   saveAmmoDropSpareThreshold,
@@ -408,6 +423,7 @@ import ToxicOilSpillTunePanel from "@/components/tuning-panels/ToxicOilSpillTune
 import Vx27ContainerDoorTunePanel from "@/components/tuning-panels/Vx27ContainerDoorTunePanel";
 import CargoModulePropsTunePanel from "@/components/tuning-panels/CargoModulePropsTunePanel";
 import WeaponRoundDisplayTunePanel from "@/components/tuning-panels/WeaponRoundDisplayTunePanel";
+import PrimaryWeaponTunePanel from "@/components/tuning-panels/PrimaryWeaponTunePanel";
 import {
   loadCargoModuleDoorTuning,
   loadCargoModuleDoorTuneEnabled,
@@ -972,10 +988,15 @@ export default function FpsGame() {
   const missionTimerHudRef = useRef(null);
   const hostileCountHudRef = useRef(null);
   const scoreHudRef = useRef(null);
-  const STARTING_PLAYER_SCORE = 2000;
+  const STARTING_PLAYER_SCORE = 0;
   const playerScoreRef = useRef(STARTING_PLAYER_SCORE);
-  const rifleUnlockedRef = useRef(false);
-  const wallShopStageRef = useRef(createDefaultWallShopStages());
+  const devStartBothPrimaryWeaponsEnabled = loadDevStartBothPrimaryWeapons();
+  const rifleUnlockedRef = useRef(devStartBothPrimaryWeaponsEnabled);
+  const wallShopStageRef = useRef(
+    devStartBothPrimaryWeaponsEnabled
+      ? { rifle: 1 }
+      : createDefaultWallShopStages(),
+  );
   /** @type {import("@/lib/weapons/PrimaryWeapons.js").PrimaryWeaponId | null} */
   const pendingWallWeaponEquipRef = useRef(null);
   const rifleShopRef = useRef(null);
@@ -1470,7 +1491,11 @@ export default function FpsGame() {
   const hemiDayRef = useRef(loadHemiDay());
   const hemiNightRef = useRef(loadHemiNight());
   const [fireMode, setFireMode] = useState("single");
-  const [rifleUnlocked, setRifleUnlocked] = useState(false);
+  const [devStartBothPrimaryWeapons, setDevStartBothPrimaryWeapons] =
+    useState(() => loadDevStartBothPrimaryWeapons());
+  const [rifleUnlocked, setRifleUnlocked] = useState(
+    () => loadDevStartBothPrimaryWeapons(),
+  );
   const [activePrimaryWeapon, setActivePrimaryWeapon] = useState("pistol");
   const [activeMagazineSize, setActiveMagazineSize] = useState(
     PRIMARY_WEAPONS.pistol.magazineSize,
@@ -1520,8 +1545,20 @@ export default function FpsGame() {
   };
   const [selectedWeaponSlot, setSelectedWeaponSlot] = useState(GRENADE_WEAPON_SLOT);
   const selectedWeaponSlotRef = useRef(GRENADE_WEAPON_SLOT);
-  const [primaryAmmo, setPrimaryAmmo] = useState(() => createDefaultAmmoPool());
-  const ammoPoolSnapshotRef = useRef(createDefaultAmmoPool());
+  const [primaryAmmo, setPrimaryAmmo] = useState(() => {
+    const pool = createDefaultAmmoPool();
+    if (loadDevStartBothPrimaryWeapons()) {
+      applyDevStartBothPrimaryWeapons(pool);
+    }
+    return pool;
+  });
+  const ammoPoolSnapshotRef = useRef((() => {
+    const pool = createDefaultAmmoPool();
+    if (loadDevStartBothPrimaryWeapons()) {
+      applyDevStartBothPrimaryWeapons(pool);
+    }
+    return pool;
+  })());
   selectedWeaponSlotRef.current = selectedWeaponSlot;
   const [playerLives, setPlayerLives] = useState(3);
   const missionTimeRef = useRef(0);
@@ -1634,6 +1671,32 @@ export default function FpsGame() {
   const pendingPistolRoundDisplayTuneSwapRef = useRef(
     typeof window === "undefined" ? false : loadPistolRoundDisplayTuneEnabled(),
   );
+  const [laserEmitterTuning, setLaserEmitterTuning] = useState(() =>
+    typeof window === "undefined"
+      ? DEFAULT_LASER_EMITTER_TUNING
+      : loadLaserEmitterTuning(),
+  );
+  const laserEmitterTuningRef = useRef(
+    typeof window === "undefined"
+      ? DEFAULT_LASER_EMITTER_TUNING
+      : loadLaserEmitterTuning(),
+  );
+  const [primaryWeaponTuneEnabled, setPrimaryWeaponTuneEnabled] = useState(() =>
+    typeof window === "undefined" ? false : loadPrimaryWeaponTuneEnabled(),
+  );
+  const primaryWeaponTuneEnabledRef = useRef(
+    typeof window === "undefined" ? false : loadPrimaryWeaponTuneEnabled(),
+  );
+  const [primaryWeaponTuneWeapon, setPrimaryWeaponTuneWeapon] =
+    useState("pistol");
+  const primaryWeaponTuneWeaponRef = useRef("pistol");
+  const [primaryWeaponTuneMode, setPrimaryWeaponTuneMode] = useState("hip");
+  const primaryWeaponTuneModeRef = useRef("hip");
+  const pendingPrimaryWeaponTuneSwapRef = useRef(
+    typeof window !== "undefined" && loadPrimaryWeaponTuneEnabled()
+      ? "pistol"
+      : null,
+  );
   const rebindActionRef = useRef(null);
 
   useEffect(() => {
@@ -1675,6 +1738,17 @@ export default function FpsGame() {
     pistolRoundDisplayTuningRef.current = pistolRoundTuning;
     setPistolRoundDisplayHip(pistolRoundTuning.hip);
     setPistolRoundDisplayAim(pistolRoundTuning.aim);
+
+    const laserTuning = loadLaserEmitterTuning();
+    laserEmitterTuningRef.current = laserTuning;
+    setLaserEmitterTuning(laserTuning);
+    const primaryWeaponTuneOn = loadPrimaryWeaponTuneEnabled();
+    primaryWeaponTuneEnabledRef.current = primaryWeaponTuneOn;
+    setPrimaryWeaponTuneEnabled(primaryWeaponTuneOn);
+    if (primaryWeaponTuneOn) {
+      pendingPrimaryWeaponTuneSwapRef.current =
+        primaryWeaponTuneWeaponRef.current;
+    }
   }, []);
   weaponTuningRef.current = {
     hip: hipWeaponPose,
@@ -1698,6 +1772,10 @@ export default function FpsGame() {
     : getPistolRoundDisplayTuning();
   pistolRoundDisplayTuneEnabledRef.current = pistolRoundDisplayTuneEnabled;
   pistolRoundDisplayPreviewAimRef.current = pistolRoundDisplayPreviewAim;
+  primaryWeaponTuneEnabledRef.current = primaryWeaponTuneEnabled;
+  primaryWeaponTuneWeaponRef.current = primaryWeaponTuneWeapon;
+  primaryWeaponTuneModeRef.current = primaryWeaponTuneMode;
+  laserEmitterTuningRef.current = laserEmitterTuning;
   crosshairTuningRef.current = crosshairTuning;
   bindingsRef.current = bindings;
   rebindActionRef.current = rebindAction;
@@ -1731,6 +1809,30 @@ export default function FpsGame() {
     setRoundsInMag(rounds);
     setSpareMags(spare);
   };
+
+  const requestPrimaryWeaponTuneWeapon = useCallback((weaponId) => {
+    const id = weaponId === "rifle" ? "rifle" : "pistol";
+    setPrimaryWeaponTuneWeapon(id);
+    primaryWeaponTuneWeaponRef.current = id;
+    pendingPrimaryWeaponTuneSwapRef.current = id;
+    if (id === "rifle") {
+      rifleUnlockedRef.current = true;
+      setRifleUnlocked(true);
+    }
+  }, []);
+
+  const handleLaserEmitterTuningChange = useCallback((weaponId, offset) => {
+    const id = weaponId === "rifle" ? "rifle" : "pistol";
+    setLaserEmitterTuning((prev) => {
+      const next = normalizeLaserEmitterTuning({
+        ...prev,
+        [id]: offset,
+      });
+      laserEmitterTuningRef.current = next;
+      saveLaserEmitterTuning(next);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const s = soundsRef.current;
@@ -1972,10 +2074,17 @@ export default function FpsGame() {
 
     playerScoreRef.current = STARTING_PLAYER_SCORE;
     updateScoreHud(scoreHudRef.current, STARTING_PLAYER_SCORE);
-    rifleUnlockedRef.current = false;
-    wallShopStageRef.current = createDefaultWallShopStages();
+    const devStartBoth = loadDevStartBothPrimaryWeapons();
+    if (devStartBoth) {
+      rifleUnlockedRef.current = true;
+      wallShopStageRef.current = { rifle: 1 };
+      setRifleUnlocked(true);
+    } else {
+      rifleUnlockedRef.current = false;
+      wallShopStageRef.current = createDefaultWallShopStages();
+      setRifleUnlocked(false);
+    }
     pendingWallWeaponEquipRef.current = null;
-    setRifleUnlocked(false);
 
     let sky = null;
     let scene = null;
@@ -1990,6 +2099,13 @@ export default function FpsGame() {
     let activePrimaryId = "pistol";
     let rifleShopInteractMeshesCache = [];
     const ammoPool = createDefaultAmmoPool();
+    if (devStartBoth) {
+      applyDevStartBothPrimaryWeapons(ammoPool);
+      ammoPoolSnapshotRef.current = {
+        rifle: { ...ammoPool.rifle },
+        pistol: { ...ammoPool.pistol },
+      };
+    }
     const weaponSwap = createWeaponSwapController();
     let weaponLoadId = 0;
     let flashTimeout = null;
@@ -2001,6 +2117,7 @@ export default function FpsGame() {
     let bloodSplatters = [];
     let rain = null;
     let snow = null;
+    let laserTracers = null;
     /** Kill-shot blood — waits for ragdoll, then spawns next frame. */
     let pendingKillBlood = [];
     let bloodAfterRagdoll = [];
@@ -2037,6 +2154,8 @@ export default function FpsGame() {
       renderer.setClearColor(DAY_CLEAR_COLOR, 1);
 
       scene = new THREE.Scene();
+      laserTracers = createLaserTracerSystem(scene);
+      laserTracers.setResolution(window.innerWidth, window.innerHeight);
       scene.fog = new THREE.Fog(DAY_CLEAR_COLOR, 45, 95);
       sceneRef.current = scene;
 
@@ -2606,6 +2725,7 @@ export default function FpsGame() {
           id === "pistol" ? pistolRoundDisplayTuningRef : roundDisplayTuningRef;
         const cfg = PRIMARY_WEAPONS[id] ?? rifleCfg;
         const ammo = ammoPoolSnapshotRef.current[id];
+        loadedWeapon.setLaserEmitterOffset?.(laserEmitterTuningRef.current?.[id]);
         loadedWeapon.update(camera, 0, 0, tuningRef, {
           snapAim: true,
           roundCount: ammo?.rounds ?? cfg.magazineSize,
@@ -2615,6 +2735,7 @@ export default function FpsGame() {
           roundDisplayHp: playerHealthRef.current,
           roundDisplayStamina: player?.getStamina?.() ?? 1,
           roundDisplayTuningRef: displayTuningRef,
+          laserEmitterOffset: laserEmitterTuningRef.current?.[id],
         });
       }
       function loadPrimaryWeapon(id) {
@@ -2628,6 +2749,7 @@ export default function FpsGame() {
           maxAnisotropy,
           ...cfg.viewOptions,
           weaponId: id,
+          laserEmitterOffset: laserEmitterTuningRef.current?.[id],
         })
         .then((loadedWeapon) => {
           if (disposed || currentWeaponLoad !== weaponLoadId) {
@@ -2791,6 +2913,7 @@ export default function FpsGame() {
         ammoPool,
         hitRaycaster,
         shootRaycaster,
+        laserTracers,
         screenCenter,
         canvas,
         flickerLights,
@@ -2902,6 +3025,11 @@ export default function FpsGame() {
         pistolRoundDisplayTuneEnabledRef,
         pistolRoundDisplayPreviewAimRef,
         pendingPistolRoundDisplayTuneSwapRef,
+        primaryWeaponTuneEnabledRef,
+        primaryWeaponTuneWeaponRef,
+        primaryWeaponTuneModeRef,
+        pendingPrimaryWeaponTuneSwapRef,
+        laserEmitterTuningRef,
         gameRootRef,
         rendererRef,
         arenaHalf,
@@ -2947,7 +3075,6 @@ export default function FpsGame() {
           rafId = requestAnimationFrame(fn);
         },
       });
-
 
       onCanvasClick = (e) => {
         if (e.target !== canvas) return;
@@ -3008,6 +3135,7 @@ export default function FpsGame() {
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(effectivePixelRatio(renderScaleRef.current));
         renderer.setSize(w, h);
+        laserTracers?.setResolution(w, h);
       };
 
       canvas.addEventListener("click", onCanvasClick);
@@ -3070,11 +3198,6 @@ export default function FpsGame() {
       const spawnZ = player.getZ();
       const spawnYaw = player.getYaw?.() ?? 0;
       const getShadowFrameOpts = () => {
-        const barrelFireShadowCount = updateOilBarrelFireShadowBudget(
-          oilBarrelRuntimeIndex.fireLights,
-          camera.position,
-          oilBarrelTuningRef.current
-        );
         return {
           sunCastsShadow:
             sunRef.current?.castShadow && sunRef.current.intensity > 0.001,
@@ -3082,7 +3205,6 @@ export default function FpsGame() {
             moonRef.current?.castShadow && moonRef.current.intensity > 0.001,
           dayNightAnimating: false,
           flashlightShadow: weapon?.isFlashlightCastingShadow?.() ?? false,
-          barrelFireShadowCount,
         };
       };
       if (gpuWarmMode === "full") {
@@ -3225,6 +3347,8 @@ export default function FpsGame() {
       disposeAllGrenades(grenades, scene);
       disposeAllGrenadeDrops(grenadeDrops);
       disposeAllBloodSplatters(bloodSplatters, scene);
+      laserTracers?.dispose();
+      laserTracers = null;
       scorePopupLayer?.dispose();
       scorePopupLayer = null;
       scorePopupContainer?.remove();
@@ -3597,7 +3721,7 @@ export default function FpsGame() {
 
       <div className="hudScorePanel" role="status" aria-label="Combat score">
         <span className="hudScoreLabel">SCORE</span>
-        <strong ref={scoreHudRef} className="hudScoreValue">2000</strong>
+        <strong ref={scoreHudRef} className="hudScoreValue">0</strong>
       </div>
 
       {/* Compass — top centre, aligned with stamina / health bars */}
@@ -4067,6 +4191,23 @@ export default function FpsGame() {
             </SettingsSection>
 
             <SettingsSection title="Development">
+              <p className="settingsGroupLabel">Weapons</p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={devStartBothPrimaryWeapons}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setDevStartBothPrimaryWeapons(enabled);
+                    saveDevStartBothPrimaryWeapons(enabled);
+                  }}
+                />
+                <span>Start with pistol + rifle</span>
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                On by default in local dev. Applies on the next Start Game — rifle
+                is unlocked with shop ammo; pistol unchanged.
+              </p>
               <p className="settingsGroupLabel">Level</p>
               <div className="sliderRow">
                 <span className="sliderLabel">Arena config</span>
@@ -4197,6 +4338,30 @@ export default function FpsGame() {
               <label className="settingRow">
                 <input
                   type="checkbox"
+                  checked={primaryWeaponTuneEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setPrimaryWeaponTuneEnabled(enabled);
+                    primaryWeaponTuneEnabledRef.current = enabled;
+                    savePrimaryWeaponTuneEnabled(enabled);
+                    if (enabled) {
+                      requestPrimaryWeaponTuneWeapon(
+                        primaryWeaponTuneWeaponRef.current,
+                      );
+                    } else {
+                      pendingPrimaryWeaponTuneSwapRef.current = null;
+                    }
+                  }}
+                />
+                <span>Weapon &amp; laser tuning wizard</span>
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Pistol or rifle — Hip/Aim pose and per-weapon laser offset in one
+                panel. Live beam while open; auto-saves to local storage.
+              </p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
                   checked={roundDisplayTuneEnabled}
                   onChange={(e) => {
                     const enabled = e.target.checked;
@@ -4308,6 +4473,46 @@ export default function FpsGame() {
           tuning={toxicOilSpillTuning}
           onChange={handleToxicOilSpillTuningChange}
           onClose={closeToxicOilSpillTune}
+        />
+      ) : null}
+      {loadDone &&
+      primaryWeaponTuneEnabled &&
+      !controlsOpen &&
+      !consoleHackOpen ? (
+        <PrimaryWeaponTunePanel
+          weaponId={primaryWeaponTuneWeapon}
+          onWeaponChange={requestPrimaryWeaponTuneWeapon}
+          tuneMode={primaryWeaponTuneMode}
+          onTuneModeChange={(mode) => {
+            setPrimaryWeaponTuneMode(mode);
+            primaryWeaponTuneModeRef.current = mode;
+          }}
+          pistolHipPose={pistolHipPose}
+          pistolAdsPose={pistolAdsPose}
+          onPistolHipChange={setPistolHipPose}
+          onPistolAdsChange={setPistolAdsPose}
+          rifleHipPose={hipWeaponPose}
+          rifleAdsPose={adsWeaponPose}
+          onRifleHipChange={setHipWeaponPose}
+          onRifleAdsChange={setAdsWeaponPose}
+          laserTuning={laserEmitterTuning}
+          onLaserChange={handleLaserEmitterTuningChange}
+          crosshairTuning={crosshairTuning}
+          onCrosshairChange={setCrosshairTuning}
+          maxLookRate={maxLookRate}
+          onMaxLookRateChange={setMaxLookRate}
+          bodyLookUpAmount={bodyLookUpAmount}
+          onBodyLookUpAmountChange={setBodyLookUpAmount}
+          bodyLookDownAmount={bodyLookDownAmount}
+          onBodyLookDownAmountChange={setBodyLookDownAmount}
+          onReleasePointer={safeExitPointerLock}
+          onClose={() => {
+            saveLaserEmitterTuning(laserEmitterTuningRef.current);
+            setPrimaryWeaponTuneEnabled(false);
+            primaryWeaponTuneEnabledRef.current = false;
+            pendingPrimaryWeaponTuneSwapRef.current = null;
+            savePrimaryWeaponTuneEnabled(false);
+          }}
         />
       ) : null}
       {loadDone &&

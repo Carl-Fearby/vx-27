@@ -332,8 +332,8 @@ export default function PistolTunePanel({
 
       <p className="settingsHint weaponTunePanelFooter">
         {poseMode === "ads"
-          ? "Aim tab previews ADS on the pistol. Press V or B to toggle weapons if needed."
-          : "Hip carry pose for the Azure Pulse Pistol."}
+          ? "Aim tab previews ADS. Live laser shows hitscan aim — align the model to the beam."
+          : "Hip carry pose for the Azure Pulse Pistol. Live laser shows hitscan aim."}
       </p>
     </div>
   );

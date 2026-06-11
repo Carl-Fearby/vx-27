@@ -24,7 +24,7 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
-  { label: "BUILD", value: `v${BUILD_VERSION} · cinematic laser bolts · shop denied buzz · ADS tuning` },
+  { label: "BUILD", value: `v${BUILD_VERSION} · cinematic lasers · rifle shop · live redeploy` },
   { label: "PLATFORM", value: "Desktop · iPad Safari · zero install" },
   { label: "ZONE", value: "Exclusion sector · sealed" },
   { label: "RENDER", value: "WebGL · Three.js · GPU preload on load" },
@@ -44,6 +44,11 @@ const NODE_BREACH_SPECS = [
 ];
 
 const WHATS_NEW = [
+  {
+    tag: "v0.1.53",
+    title: "Live redeploy",
+    text: "Version history stats synced to current HEAD; static export redeployed so marketing, /version, and /game all read v0.1.53.",
+  },
   {
     tag: "v0.1.52",
     title: "Cinematic laser bolts",
@@ -792,7 +797,7 @@ export default function MarketingSite() {
           You were sent to recover a weapon. You found something worse.
         </p>
         <p className="mktLaunchBuildNote">
-          Now live · v{BUILD_VERSION} · cinematic lasers · rifle shop · NODE BREACH · soundtrack at /music
+          Now live · v{BUILD_VERSION} · cinematic lasers · rifle shop · NODE BREACH
         </p>
         <Link href="/game" className="mktPlayBtn mktPlayBtnLaunch">
           <span className="mktPlayBtnLabel">Launch VX-27</span>

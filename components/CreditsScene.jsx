@@ -236,6 +236,7 @@ const SECTIONS = [
       ["Hot Reload Survivor", staffAt(84)],
       ["Git Commit Message Poet", staffAt(85)],
       ["Marketing Site Refresh Lead", staffAt(120)],
+      ["Git Commit History HEAD Sync Officer", staffAt(152)],
       ["Merge Conflict Resolver", staffAt(86)],
       ["Force Push Avoider (Mostly)", staffAt(87)],
     ],

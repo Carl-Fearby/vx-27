@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-11T21:51:57.537Z",
-  "head": "27a8996",
-  "count": 198,
+  "generatedAt": "2026-06-11T23:14:33.967Z",
+  "head": "456b669",
+  "count": 200,
   "codebase": {
     "files": 250,
-    "lines": 84236,
-    "nonBlankLines": 76864
+    "lines": 84607,
+    "nonBlankLines": 77211
   },
   "historyStats": {
-    "filesChanged": 2271,
-    "insertions": 132085,
-    "deletions": 42386,
+    "filesChanged": 2288,
+    "insertions": 132623,
+    "deletions": 42531,
     "binaryFiles": 632
   },
   "commits": [
+    {
+      "sha": "456b669",
+      "date": "2026-06-12",
+      "subject": "Release v0.1.52: Cinematic lasers, ADS tuning, and shop fixes.",
+      "stats": {
+        "filesChanged": 15,
+        "insertions": 506,
+        "deletions": 135,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "ecdf5a4",
+      "date": "2026-06-11",
+      "subject": "Refresh version history after v0.1.51 release.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 32,
+        "deletions": 10,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "27a8996",
       "date": "2026-06-11",

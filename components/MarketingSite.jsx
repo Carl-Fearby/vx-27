@@ -24,7 +24,7 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
-  { label: "BUILD", value: `v${BUILD_VERSION} · container ceiling light · kill pre-bake` },
+  { label: "BUILD", value: `v${BUILD_VERSION} · cinematic laser bolts · shop denied buzz · ADS tuning` },
   { label: "PLATFORM", value: "Desktop · iPad Safari · zero install" },
   { label: "ZONE", value: "Exclusion sector · sealed" },
   { label: "RENDER", value: "WebGL · Three.js · GPU preload on load" },
@@ -32,7 +32,7 @@ const TELEMETRY = [
 ];
 
 const NODE_BREACH_SPECS = [
-  ["Console access", "H at prompt · H again to end early"],
+  ["Console access", "H or click screen/body · H again to end early"],
   ["Breach grid", "WASD select nodes · SPACE confirm routes"],
   ["Timer", "60s pressure · security trip retries same seed"],
   ["Security shuffle", "Death moves one tripped node · clock resets"],
@@ -44,6 +44,51 @@ const NODE_BREACH_SPECS = [
 ];
 
 const WHATS_NEW = [
+  {
+    tag: "v0.1.52",
+    title: "Cinematic laser bolts",
+    text: "Short dual-layer glow pulses from the muzzle — tracked through sway and recoil. Tighter ADS zoom, slower aim strafe, shop denied audio when credits fall short, and purchase crosshair in the buy ring.",
+  },
+  {
+    tag: "v0.1.51",
+    title: "Laser tracers & weapon tuning",
+    text: "Pooled muzzle-aligned laser tracers restored; pistol and rifle headshot damage falls off with distance. Primary-weapon dev wizard previews emitter alignment live.",
+  },
+  {
+    tag: "v0.1.50",
+    title: "North-wall rifle shop",
+    text: "Start pistol-only — earn credits, face the VX-27 poster on the north perimeter, click or E in the purchase ring to buy the tactical pulse rifle. Shop sounds on pass or fail.",
+  },
+  {
+    tag: "v0.1.50",
+    title: "Hack crosshairs & toxic spill",
+    text: "Console and shop crosshairs fade in when you aim — click the screen or press H to breach. Toxic oil spill PBR decal pools under the barrel pile.",
+  },
+  {
+    tag: "v0.1.46",
+    title: "Grenade cooldown HUD",
+    text: "Five-second throw cooldown with blue, orange, and red drain bar; slots 3–4 for grenade types. Trajectory arc preview, container shell bounce, and No [type] left toast.",
+  },
+  {
+    tag: "v0.1.47",
+    title: "Interact prompts",
+    text: "Door, hack, shop, and grenade cooldown share one centre-screen mono prompt — hack stays visible while you aim at the console.",
+  },
+  {
+    tag: "v0.1.42",
+    title: "Container ceiling flicker",
+    text: "VX-27 interior light runs shared CandleFlicker — fast ballast buzz and random blackouts without killing frame rate.",
+  },
+  {
+    tag: "v0.1.42",
+    title: "Fire-mode HUD carousel",
+    text: "Weapon and grenade selectors moved to a right-side carousel with night-aware bullet icons.",
+  },
+  {
+    tag: "v0.1.43",
+    title: "Ragdoll kills",
+    text: "Corpses freeze in their landing pose — no leg vibration or post-settle snap. Closed containers hide interiors until you enter or open a door.",
+  },
   {
     tag: "v0.1.41",
     title: "Enemy vocal distance",
@@ -63,11 +108,6 @@ const WHATS_NEW = [
     tag: "v0.1.39",
     title: "Kill pre-bake",
     text: "Game logic pre-warms headshot ragdolls when you share a container with a target or have line of sight — load-screen GPU bake for every target too.",
-  },
-  {
-    tag: "v0.1.39",
-    title: "Container performance",
-    text: "Frustum culling hides off-screen crate interiors; interior updates skip when culled. Game-logic kill pre-bake warms ragdolls before the shot.",
   },
   {
     tag: "v0.1.38",
@@ -93,11 +133,6 @@ const WHATS_NEW = [
     tag: "v0.1.37",
     title: "Hack UI & weather",
     text: "NODE BREACH overlay with animated nodes, secure-channel pulse bars, and a layout tuning wizard. Outdoor rain and snow with intensity sliders — mutually exclusive, off inside containers.",
-  },
-  {
-    tag: "v0.1.37",
-    title: "Console screen flash",
-    text: "Screen C turns green on hack success and red on failure or early exit. Dev brightness tuning for sheltered and room consoles.",
   },
   {
     tag: "v0.1.24",
@@ -219,8 +254,8 @@ const OPS = [
   {
     code: "HCK",
     title: "NODE BREACH console hack",
-    body: "H at a facing console opens the breach grid — WASD to select nodes, SPACE to confirm routes, security columns to dodge, 60s timer throughout. Neon Gate Rush plays while combat mix stays muted; success flashes screen C green; bail with H and it stays red for what's left on the clock.",
-    accent: "H breach · H end",
+    body: "H or click at a facing console opens the breach grid — WASD to select nodes, SPACE to confirm routes, security columns to dodge, 60s timer throughout. Crosshair fades in on aim; Neon Gate Rush plays while combat mix stays muted; success flashes screen C green; bail with H and it stays red for what's left on the clock.",
+    accent: "H or click · crosshair",
   },
   {
     code: "PNL",
@@ -235,16 +270,22 @@ const OPS = [
     accent: "mutually exclusive",
   },
   {
+    code: "SHP",
+    title: "North-wall rifle shop",
+    body: "Pistol-only breach — earn score, face the VX-27 poster on the north perimeter, click or E in the purchase disc to unlock the tactical pulse rifle. Denied and purchase audio when credits fall short or the deal closes.",
+    accent: "credits · click or E",
+  },
+  {
     code: "CRG",
     title: "VX-27 cargo module",
-    body: "Corrugated shell, rounded roof matching the floor, interior liner, and twin doors on E. Thirty-seven PBR maps shipped as WebP — ~96% lighter. Bullet holes stick to doors open or closed.",
-    accent: "WebP · E interact",
+    body: "Corrugated shell, rounded roof matching the floor, interior liner, and twin doors on E. CandleFlicker ceiling light with ballast buzz and random blackouts. Thirty-seven PBR maps shipped as WebP — bullet holes stick to doors open or closed.",
+    accent: "flicker light · E interact",
   },
   {
     code: "WPN",
     title: "Iron-sight gunplay",
-    body: "Recoil you can feel, ADS that costs time, muzzle-aligned laser tracers in weapon blue, torch on F for night work. N toggles sun and moon with a ten-second crossfade.",
-    accent: "hitscan + Line2 tracers",
+    body: "Pistol start or earned rifle — recoil you can feel, ADS that costs time, pooled muzzle-aligned laser tracers in weapon blue, torch on F for night work. N toggles sun and moon with a ten-second crossfade.",
+    accent: "pistol · rifle shop",
   },
   {
     code: "MOV",
@@ -253,10 +294,16 @@ const OPS = [
     accent: "0.12s response",
   },
   {
+    code: "GRN",
+    title: "Grenades & cooldown",
+    body: "Throw with arc preview, five-second cooldown drain bar, and full sphere bounce inside cargo shells. Slots 3–4 for types; catwalk kill drops stay on the deck where you dropped them.",
+    accent: "5s cooldown · container bounce",
+  },
+  {
     code: "HZD",
     title: "Burning barrels",
-    body: "Stacked oil drums, interior fire video, dual flicker lights per barrel with independent shadow play. SE corner pile mirrors the module hazard layout.",
-    accent: "paired dynamic light",
+    body: "Stacked oil drums, interior fire video, dual flicker lights per barrel. Toxic PBR spill decal under the pile; SE corner layout mirrors the module hazard zone.",
+    accent: "toxic spill · paired light",
   },
   {
     code: "NAV",
@@ -411,9 +458,9 @@ export default function MarketingSite() {
           <p className="mktKicker">Transmission · build {BUILD_VERSION}</p>
           <h2 id="whats-new-heading">What landed this week</h2>
           <p className="mktWhatsNewDeck">
-            Procedural control panel consoles, NODE BREACH grid hacking with screen C flashes,
-            Neon Gate Rush hack audio, score disk collectibles, outdoor rain and snow, and a
-            dedicated /music soundtrack page — plus iPad touch and GPU preload.
+            North-wall rifle shop, grenade cooldown and container bounce, hack and shop crosshairs,
+            toxic oil spill, laser tracers and headshot falloff, container ceiling flicker, and
+            unified interact prompts — plus NODE BREACH, rain and snow, and GPU preload.
             Play v{BUILD_VERSION} in your browser; no install.
           </p>
         </div>
@@ -454,9 +501,9 @@ export default function MarketingSite() {
           <h2>Face the console. Breach the grid. Beat the clock.</h2>
           <p className="mktBreachLead">
             Industrial control panels now sit in the arena — procedural hull, emissive screen C,
-            shelf D overlays, and a full-screen NODE BREACH overlay when you press H. Route power,
-            dodge security nodes, and read the monitor: green means you got away with it, red means
-            you did not.
+            shelf D overlays, and a full-screen NODE BREACH overlay when you press H or click the
+            console. Route power, dodge security nodes, and read the monitor: green means you got
+            away with it, red means you did not.
           </p>
           <dl className="mktBreachSpecs">
             {NODE_BREACH_SPECS.map(([label, value]) => (
@@ -468,7 +515,7 @@ export default function MarketingSite() {
           </dl>
           <Link href="/game" className="mktPlayBtn mktPlayBtnCompact">
             <span className="mktPlayBtnLabel">Breach a console</span>
-            <span className="mktPlayBtnSub">H at prompt · desktop or iPad</span>
+            <span className="mktPlayBtnSub">H or click · desktop or iPad</span>
           </Link>
         </div>
       </section>
@@ -604,15 +651,19 @@ export default function MarketingSite() {
           <ul className="mktIntelList">
             <li>Desktop FPS — WASD, sprint, crouch, aim, torch on F, day/night on N</li>
             <li>iPad &amp; touch — move stick, look drag, FIRE / AIM / JUMP / USE buttons</li>
-            <li>Muzzle-aligned laser tracers and contextual F-for-flashlight hints at night</li>
-            <li>NODE BREACH console hack — grid routing, security nodes, 60s timer, H to breach or end early</li>
+            <li>Pistol start — earn credits at the north-wall VX-27 shop to unlock the rifle</li>
+            <li>Pooled muzzle-aligned laser tracers and distance headshot falloff</li>
+            <li>Grenades — arc preview, 5s cooldown bar, container shell bounce, slots 3–4</li>
+            <li>NODE BREACH console hack — grid routing, security nodes, 60s timer, H or click</li>
+            <li>Console and shop crosshairs fade in on aim; unified centre-screen interact prompts</li>
             <li>Procedural control panel — hull PBR, screen C emissive flash, shelf D quad overlays</li>
             <li>Neon Gate Rush hack theme · combat mix muted during breach · /music preview page</li>
             <li>Score token disks, hack reward flashes, outdoor rain and snow intensity sliders</li>
-            <li>VX-27 cargo container — open doors on E, bullet decals on shell</li>
+            <li>VX-27 cargo container — flickering ceiling light, open doors on E, bullet decals</li>
+            <li>Toxic oil spill decal under the barrel pile · burning drums with fire video</li>
             <li>Catwalks, stairs, attached service rooms with pillar-shell lighting</li>
-            <li>Dumped barrel pile and burning open-top drum — SE corner layout</li>
-            <li>Grenades, health, stamina pickups — full HUD with compass and radar</li>
+            <li>Fire-mode HUD carousel — weapon and grenade selectors with night-aware icons</li>
+            <li>Health, stamina pickups — full HUD with compass and radar</li>
             <li>GPU preload on the loading bar — fewer first-frame hitches after Start Game</li>
           </ul>
           <p className="mktIntelBody" style={{ marginTop: "1rem" }}>
@@ -741,7 +792,7 @@ export default function MarketingSite() {
           You were sent to recover a weapon. You found something worse.
         </p>
         <p className="mktLaunchBuildNote">
-          Now live · v{BUILD_VERSION} · container ceiling light · NODE BREACH · soundtrack at /music
+          Now live · v{BUILD_VERSION} · cinematic lasers · rifle shop · NODE BREACH · soundtrack at /music
         </p>
         <Link href="/game" className="mktPlayBtn mktPlayBtnLaunch">
           <span className="mktPlayBtnLabel">Launch VX-27</span>

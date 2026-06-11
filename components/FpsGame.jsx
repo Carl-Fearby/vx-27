@@ -2160,7 +2160,7 @@ export default function FpsGame() {
       sceneRef.current = scene;
 
       const HIP_FOV = 75;
-      const ADS_FOV = 52;
+      const ADS_FOV = 41.6;
       const camera = new THREE.PerspectiveCamera(
         HIP_FOV,
         window.innerWidth / window.innerHeight,
@@ -2757,7 +2757,9 @@ export default function FpsGame() {
             return null;
           }
           primaryWeapons[id] = loadedWeapon;
-          loadedWeapon.holder.visible = id === activePrimaryId;
+          loadedWeapon.holder.visible =
+            id === activePrimaryId ||
+            pendingWallWeaponEquipRef.current === id;
           primeLoadedPrimaryWeapon(id, loadedWeapon);
           return loadedWeapon;
         })
@@ -4205,8 +4207,8 @@ export default function FpsGame() {
                 <span>Start with pistol + rifle</span>
               </label>
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                On by default in local dev. Applies on the next Start Game — rifle
-                is unlocked with shop ammo; pistol unchanged.
+                On by default in local dev (pistol-only at 0 pts in production).
+                Applies on the next Start Game — rifle unlocked with shop ammo.
               </p>
               <p className="settingsGroupLabel">Level</p>
               <div className="sliderRow">

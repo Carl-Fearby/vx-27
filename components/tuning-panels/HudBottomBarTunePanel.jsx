@@ -50,9 +50,10 @@ function SliderField({ label, value, min, max, step, onChange }) {
  * @param {{
  *   tuning: import("@/lib/ui/HudBottomBarTuning.js").HudBottomBarTuning,
  *   onChange: (next: import("@/lib/ui/HudBottomBarTuning.js").HudBottomBarTuning) => void,
+ *   onClose?: () => void,
  * }} props
  */
-export default function HudBottomBarTunePanel({ tuning, onChange }) {
+export default function HudBottomBarTunePanel({ tuning, onChange, onClose }) {
   const patch = (partial) => onChange({ ...tuning, ...partial });
 
   const panel = (
@@ -62,7 +63,19 @@ export default function HudBottomBarTunePanel({ tuning, onChange }) {
       onClick={(e) => e.stopPropagation()}
     >
       <div className="weaponTunePanelHeader">
-        <strong>Ammo HUD layout</strong>
+        <div className="tunePanelHeader">
+          <strong>Ammo HUD layout</strong>
+          {onClose ? (
+            <button
+              type="button"
+              className="tunePanelClose"
+              aria-label="Close ammo HUD layout"
+              onClick={onClose}
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
       </div>
       <div className="weaponTunePanelScroll">
         <p className="settingsHint">ROUNDS · MAG · MAGS positions (% of bar width).</p>

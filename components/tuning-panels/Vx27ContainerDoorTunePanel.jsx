@@ -81,9 +81,10 @@ function SliderField({
  * @param {{
  *   tuning: import("@/lib/vx27-container/CargoModuleDoorGeometryTuning.js").CargoModuleDoorTuning,
  *   onChange: (next: import("@/lib/vx27-container/CargoModuleDoorGeometryTuning.js").CargoModuleDoorTuning) => void,
+ *   onClose?: () => void,
  * }} props
  */
-export default function Vx27ContainerDoorTunePanel({ tuning, onChange }) {
+export default function Vx27ContainerDoorTunePanel({ tuning, onChange, onClose }) {
   const L = VX27_CONTAINER_DOOR_LIMITS;
   const patch = (partial) => onChange({ ...tuning, ...partial });
 
@@ -101,7 +102,19 @@ export default function Vx27ContainerDoorTunePanel({ tuning, onChange }) {
       onClick={(e) => e.stopPropagation()}
     >
       <div className="weaponTunePanelHeader">
-        <strong>Cargo door geometry</strong>
+        <div className="tunePanelHeader">
+          <strong>Cargo door geometry</strong>
+          {onClose ? (
+            <button
+              type="button"
+              className="tunePanelClose"
+              aria-label="Close cargo door geometry"
+              onClick={onClose}
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
       </div>
       <div className="weaponTunePanelScroll">
         <p className="settingsHint">

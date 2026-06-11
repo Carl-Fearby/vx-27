@@ -88,9 +88,10 @@ function SliderField({
  * @param {{
  *   placement: import("@/lib/vx27-container/CargoModulePropsTuning.js").CargoModulePropsPlacement,
  *   onChange: (next: import("@/lib/vx27-container/CargoModulePropsTuning.js").CargoModulePropsPlacement) => void,
+ *   onClose?: () => void,
  * }} props
  */
-export default function CargoModulePropsTunePanel({ placement, onChange }) {
+export default function CargoModulePropsTunePanel({ placement, onChange, onClose }) {
   const patchConsole = (partial) =>
     onChange({
       ...placement,
@@ -110,7 +111,19 @@ export default function CargoModulePropsTunePanel({ placement, onChange }) {
       onClick={(e) => e.stopPropagation()}
     >
       <div className="weaponTunePanelHeader">
-        <strong>Cargo module props</strong>
+        <div className="tunePanelHeader">
+          <strong>Cargo module props</strong>
+          {onClose ? (
+            <button
+              type="button"
+              className="tunePanelClose"
+              aria-label="Close cargo module props"
+              onClick={onClose}
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
       </div>
       <div className="weaponTunePanelScroll">
         <p className="settingsHint">

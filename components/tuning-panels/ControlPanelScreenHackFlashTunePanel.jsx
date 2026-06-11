@@ -72,9 +72,9 @@ export default function ControlPanelScreenHackFlashTunePanel({
         <span>Hack screen colours</span>
         <button
           type="button"
-          className="hudTuneClose"
+          className="tunePanelClose"
           onClick={onClose}
-          aria-label="Close"
+          aria-label="Close hack screen colours"
         >
           ×
         </button>

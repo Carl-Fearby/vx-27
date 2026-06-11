@@ -145,11 +145,12 @@ export default function ConsoleHackTunePanel({
         <h2>Console layout wizard</h2>
         <button
           type="button"
-          className="consoleHackTuneClose"
+          className="tunePanelClose"
+          aria-label="Close console layout wizard"
           onClick={onClose}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          Close
+          ×
         </button>
       </header>
       <p className="consoleHackTuneHint">

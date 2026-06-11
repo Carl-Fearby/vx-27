@@ -1,19 +1,52 @@
 {
-  "generatedAt": "2026-06-10T23:08:39.051Z",
-  "head": "23afdcd",
-  "count": 191,
+  "generatedAt": "2026-06-11T14:21:54.628Z",
+  "head": "4e79236",
+  "count": 194,
   "codebase": {
-    "files": 239,
-    "lines": 80047,
-    "nonBlankLines": 72958
+    "files": 242,
+    "lines": 81690,
+    "nonBlankLines": 74478
   },
   "historyStats": {
-    "filesChanged": 2195,
-    "insertions": 127247,
-    "deletions": 41803,
+    "filesChanged": 2202,
+    "insertions": 127551,
+    "deletions": 41866,
     "binaryFiles": 620
   },
   "commits": [
+    {
+      "sha": "4e79236",
+      "date": "2026-06-11",
+      "subject": "Fix v0.1.49 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "ac8dbe5",
+      "date": "2026-06-11",
+      "subject": "Release v0.1.49: Grenade pickup flash and trajectory perf.",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 286,
+        "deletions": 56,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "c88c9fe",
+      "date": "2026-06-11",
+      "subject": "Regenerate version history after v0.1.48 deploy build.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 17,
+        "deletions": 6,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "23afdcd",
       "date": "2026-06-11",

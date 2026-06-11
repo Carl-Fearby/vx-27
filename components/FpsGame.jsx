@@ -158,6 +158,8 @@ import {
   getPrimaryWeaponIdFromSlotInput,
   wasPrimarySwapPressed,
 } from "@/lib/weapons/PrimaryWeaponSlots";
+import { createRifleShop } from "@/lib/weapons/RifleShop";
+import { createDefaultWallShopStages } from "@/lib/weapons/WallWeaponShop";
 import {
   DEFAULT_PISTOL_ADS_POSE,
   DEFAULT_PISTOL_HIP_POSE,
@@ -295,6 +297,17 @@ import {
   disposeBarrelPlacementHighlights,
   updateBarrelPlacementHighlights,
 } from "@/lib/oil-barrel/OilBarrelPlacementHighlight";
+import {
+  applyToxicOilSpillTuning,
+  createToxicOilSpill,
+  disposeToxicOilSpill,
+} from "@/lib/oil-barrel/ToxicOilSpill";
+import {
+  loadToxicOilSpillTuning,
+  loadToxicOilSpillTuneEnabled,
+  saveToxicOilSpillTuning,
+  saveToxicOilSpillTuneEnabled,
+} from "@/lib/oil-barrel/ToxicOilSpillTuning";
 import { resetArenaCeilingDayNightCache } from "@/lib/lighting/ArenaCeilingDayNight";
 import { applyCombatScore, formatKillCallout } from "@/lib/combat/Score";
 import { createScorePopupLayer } from "@/lib/combat/ScorePopups";
@@ -367,7 +380,18 @@ import {
 import {
   DEFAULT_AIM_ROUND_DISPLAY,
   DEFAULT_HIP_ROUND_DISPLAY,
+  DEFAULT_PISTOL_AIM_ROUND_DISPLAY,
+  DEFAULT_PISTOL_HIP_ROUND_DISPLAY,
+  getPistolRoundDisplayTuning,
+  getWeaponRoundDisplayTuning,
+  loadPistolRoundDisplayTuneEnabled,
+  loadPistolRoundDisplayTuning,
+  loadWeaponRoundDisplayTuneEnabled,
   loadWeaponRoundDisplayTuning,
+  savePistolRoundDisplayTuneEnabled,
+  savePistolRoundDisplayTuning,
+  saveWeaponRoundDisplayTuneEnabled,
+  saveWeaponRoundDisplayTuning,
 } from "@/lib/weapons/WeaponRoundDisplayTuning";
 import {
   shouldDropAmmoCrate,
@@ -380,8 +404,10 @@ import HudCompass from "@/components/HudCompass";
 import HudFireModeCarousel from "@/components/HudFireModeCarousel";
 import HudPrimaryWeaponStack from "@/components/HudPrimaryWeaponStack";
 import OilBarrelPlacementTunePanel from "@/components/tuning-panels/OilBarrelPlacementTunePanel";
+import ToxicOilSpillTunePanel from "@/components/tuning-panels/ToxicOilSpillTunePanel";
 import Vx27ContainerDoorTunePanel from "@/components/tuning-panels/Vx27ContainerDoorTunePanel";
 import CargoModulePropsTunePanel from "@/components/tuning-panels/CargoModulePropsTunePanel";
+import WeaponRoundDisplayTunePanel from "@/components/tuning-panels/WeaponRoundDisplayTunePanel";
 import {
   loadCargoModuleDoorTuning,
   loadCargoModuleDoorTuneEnabled,
@@ -946,7 +972,13 @@ export default function FpsGame() {
   const missionTimerHudRef = useRef(null);
   const hostileCountHudRef = useRef(null);
   const scoreHudRef = useRef(null);
-  const playerScoreRef = useRef(0);
+  const STARTING_PLAYER_SCORE = 2000;
+  const playerScoreRef = useRef(STARTING_PLAYER_SCORE);
+  const rifleUnlockedRef = useRef(false);
+  const wallShopStageRef = useRef(createDefaultWallShopStages());
+  /** @type {import("@/lib/weapons/PrimaryWeapons.js").PrimaryWeaponId | null} */
+  const pendingWallWeaponEquipRef = useRef(null);
+  const rifleShopRef = useRef(null);
   const playerCoordsMenuRef = useRef(null);
   const showHudRef = useRef(true);
   const gameRootRef = useRef(null);
@@ -1040,6 +1072,14 @@ export default function FpsGame() {
   const [cargoModulePropsTuneEnabled, setCargoModulePropsTuneEnabled] =
     useState(() => loadCargoModulePropsTuneEnabled());
   const cargoModulePropsRef = useRef(loadCargoModulePropsPlacement());
+  const [toxicOilSpillTuning, setToxicOilSpillTuning] = useState(() =>
+    loadToxicOilSpillTuning(),
+  );
+  const [toxicOilSpillTuneEnabled, setToxicOilSpillTuneEnabled] = useState(() =>
+    loadToxicOilSpillTuneEnabled(),
+  );
+  const toxicOilSpillTuningRef = useRef(loadToxicOilSpillTuning());
+  const toxicOilSpillRef = useRef(null);
   const [snowEnabled, setSnowEnabled] = useState(() => loadSnowEnabled());
   const snowEnabledRef = useRef(loadSnowEnabled());
   const [snowIntensity, setSnowIntensity] = useState(() => loadSnowIntensity());
@@ -1211,6 +1251,35 @@ export default function FpsGame() {
   function closeOilBarrelPlacementTune() {
     setOilBarrelPlacementTuneEnabled(false);
     saveOilBarrelPlacementTuneEnabled(false);
+  }
+
+  function closeCargoModuleDoorTune() {
+    setCargoModuleDoorTuneEnabled(false);
+    saveCargoModuleDoorTuneEnabled(false);
+  }
+
+  function closeCargoModulePropsTune() {
+    setCargoModulePropsTuneEnabled(false);
+    saveCargoModulePropsTuneEnabled(false);
+  }
+
+  function closeToxicOilSpillTune() {
+    setToxicOilSpillTuneEnabled(false);
+    saveToxicOilSpillTuneEnabled(false);
+  }
+
+  function applyToxicOilSpill(tuning) {
+    const spill = toxicOilSpillRef.current;
+    if (!spill?.group) return;
+    const floorY = levelRef.current?.floorY ?? 0;
+    applyToxicOilSpillTuning(spill, floorY, tuning);
+  }
+
+  function handleToxicOilSpillTuningChange(next) {
+    toxicOilSpillTuningRef.current = next;
+    setToxicOilSpillTuning(next);
+    saveToxicOilSpillTuning(next);
+    applyToxicOilSpill(next);
   }
 
   function refreshBarrelPlacementEditorUi(state) {
@@ -1400,19 +1469,20 @@ export default function FpsGame() {
   const dayNightToggleRef = useRef(null);
   const hemiDayRef = useRef(loadHemiDay());
   const hemiNightRef = useRef(loadHemiNight());
-  const [fireMode, setFireMode] = useState("auto");
-  const [activePrimaryWeapon, setActivePrimaryWeapon] = useState("rifle");
+  const [fireMode, setFireMode] = useState("single");
+  const [rifleUnlocked, setRifleUnlocked] = useState(false);
+  const [activePrimaryWeapon, setActivePrimaryWeapon] = useState("pistol");
   const [activeMagazineSize, setActiveMagazineSize] = useState(
-    PRIMARY_WEAPONS.rifle.magazineSize,
+    PRIMARY_WEAPONS.pistol.magazineSize,
   );
   const [activeLowAmmoThreshold, setActiveLowAmmoThreshold] = useState(
-    PRIMARY_WEAPONS.rifle.lowAmmoThreshold,
+    PRIMARY_WEAPONS.pistol.lowAmmoThreshold,
   );
   const [roundsInMag, setRoundsInMag] = useState(
-    PRIMARY_WEAPONS.rifle.magazineSize,
+    PRIMARY_WEAPONS.pistol.magazineSize,
   );
   const [spareMags, setSpareMags] = useState(
-    PRIMARY_WEAPONS.rifle.spareMagazines,
+    PRIMARY_WEAPONS.pistol.spareMagazines,
   );
   const [playerHealth, setPlayerHealth] = useState(100);
   const pickupFlashLayerRef = useRef(null);
@@ -1458,7 +1528,7 @@ export default function FpsGame() {
   const hostileCountRef = useRef(0);
   const playerHealthRef = useRef(100);
   const playerLivesRef = useRef(3);
-  const fireModeRef = useRef("auto");
+  const fireModeRef = useRef("single");
   const fireModeByWeaponRef = useRef(createDefaultFireModePool());
   const cycleFireModeHud = useCallback(() => {
     const modes = PRIMARY_WEAPONS[activePrimaryWeapon].fireModes;
@@ -1470,9 +1540,9 @@ export default function FpsGame() {
     fireModeRef.current = resolved;
     setFireMode(resolved);
   }, [activePrimaryWeapon]);
-  const activePrimaryIdRef = useRef("rifle");
-  const roundsInMagRef = useRef(PRIMARY_WEAPONS.rifle.magazineSize);
-  const spareMagsRef = useRef(PRIMARY_WEAPONS.rifle.spareMagazines);
+  const activePrimaryIdRef = useRef("pistol");
+  const roundsInMagRef = useRef(PRIMARY_WEAPONS.pistol.magazineSize);
+  const spareMagsRef = useRef(PRIMARY_WEAPONS.pistol.spareMagazines);
   const setAmmoStateRef = useRef(null);
   const [hipWeaponPose, setHipWeaponPose] = useState(() => {
     if (typeof window === "undefined") return DEFAULT_HIP_POSE;
@@ -1530,6 +1600,40 @@ export default function FpsGame() {
       ? { hip: DEFAULT_HIP_ROUND_DISPLAY, aim: DEFAULT_AIM_ROUND_DISPLAY }
       : loadWeaponRoundDisplayTuning()
   );
+  const [roundDisplayTuneEnabled, setRoundDisplayTuneEnabled] = useState(() =>
+    loadWeaponRoundDisplayTuneEnabled(),
+  );
+  const roundDisplayTuneEnabledRef = useRef(false);
+  const [roundDisplayPreviewAim, setRoundDisplayPreviewAim] = useState(false);
+  const roundDisplayPreviewAimRef = useRef(false);
+  const pendingRifleRoundDisplayTuneSwapRef = useRef(
+    typeof window === "undefined" ? false : loadWeaponRoundDisplayTuneEnabled(),
+  );
+  const [pistolRoundDisplayHip, setPistolRoundDisplayHip] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_PISTOL_HIP_ROUND_DISPLAY;
+    return loadPistolRoundDisplayTuning().hip;
+  });
+  const [pistolRoundDisplayAim, setPistolRoundDisplayAim] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_PISTOL_AIM_ROUND_DISPLAY;
+    return loadPistolRoundDisplayTuning().aim;
+  });
+  const pistolRoundDisplayTuningRef = useRef(
+    typeof window === "undefined"
+      ? {
+          hip: DEFAULT_PISTOL_HIP_ROUND_DISPLAY,
+          aim: DEFAULT_PISTOL_AIM_ROUND_DISPLAY,
+        }
+      : loadPistolRoundDisplayTuning()
+  );
+  const [pistolRoundDisplayTuneEnabled, setPistolRoundDisplayTuneEnabled] =
+    useState(() => loadPistolRoundDisplayTuneEnabled());
+  const pistolRoundDisplayTuneEnabledRef = useRef(false);
+  const [pistolRoundDisplayPreviewAim, setPistolRoundDisplayPreviewAim] =
+    useState(false);
+  const pistolRoundDisplayPreviewAimRef = useRef(false);
+  const pendingPistolRoundDisplayTuneSwapRef = useRef(
+    typeof window === "undefined" ? false : loadPistolRoundDisplayTuneEnabled(),
+  );
   const rebindActionRef = useRef(null);
 
   useEffect(() => {
@@ -1566,6 +1670,11 @@ export default function FpsGame() {
       bodyLookUpAmount: look.bodyLookUpAmount,
       bodyLookDownAmount: look.bodyLookDownAmount,
     };
+
+    const pistolRoundTuning = loadPistolRoundDisplayTuning();
+    pistolRoundDisplayTuningRef.current = pistolRoundTuning;
+    setPistolRoundDisplayHip(pistolRoundTuning.hip);
+    setPistolRoundDisplayAim(pistolRoundTuning.aim);
   }, []);
   weaponTuningRef.current = {
     hip: hipWeaponPose,
@@ -1579,10 +1688,16 @@ export default function FpsGame() {
     bodyLookUpAmount,
     bodyLookDownAmount,
   };
-  roundDisplayTuningRef.current = {
-    hip: roundDisplayHip,
-    aim: roundDisplayAim,
-  };
+  roundDisplayTuningRef.current = roundDisplayTuneEnabled
+    ? { hip: roundDisplayHip, aim: roundDisplayAim }
+    : getWeaponRoundDisplayTuning();
+  roundDisplayTuneEnabledRef.current = roundDisplayTuneEnabled;
+  roundDisplayPreviewAimRef.current = roundDisplayPreviewAim;
+  pistolRoundDisplayTuningRef.current = pistolRoundDisplayTuneEnabled
+    ? { hip: pistolRoundDisplayHip, aim: pistolRoundDisplayAim }
+    : getPistolRoundDisplayTuning();
+  pistolRoundDisplayTuneEnabledRef.current = pistolRoundDisplayTuneEnabled;
+  pistolRoundDisplayPreviewAimRef.current = pistolRoundDisplayPreviewAim;
   crosshairTuningRef.current = crosshairTuning;
   bindingsRef.current = bindings;
   rebindActionRef.current = rebindAction;
@@ -1799,6 +1914,15 @@ export default function FpsGame() {
     applyCargoModuleProps(cargoModulePropsRef.current);
   }, [loadDone, cargoModulePropsTuneEnabled]);
 
+  useEffect(() => {
+    toxicOilSpillTuningRef.current = toxicOilSpillTuning;
+  }, [toxicOilSpillTuning]);
+
+  useEffect(() => {
+    if (!loadDone) return;
+    applyToxicOilSpill(toxicOilSpillTuningRef.current);
+  }, [loadDone]);
+
   const refreshGameplayHintHudRef = useRef(() => {});
 
   invertYRef.current = invertYLook;
@@ -1846,6 +1970,13 @@ export default function FpsGame() {
 
     resetGameGpuPreload();
 
+    playerScoreRef.current = STARTING_PLAYER_SCORE;
+    updateScoreHud(scoreHudRef.current, STARTING_PLAYER_SCORE);
+    rifleUnlockedRef.current = false;
+    wallShopStageRef.current = createDefaultWallShopStages();
+    pendingWallWeaponEquipRef.current = null;
+    setRifleUnlocked(false);
+
     let sky = null;
     let scene = null;
     let levelTextures = null;
@@ -1856,7 +1987,8 @@ export default function FpsGame() {
     let input = null;
     let weapon = null;
     const primaryWeapons = { rifle: null, pistol: null };
-    let activePrimaryId = "rifle";
+    let activePrimaryId = "pistol";
+    let rifleShopInteractMeshesCache = [];
     const ammoPool = createDefaultAmmoPool();
     const weaponSwap = createWeaponSwapController();
     let weaponLoadId = 0;
@@ -2464,14 +2596,25 @@ export default function FpsGame() {
       const rifleCfg = PRIMARY_WEAPONS.rifle;
       const pendingPrimaryWeaponLoads = { rifle: null, pistol: null };
       function primeLoadedPrimaryWeapon(id, loadedWeapon) {
+        const tuningRef = id === "pistol" ? pistolTuningRef : weaponTuningRef;
         if (id === "pistol") {
-          loadedWeapon.update(camera, 0, 0, pistolTuningRef, {
-            snapAim: true,
-          });
-          return;
+          pistolRoundDisplayTuningRef.current = loadPistolRoundDisplayTuning();
+        } else if (id === "rifle") {
+          roundDisplayTuningRef.current = loadWeaponRoundDisplayTuning();
         }
-        loadedWeapon.update(camera, 0, 0, weaponTuningRef, {
-          roundDisplayTuningRef,
+        const displayTuningRef =
+          id === "pistol" ? pistolRoundDisplayTuningRef : roundDisplayTuningRef;
+        const cfg = PRIMARY_WEAPONS[id] ?? rifleCfg;
+        const ammo = ammoPoolSnapshotRef.current[id];
+        loadedWeapon.update(camera, 0, 0, tuningRef, {
+          snapAim: true,
+          roundCount: ammo?.rounds ?? cfg.magazineSize,
+          roundDisplayLow:
+            (ammo?.rounds ?? cfg.magazineSize) < cfg.lowAmmoThreshold ||
+            ((ammo?.rounds ?? 0) === 0 && (ammo?.spare ?? 0) === 0),
+          roundDisplayHp: playerHealthRef.current,
+          roundDisplayStamina: player?.getStamina?.() ?? 1,
+          roundDisplayTuningRef: displayTuningRef,
         });
       }
       function loadPrimaryWeapon(id) {
@@ -2517,13 +2660,30 @@ export default function FpsGame() {
           window.setTimeout(run, 1500);
         }
       }
-      const weaponPromise = loadPrimaryWeapon("rifle").then((rifle) => {
-        if (!rifle || disposed || currentWeaponLoad !== weaponLoadId) return null;
-        weapon = rifle;
-        weaponRef.current = rifle;
-        rifle.holder.visible = true;
-        return rifle;
+      const weaponPromise = loadPrimaryWeapon("pistol").then((pistol) => {
+        if (!pistol || disposed || currentWeaponLoad !== weaponLoadId) return null;
+        weapon = pistol;
+        weaponRef.current = pistol;
+        pistol.holder.visible = true;
+        return pistol;
       });
+      /** Rifle GLB is large — start loading during the load screen, not on wall purchase. */
+      void weaponPromise.then(() => {
+        if (!disposed && currentWeaponLoad === weaponLoadId) {
+          void loadPrimaryWeapon("rifle");
+        }
+      });
+      const rifleShop = createRifleShop(level.group, { maxAnisotropy, arena });
+      rifleShopRef.current = rifleShop;
+      rifleShopInteractMeshesCache.length = 0;
+      rifleShopInteractMeshesCache.push(...rifleShop.interactMeshes);
+      disposeToxicOilSpill(toxicOilSpillRef.current);
+      toxicOilSpillRef.current = createToxicOilSpill(
+        level.group,
+        level.floorY ?? 0,
+        toxicOilSpillTuningRef.current,
+        { maxAnisotropy },
+      );
       hpOrbs = [];
       ammoDrops = [];
       grenades = [];
@@ -2646,6 +2806,12 @@ export default function FpsGame() {
         targetSpawnCtx,
         get scorePopupLayer() { return scorePopupLayer; },
         vx27DoorInteractMeshesCache,
+        rifleUnlockedRef,
+        wallShopStageRef,
+        pendingWallWeaponEquipRef,
+        rifleShopRef,
+        rifleShopInteractMeshesCache,
+        setRifleUnlocked,
         get oilBarrelPickMeshesCache() {
           return oilBarrelPickMeshesRef.current;
         },
@@ -2729,6 +2895,13 @@ export default function FpsGame() {
         oilBarrelFireLightsRef,
         roomLightsRef,
         roundDisplayTuningRef,
+        roundDisplayTuneEnabledRef,
+        roundDisplayPreviewAimRef,
+        pendingRifleRoundDisplayTuneSwapRef,
+        pistolRoundDisplayTuningRef,
+        pistolRoundDisplayTuneEnabledRef,
+        pistolRoundDisplayPreviewAimRef,
+        pendingPistolRoundDisplayTuneSwapRef,
         gameRootRef,
         rendererRef,
         arenaHalf,
@@ -2999,8 +3172,8 @@ export default function FpsGame() {
       gameReady = true;
       reportLoad(100, "Ready");
       setAssetsReady(true);
+      scheduleBackgroundPrimaryWeaponLoad("rifle");
       rafId = requestAnimationFrame(animate);
-      scheduleBackgroundPrimaryWeaponLoad("pistol");
     }
 
     init().catch((err) => {
@@ -3424,7 +3597,7 @@ export default function FpsGame() {
 
       <div className="hudScorePanel" role="status" aria-label="Combat score">
         <span className="hudScoreLabel">SCORE</span>
-        <strong ref={scoreHudRef} className="hudScoreValue">0</strong>
+        <strong ref={scoreHudRef} className="hudScoreValue">2000</strong>
       </div>
 
       {/* Compass — top centre, aligned with stamina / health bars */}
@@ -3964,6 +4137,25 @@ export default function FpsGame() {
                 Move the container pile as a group or tune one barrel. Copy JSON
                 into <code>level1.json</code> props when aligned.
               </p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={toxicOilSpillTuneEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setToxicOilSpillTuneEnabled(enabled);
+                    saveToxicOilSpillTuneEnabled(enabled);
+                    if (enabled) {
+                      applyToxicOilSpill(toxicOilSpillTuningRef.current);
+                    }
+                  }}
+                />
+                <span>Toxic oil spill floor decal panel</span>
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Glowing spill under the container barrel pile — move, resize, and
+                tune emissive/opacity. Copy JSON when aligned.
+              </p>
               <p className="settingsGroupLabel">VX-27 cargo module</p>
               <label className="settingRow">
                 <input
@@ -4000,6 +4192,57 @@ export default function FpsGame() {
               <p className="settingsHint" style={{ marginTop: 0 }}>
                 Bottom-left panel — move the interior console and fire barrel.
                 Copy JSON into <code>level1.json</code> props when aligned.
+              </p>
+              <p className="settingsGroupLabel">Weapons</p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={roundDisplayTuneEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setRoundDisplayTuneEnabled(enabled);
+                    roundDisplayTuneEnabledRef.current = enabled;
+                    saveWeaponRoundDisplayTuneEnabled(enabled);
+                    if (enabled) {
+                      pendingRifleRoundDisplayTuneSwapRef.current = true;
+                    } else {
+                      setRoundDisplayPreviewAim(false);
+                      roundDisplayPreviewAimRef.current = false;
+                    }
+                  }}
+                />
+                <span>Rifle ammo screen tuning wizard</span>
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Align rounds, HP, and stamina with the gun reticule on the
+                rifle receiver. Equips the rifle automatically; Aim tab previews
+                ADS. Copy JSON into{" "}
+                <code>WeaponRoundDisplayTuning.js</code> when aligned.
+              </p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
+                  checked={pistolRoundDisplayTuneEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setPistolRoundDisplayTuneEnabled(enabled);
+                    pistolRoundDisplayTuneEnabledRef.current = enabled;
+                    savePistolRoundDisplayTuneEnabled(enabled);
+                    if (enabled) {
+                      pendingPistolRoundDisplayTuneSwapRef.current = true;
+                    } else {
+                      setPistolRoundDisplayPreviewAim(false);
+                      pistolRoundDisplayPreviewAimRef.current = false;
+                    }
+                  }}
+                />
+                <span>Pistol ammo screen tuning wizard</span>
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Align rounds, HP, and stamina on the pistol slide. Equips the
+                pistol automatically; Aim tab previews ADS while adjusting.
+                Copy JSON into{" "}
+                <code>WeaponRoundDisplayTuning.js</code> when aligned.
               </p>
             </SettingsSection>
             </div>
@@ -4050,17 +4293,114 @@ export default function FpsGame() {
         <Vx27ContainerDoorTunePanel
           tuning={cargoModuleDoorTuning}
           onChange={handleCargoModuleDoorTuningChange}
+          onClose={closeCargoModuleDoorTune}
         />
       ) : null}
       {loadDone && cargoModulePropsTuneEnabled ? (
         <CargoModulePropsTunePanel
           placement={cargoModuleProps}
           onChange={handleCargoModulePropsChange}
+          onClose={closeCargoModulePropsTune}
+        />
+      ) : null}
+      {loadDone && toxicOilSpillTuneEnabled ? (
+        <ToxicOilSpillTunePanel
+          tuning={toxicOilSpillTuning}
+          onChange={handleToxicOilSpillTuningChange}
+          onClose={closeToxicOilSpillTune}
+        />
+      ) : null}
+      {loadDone &&
+      roundDisplayTuneEnabled &&
+      !controlsOpen &&
+      !consoleHackOpen ? (
+        <WeaponRoundDisplayTunePanel
+          title="Rifle ammo screen"
+          hint="Hip and Aim each have their own pose (blended in-game). Sliders auto-save. +X barrel, −X stock. Line up with the gun reticule."
+          defaultHip={DEFAULT_HIP_ROUND_DISPLAY}
+          defaultAim={DEFAULT_AIM_ROUND_DISPLAY}
+          onPersistTuning={saveWeaponRoundDisplayTuning}
+          previewAim={roundDisplayPreviewAim}
+          onPreviewAimChange={setRoundDisplayPreviewAim}
+          hipTuning={roundDisplayHip}
+          aimTuning={roundDisplayAim}
+          onHipChange={(next) => {
+            setRoundDisplayHip(next);
+            roundDisplayTuningRef.current = {
+              hip: next,
+              aim: roundDisplayAim,
+            };
+          }}
+          onAimChange={(next) => {
+            setRoundDisplayAim(next);
+            roundDisplayTuningRef.current = {
+              hip: roundDisplayHip,
+              aim: next,
+            };
+          }}
+          onSnapToReceiver={() =>
+            weaponRef.current?.getRoundDisplaySuggestedPose?.() ?? null
+          }
+          onReleasePointer={safeExitPointerLock}
+          onClose={() => {
+            saveWeaponRoundDisplayTuning(roundDisplayHip, roundDisplayAim);
+            setRoundDisplayPreviewAim(false);
+            setRoundDisplayTuneEnabled(false);
+            roundDisplayPreviewAimRef.current = false;
+            roundDisplayTuneEnabledRef.current = false;
+            saveWeaponRoundDisplayTuneEnabled(false);
+          }}
+        />
+      ) : null}
+      {loadDone &&
+      pistolRoundDisplayTuneEnabled &&
+      !controlsOpen &&
+      !consoleHackOpen ? (
+        <WeaponRoundDisplayTunePanel
+          title="Pistol ammo screen"
+          hint="Hip and Aim each have their own pose (blended in-game). Sliders auto-save. +X barrel, −X grip."
+          defaultHip={DEFAULT_PISTOL_HIP_ROUND_DISPLAY}
+          defaultAim={DEFAULT_PISTOL_AIM_ROUND_DISPLAY}
+          onPersistTuning={savePistolRoundDisplayTuning}
+          previewAim={pistolRoundDisplayPreviewAim}
+          onPreviewAimChange={setPistolRoundDisplayPreviewAim}
+          hipTuning={pistolRoundDisplayHip}
+          aimTuning={pistolRoundDisplayAim}
+          onHipChange={(next) => {
+            setPistolRoundDisplayHip(next);
+            pistolRoundDisplayTuningRef.current = {
+              hip: next,
+              aim: pistolRoundDisplayAim,
+            };
+          }}
+          onAimChange={(next) => {
+            setPistolRoundDisplayAim(next);
+            pistolRoundDisplayTuningRef.current = {
+              hip: pistolRoundDisplayHip,
+              aim: next,
+            };
+          }}
+          onSnapToReceiver={() =>
+            weaponRef.current?.getRoundDisplaySuggestedPose?.() ?? null
+          }
+          onReleasePointer={safeExitPointerLock}
+          onClose={() => {
+            savePistolRoundDisplayTuning(
+              pistolRoundDisplayHip,
+              pistolRoundDisplayAim,
+            );
+            setPistolRoundDisplayPreviewAim(false);
+            setPistolRoundDisplayTuneEnabled(false);
+            pistolRoundDisplayPreviewAimRef.current = false;
+            pistolRoundDisplayTuneEnabledRef.current = false;
+            savePistolRoundDisplayTuneEnabled(false);
+          }}
         />
       ) : null}
       <HudPrimaryWeaponStack
         activePrimaryWeapon={activePrimaryWeapon}
         primaryAmmo={primaryAmmo}
+        rifleUnlocked={rifleUnlocked}
         frameX={grenFrameX}
         frameY={grenFrameY}
         layoutStyle={weaponSlotLayoutStyle}

@@ -10,6 +10,7 @@
  * Usage:
  *   npm run deploy:fasthosts
  *   npm run deploy:fasthosts -- --build-only
+ *   npm run deploy:fasthosts -- --upload-only  # FTP upload only (uses existing export)
  *   npm run deploy:fasthosts -- --clean     # wipe remote HTDOCS before upload
  *   npm run deploy:fasthosts -- --verbose
  *   npm run deploy:fasthosts -- --probe     # list FTP folders, no upload
@@ -31,6 +32,7 @@ const ENV_FILE = path.join(__dirname, "fasthosts.deploy.env");
 
 const args = new Set(process.argv.slice(2));
 const buildOnly = args.has("--build-only");
+const uploadOnly = args.has("--upload-only");
 const cleanRemote = args.has("--clean");
 const probeOnly = args.has("--probe");
 
@@ -303,10 +305,14 @@ if (!buildOnly && !existsSync(ENV_FILE) && !process.env.FASTHOSTS_FTP_PASSWORD) 
   process.exit(1);
 }
 
-if (!probeOnly) {
+if (!probeOnly && !uploadOnly) {
   runBuild();
 }
 
 if (!buildOnly) {
+  if (uploadOnly && !existsSync(path.join(OUT_DIR, "index.html"))) {
+    console.error(`--upload-only: ${OUT_DIR}/index.html was not found. Run build first.`);
+    process.exit(1);
+  }
   await uploadOutDir();
 }

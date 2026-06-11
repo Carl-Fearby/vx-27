@@ -13,12 +13,13 @@ import { resolveStackSelection } from "@/lib/ui/WeaponStackLayout";
 const HudPrimaryWeaponStack = memo(function HudPrimaryWeaponStack({
   activePrimaryWeapon,
   primaryAmmo,
+  rifleUnlocked = true,
   frameX,
   frameY,
   layoutStyle,
 }) {
   const activeSlotKey = getPrimarySlotForWeapon(activePrimaryWeapon);
-  const visibleSlots = getVisiblePrimarySlotKeys();
+  const visibleSlots = getVisiblePrimarySlotKeys(rifleUnlocked);
   const stackSelected = resolveStackSelection(activeSlotKey, visibleSlots);
 
   if (visibleSlots.length === 0) return null;

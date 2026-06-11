@@ -2,12 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  DEFAULT_AIM_ROUND_DISPLAY,
-  DEFAULT_HIP_ROUND_DISPLAY,
-  formatRoundDisplayForCopy,
-  saveWeaponRoundDisplayTuning,
-} from "@/lib/weapons/WeaponRoundDisplayTuning";
+import { formatRoundDisplayForCopy } from "@/lib/weapons/WeaponRoundDisplayTuning";
 import { radToDeg } from "@/lib/weapons/WeaponTuning";
 
 const POS_MIN = -2;
@@ -111,7 +106,33 @@ function stopPanelEvent(e) {
   e.stopPropagation();
 }
 
+/**
+ * @param {{
+ *   title?: string,
+ *   hint?: string,
+ *   defaultHip: import("@/lib/weapons/WeaponRoundDisplayTuning.js").WeaponRoundDisplayPose,
+ *   defaultAim: import("@/lib/weapons/WeaponRoundDisplayTuning.js").WeaponRoundDisplayPose,
+ *   onPersistTuning: (
+ *     hip: import("@/lib/weapons/WeaponRoundDisplayTuning.js").WeaponRoundDisplayPose,
+ *     aim: import("@/lib/weapons/WeaponRoundDisplayTuning.js").WeaponRoundDisplayPose,
+ *   ) => void,
+ *   previewAim?: boolean,
+ *   onPreviewAimChange?: (aim: boolean) => void,
+ *   hipTuning: import("@/lib/weapons/WeaponRoundDisplayTuning.js").WeaponRoundDisplayPose,
+ *   aimTuning: import("@/lib/weapons/WeaponRoundDisplayTuning.js").WeaponRoundDisplayPose,
+ *   onHipChange: (next: import("@/lib/weapons/WeaponRoundDisplayTuning.js").WeaponRoundDisplayPose) => void,
+ *   onAimChange: (next: import("@/lib/weapons/WeaponRoundDisplayTuning.js").WeaponRoundDisplayPose) => void,
+ *   onSnapToReceiver?: () => import("@/lib/weapons/WeaponRoundDisplayTuning.js").WeaponRoundDisplayPose | null,
+ *   onReleasePointer?: () => void,
+ *   onClose: () => void,
+ * }} props
+ */
 export default function WeaponRoundDisplayTunePanel({
+  title = "Rifle round display",
+  hint = "Hip and Aim each have their own pose (blended in-game). Sliders auto-save. +X barrel, −X stock.",
+  defaultHip,
+  defaultAim,
+  onPersistTuning,
   previewAim,
   onPreviewAimChange,
   hipTuning,
@@ -140,12 +161,12 @@ export default function WeaponRoundDisplayTunePanel({
     if (previewAim) {
       const next = { ...aimTuning, [field]: value };
       onAimChange(next);
-      saveWeaponRoundDisplayTuning(hipTuning, next);
+      onPersistTuning(hipTuning, next);
       return;
     }
     const next = { ...hipTuning, [field]: value };
     onHipChange(next);
-    saveWeaponRoundDisplayTuning(next, aimTuning);
+    onPersistTuning(next, aimTuning);
   };
 
   const handleCopy = async () => {
@@ -160,14 +181,14 @@ export default function WeaponRoundDisplayTunePanel({
 
   const handleReset = () => {
     if (previewAim) {
-      const defaults = { ...DEFAULT_AIM_ROUND_DISPLAY };
+      const defaults = { ...defaultAim };
       onAimChange(defaults);
-      saveWeaponRoundDisplayTuning(hipTuning, defaults);
+      onPersistTuning(hipTuning, defaults);
       return;
     }
-    const defaults = { ...DEFAULT_HIP_ROUND_DISPLAY };
+    const defaults = { ...defaultHip };
     onHipChange(defaults);
-    saveWeaponRoundDisplayTuning(defaults, aimTuning);
+    onPersistTuning(defaults, aimTuning);
   };
 
   const panel = (
@@ -182,16 +203,18 @@ export default function WeaponRoundDisplayTunePanel({
       onTouchMove={stopPanelEvent}
     >
       <div className="weaponTunePanelHeader">
-        <div>
-          <p className="weaponTuneTitle">Rifle round display</p>
-          <p className="weaponTuneHint">
-            Hip and Aim each have their own pose (blended in-game). Sliders auto-save.
-            +X barrel, −X stock.
-          </p>
+        <div className="tunePanelHeader">
+          <p className="weaponTuneTitle">{title}</p>
+          <button
+            type="button"
+            className="tunePanelClose"
+            aria-label={`Close ${title}`}
+            onClick={onClose}
+          >
+            ×
+          </button>
         </div>
-        <button type="button" className="weaponTuneClose" onClick={onClose}>
-          Done
-        </button>
+        <p className="weaponTuneHint">{hint}</p>
       </div>
       <div className="weaponTuneTabs">
         <button
@@ -331,10 +354,10 @@ export default function WeaponRoundDisplayTunePanel({
             if (!suggested) return;
             if (previewAim) {
               onAimChange(suggested);
-              saveWeaponRoundDisplayTuning(hipTuning, suggested);
+              onPersistTuning(hipTuning, suggested);
             } else {
               onHipChange(suggested);
-              saveWeaponRoundDisplayTuning(suggested, aimTuning);
+              onPersistTuning(suggested, aimTuning);
             }
           }}
         >

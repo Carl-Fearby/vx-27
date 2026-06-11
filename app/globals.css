@@ -1901,6 +1901,11 @@ body {
   visibility: visible;
 }
 
+.centerInteractPromptUnaffordable {
+  color: rgba(255, 88, 88, 0.98);
+  text-shadow: 0 1px 10px rgba(40, 0, 0, 0.9);
+}
+
 /* ── Pickup overlay (power pack collect) ─────────────────────────── */
 @property --pickup-visible-scale {
   syntax: "<number>";
@@ -2761,6 +2766,14 @@ body {
 
 .weaponTunePanelHeader {
   flex-shrink: 0;
+}
+
+.weaponTunePanelHeader .tunePanelHeader {
+  width: 100%;
+}
+
+.weaponTunePanelHeader .weaponTuneHint {
+  margin: 0.35rem 0 0;
 }
 
 .weaponTunePanelScroll {

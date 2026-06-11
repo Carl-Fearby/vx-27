@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-11T14:21:54.628Z",
-  "head": "4e79236",
-  "count": 194,
+  "generatedAt": "2026-06-11T16:52:42.542Z",
+  "head": "1f7ffa0",
+  "count": 196,
   "codebase": {
-    "files": 242,
-    "lines": 81690,
-    "nonBlankLines": 74478
+    "files": 245,
+    "lines": 82790,
+    "nonBlankLines": 75497
   },
   "historyStats": {
-    "filesChanged": 2202,
-    "insertions": 127551,
-    "deletions": 41866,
-    "binaryFiles": 620
+    "filesChanged": 2248,
+    "insertions": 130346,
+    "deletions": 42115,
+    "binaryFiles": 632
   },
   "commits": [
+    {
+      "sha": "1f7ffa0",
+      "date": "2026-06-11",
+      "subject": "Fix v0.1.50 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "b8fd75e",
+      "date": "2026-06-11",
+      "subject": "Release v0.1.50: Rifle wall shop, hack crosshairs, and toxic spill.",
+      "stats": {
+        "filesChanged": 45,
+        "insertions": 2794,
+        "deletions": 248,
+        "binaryFiles": 12
+      }
+    },
     {
       "sha": "4e79236",
       "date": "2026-06-11",

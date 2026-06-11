@@ -1,19 +1,30 @@
 {
-  "generatedAt": "2026-06-11T23:14:33.967Z",
-  "head": "456b669",
-  "count": 200,
+  "generatedAt": "2026-06-11T23:14:51.031Z",
+  "head": "6e864f5",
+  "count": 201,
   "codebase": {
     "files": 250,
     "lines": 84607,
     "nonBlankLines": 77211
   },
   "historyStats": {
-    "filesChanged": 2288,
-    "insertions": 132623,
-    "deletions": 42531,
+    "filesChanged": 2290,
+    "insertions": 132654,
+    "deletions": 42540,
     "binaryFiles": 632
   },
   "commits": [
+    {
+      "sha": "6e864f5",
+      "date": "2026-06-12",
+      "subject": "Fix v0.1.52 release commit hash and regenerate version history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 31,
+        "deletions": 9,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "456b669",
       "date": "2026-06-12",

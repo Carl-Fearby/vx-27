@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-11T16:52:42.542Z",
-  "head": "1f7ffa0",
-  "count": 196,
+  "generatedAt": "2026-06-11T21:51:57.537Z",
+  "head": "27a8996",
+  "count": 198,
   "codebase": {
-    "files": 245,
-    "lines": 82790,
-    "nonBlankLines": 75497
+    "files": 250,
+    "lines": 84236,
+    "nonBlankLines": 76864
   },
   "historyStats": {
-    "filesChanged": 2248,
-    "insertions": 130346,
-    "deletions": 42115,
+    "filesChanged": 2271,
+    "insertions": 132085,
+    "deletions": 42386,
     "binaryFiles": 632
   },
   "commits": [
+    {
+      "sha": "27a8996",
+      "date": "2026-06-11",
+      "subject": "Release v0.1.51: Weapon tuning, lasers, and gameplay performance.",
+      "stats": {
+        "filesChanged": 22,
+        "insertions": 1707,
+        "deletions": 261,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "c7f7c13",
+      "date": "2026-06-11",
+      "subject": "Regenerate version history after v0.1.50 release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 32,
+        "deletions": 10,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "1f7ffa0",
       "date": "2026-06-11",

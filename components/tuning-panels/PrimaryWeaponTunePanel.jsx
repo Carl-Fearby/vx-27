@@ -59,6 +59,10 @@ const STANDARD_CROSSHAIR_SIZE_MAX = 48;
 const RETICULE_CROSSHAIR_SIZE_MAX = 640;
 const CROSSHAIR_SIZE_STEP = 1;
 const CROSSHAIR_SIZE_NUDGE = 1;
+const RETICULE_OFFSET_MIN = -320;
+const RETICULE_OFFSET_MAX = 320;
+const RETICULE_OFFSET_STEP = 1;
+const RETICULE_OFFSET_NUDGE = 1;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -438,6 +442,12 @@ export default function PrimaryWeaponTunePanel({
     onLaserChange(weaponId, DEFAULT_LASER_EMITTER_TUNING[weaponId]);
   };
 
+  const handleResetCrosshair = () => {
+    const defaults = { ...DEFAULT_CROSSHAIR_TUNING };
+    onCrosshairChange(defaults);
+    saveCrosshairTuning(defaults);
+  };
+
   const handleCopyLaser = () => {
     copyJson(
       formatLaserEmitterTuningForCopy(laserTuning),
@@ -594,6 +604,10 @@ export default function PrimaryWeaponTunePanel({
             {!isPistol && tuneMode === "ads" && (
               <>
                 <p className="settingsGroup">Reticule (ADS)</p>
+                <p className="settingsHint" style={{ marginTop: 0 }}>
+                  Tune rifle aim reticle size and screen offset while ADS preview
+                  is active.
+                </p>
                 <PoseControl
                   label="Width"
                   value={crosshairTuning.gunWidth}
@@ -619,6 +633,36 @@ export default function PrimaryWeaponTunePanel({
                   fromInput={(n) => Math.round(n)}
                   inputStep={1}
                   onChange={(v) => updateCrosshairField("gunHeight", Math.round(v))}
+                />
+                <PoseControl
+                  label="Offset X"
+                  value={crosshairTuning.gunOffsetX ?? 0}
+                  min={RETICULE_OFFSET_MIN}
+                  max={RETICULE_OFFSET_MAX}
+                  step={RETICULE_OFFSET_STEP}
+                  nudgeStep={RETICULE_OFFSET_NUDGE}
+                  format={(v) => `${Math.round(v)}px`}
+                  toInput={(v) => Math.round(v)}
+                  fromInput={(n) => Math.round(n)}
+                  inputStep={1}
+                  onChange={(v) =>
+                    updateCrosshairField("gunOffsetX", Math.round(v))
+                  }
+                />
+                <PoseControl
+                  label="Offset Y"
+                  value={crosshairTuning.gunOffsetY ?? 0}
+                  min={RETICULE_OFFSET_MIN}
+                  max={RETICULE_OFFSET_MAX}
+                  step={RETICULE_OFFSET_STEP}
+                  nudgeStep={RETICULE_OFFSET_NUDGE}
+                  format={(v) => `${Math.round(v)}px`}
+                  toInput={(v) => Math.round(v)}
+                  fromInput={(n) => Math.round(n)}
+                  inputStep={1}
+                  onChange={(v) =>
+                    updateCrosshairField("gunOffsetY", Math.round(v))
+                  }
                 />
               </>
             )}
@@ -717,18 +761,27 @@ export default function PrimaryWeaponTunePanel({
               Reset laser
             </button>
             {!isPistol && (
-              <button
-                type="button"
-                className="settingsBtn"
-                onClick={() =>
-                  copyJson(
-                    formatCrosshairTuningForCopy(crosshairTuning),
-                    "Crosshair tuning:",
-                  )
-                }
-              >
-                Copy crosshair JSON
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="settingsBtn"
+                  onClick={() =>
+                    copyJson(
+                      formatCrosshairTuningForCopy(crosshairTuning),
+                      "Crosshair tuning:",
+                    )
+                  }
+                >
+                  Copy crosshair JSON
+                </button>
+                <button
+                  type="button"
+                  className="settingsBtn"
+                  onClick={handleResetCrosshair}
+                >
+                  Reset crosshair
+                </button>
+              </>
             )}
           </>
         )}
@@ -736,7 +789,7 @@ export default function PrimaryWeaponTunePanel({
 
       <p className="settingsHint weaponTunePanelFooter">
         {tuneMode === "ads"
-          ? "Aim pose and laser offset for the selected weapon. Live beam shows hitscan aim."
+          ? "Aim pose, reticle, and laser offset for the selected weapon. Live beam shows hitscan aim."
           : tuneMode === "look"
             ? "Rifle hip parallax when looking up or down."
             : "Hip pose and laser offset for the selected weapon. Live beam shows hitscan aim."}

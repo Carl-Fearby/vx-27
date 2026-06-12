@@ -158,7 +158,7 @@ import {
   getPrimaryWeaponIdFromSlotInput,
   wasPrimarySwapPressed,
 } from "@/lib/weapons/PrimaryWeaponSlots";
-import { createRifleShop } from "@/lib/weapons/RifleShop";
+import { createPistolShop, createRifleShop } from "@/lib/weapons/RifleShop";
 import { createDefaultWallShopStages } from "@/lib/weapons/WallWeaponShop";
 import {
   applyDevStartBothPrimaryWeapons,
@@ -994,12 +994,13 @@ export default function FpsGame() {
   const rifleUnlockedRef = useRef(devStartBothPrimaryWeaponsEnabled);
   const wallShopStageRef = useRef(
     devStartBothPrimaryWeaponsEnabled
-      ? { rifle: 1 }
+      ? { ...createDefaultWallShopStages(), rifle: 1 }
       : createDefaultWallShopStages(),
   );
   /** @type {import("@/lib/weapons/PrimaryWeapons.js").PrimaryWeaponId | null} */
   const pendingWallWeaponEquipRef = useRef(null);
   const rifleShopRef = useRef(null);
+  const wallWeaponShopsRef = useRef([]);
   const playerCoordsMenuRef = useRef(null);
   const showHudRef = useRef(true);
   const gameRootRef = useRef(null);
@@ -1821,6 +1822,23 @@ export default function FpsGame() {
     }
   }, []);
 
+  const openPrimaryWeaponTune = useCallback(
+    (weaponId, mode = "hip") => {
+      const id = weaponId === "rifle" ? "rifle" : "pistol";
+      const nextMode =
+        mode === "ads" || (id === "rifle" && mode === "look")
+          ? mode
+          : "hip";
+      setPrimaryWeaponTuneEnabled(true);
+      primaryWeaponTuneEnabledRef.current = true;
+      savePrimaryWeaponTuneEnabled(true);
+      setPrimaryWeaponTuneMode(nextMode);
+      primaryWeaponTuneModeRef.current = nextMode;
+      requestPrimaryWeaponTuneWeapon(id);
+    },
+    [requestPrimaryWeaponTuneWeapon],
+  );
+
   const handleLaserEmitterTuningChange = useCallback((weaponId, offset) => {
     const id = weaponId === "rifle" ? "rifle" : "pistol";
     setLaserEmitterTuning((prev) => {
@@ -2077,7 +2095,7 @@ export default function FpsGame() {
     const devStartBoth = loadDevStartBothPrimaryWeapons();
     if (devStartBoth) {
       rifleUnlockedRef.current = true;
-      wallShopStageRef.current = { rifle: 1 };
+      wallShopStageRef.current = { ...createDefaultWallShopStages(), rifle: 1 };
       setRifleUnlocked(true);
     } else {
       rifleUnlockedRef.current = false;
@@ -2085,6 +2103,7 @@ export default function FpsGame() {
       setRifleUnlocked(false);
     }
     pendingWallWeaponEquipRef.current = null;
+    wallWeaponShopsRef.current = [];
 
     let sky = null;
     let scene = null;
@@ -2798,9 +2817,14 @@ export default function FpsGame() {
         }
       });
       const rifleShop = createRifleShop(level.group, { maxAnisotropy, arena });
+      const pistolShop = createPistolShop(level.group, { maxAnisotropy, arena });
       rifleShopRef.current = rifleShop;
+      wallWeaponShopsRef.current = [rifleShop, pistolShop];
       rifleShopInteractMeshesCache.length = 0;
-      rifleShopInteractMeshesCache.push(...rifleShop.interactMeshes);
+      rifleShopInteractMeshesCache.push(
+        ...rifleShop.interactMeshes,
+        ...pistolShop.interactMeshes,
+      );
       disposeToxicOilSpill(toxicOilSpillRef.current);
       toxicOilSpillRef.current = createToxicOilSpill(
         level.group,
@@ -2935,6 +2959,7 @@ export default function FpsGame() {
         wallShopStageRef,
         pendingWallWeaponEquipRef,
         rifleShopRef,
+        wallWeaponShopsRef,
         rifleShopInteractMeshesCache,
         setRifleUnlocked,
         get oilBarrelPickMeshesCache() {
@@ -3367,6 +3392,8 @@ export default function FpsGame() {
       primaryWeapons.pistol = null;
       weapon = null;
       weaponRef.current = null;
+      rifleShopRef.current = null;
+      wallWeaponShopsRef.current = [];
       screenCrosshairRef.current?.dispose();
       screenCrosshairRef.current = null;
       soundsRef.current?.dispose();
@@ -4207,8 +4234,8 @@ export default function FpsGame() {
                 <span>Start with pistol + rifle</span>
               </label>
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                On by default in local dev (pistol-only at 0 pts in production).
-                Applies on the next Start Game — rifle unlocked with shop ammo.
+                Off by default — normal play is pistol-only at 0 pts; earn the
+                rifle at the north-wall shop. Applies on the next Start Game.
               </p>
               <p className="settingsGroupLabel">Level</p>
               <div className="sliderRow">
@@ -4355,12 +4382,20 @@ export default function FpsGame() {
                     }
                   }}
                 />
-                <span>Weapon &amp; laser tuning wizard</span>
+                <span>Weapon, laser &amp; rifle reticle tuning wizard</span>
               </label>
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                Pistol or rifle — Hip/Aim pose and per-weapon laser offset in one
-                panel. Live beam while open; auto-saves to local storage.
+                Pistol or rifle — Hip/Aim pose, per-weapon laser offset, and
+                rifle Aim reticle size/offset in one panel. Live beam while
+                open; auto-saves to local storage.
               </p>
+              <button
+                type="button"
+                className="settingsBtn settingsInlineBtn"
+                onClick={() => openPrimaryWeaponTune("rifle", "ads")}
+              >
+                Open rifle Aim reticle tuner
+              </button>
               <label className="settingRow">
                 <input
                   type="checkbox"

@@ -1,19 +1,30 @@
 {
-  "generatedAt": "2026-06-12T23:50:46.693Z",
-  "head": "c02cead",
-  "count": 207,
+  "generatedAt": "2026-06-12T23:54:20.179Z",
+  "head": "0b4d60d",
+  "count": 208,
   "codebase": {
     "files": 250,
     "lines": 84966,
     "nonBlankLines": 77557
   },
   "historyStats": {
-    "filesChanged": 2313,
-    "insertions": 133196,
-    "deletions": 42697,
+    "filesChanged": 2317,
+    "insertions": 133269,
+    "deletions": 42719,
     "binaryFiles": 633
   },
   "commits": [
+    {
+      "sha": "0b4d60d",
+      "date": "2026-06-13",
+      "subject": "Trim game loop hot path overhead",
+      "stats": {
+        "filesChanged": 4,
+        "insertions": 73,
+        "deletions": 22,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "c02cead",
       "date": "2026-06-13",

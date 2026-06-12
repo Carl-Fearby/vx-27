@@ -1,19 +1,30 @@
 {
-  "generatedAt": "2026-06-12T23:45:42.643Z",
-  "head": "641201b",
-  "count": 206,
+  "generatedAt": "2026-06-12T23:50:46.693Z",
+  "head": "c02cead",
+  "count": 207,
   "codebase": {
     "files": 250,
-    "lines": 84926,
-    "nonBlankLines": 77517
+    "lines": 84966,
+    "nonBlankLines": 77557
   },
   "historyStats": {
-    "filesChanged": 2300,
-    "insertions": 132758,
-    "deletions": 42572,
-    "binaryFiles": 632
+    "filesChanged": 2313,
+    "insertions": 133196,
+    "deletions": 42697,
+    "binaryFiles": 633
   },
   "commits": [
+    {
+      "sha": "c02cead",
+      "date": "2026-06-13",
+      "subject": "Add VX-27 pistol shop and tuning updates",
+      "stats": {
+        "filesChanged": 13,
+        "insertions": 438,
+        "deletions": 125,
+        "binaryFiles": 1
+      }
+    },
     {
       "sha": "641201b",
       "date": "2026-06-12",

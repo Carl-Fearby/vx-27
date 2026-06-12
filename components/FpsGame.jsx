@@ -2942,6 +2942,7 @@ export default function FpsGame() {
         laserTracers,
         screenCenter,
         canvas,
+        canvasHeight: window.innerHeight,
         flickerLights,
         oilBarrelRuntimeIndex,
         screenCrosshairRef,
@@ -3162,6 +3163,7 @@ export default function FpsGame() {
         camera.updateProjectionMatrix();
         renderer.setPixelRatio(effectivePixelRatio(renderScaleRef.current));
         renderer.setSize(w, h);
+        gameLoopCtx.canvasHeight = h;
         laserTracers?.setResolution(w, h);
       };
 

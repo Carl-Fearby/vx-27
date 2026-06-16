@@ -1,19 +1,30 @@
 {
-  "generatedAt": "2026-06-15T17:31:25.814Z",
-  "head": "8384ebf",
-  "count": 209,
+  "generatedAt": "2026-06-16T21:33:53.103Z",
+  "head": "4560177",
+  "count": 210,
   "codebase": {
     "files": 250,
-    "lines": 85016,
-    "nonBlankLines": 77606
+    "lines": 85033,
+    "nonBlankLines": 77622
   },
   "historyStats": {
-    "filesChanged": 2318,
-    "insertions": 133286,
-    "deletions": 42725,
+    "filesChanged": 2326,
+    "insertions": 133467,
+    "deletions": 42828,
     "binaryFiles": 633
   },
   "commits": [
+    {
+      "sha": "4560177",
+      "date": "2026-06-16",
+      "subject": "Release v0.1.54: Dev tuning session fixes and HUD perf.",
+      "stats": {
+        "filesChanged": 8,
+        "insertions": 181,
+        "deletions": 103,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "8384ebf",
       "date": "2026-06-13",

@@ -24,7 +24,7 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
-  { label: "BUILD", value: `v${BUILD_VERSION} · cinematic lasers · rifle shop · live redeploy` },
+  { label: "BUILD", value: `v${BUILD_VERSION} · dev tuning fixes · HUD perf · melee reset` },
   { label: "PLATFORM", value: "Desktop · iPad Safari · zero install" },
   { label: "ZONE", value: "Exclusion sector · sealed" },
   { label: "RENDER", value: "WebGL · Three.js · GPU preload on load" },
@@ -44,6 +44,11 @@ const NODE_BREACH_SPECS = [
 ];
 
 const WHATS_NEW = [
+  {
+    tag: "v0.1.54",
+    title: "Dev tuning & HUD perf",
+    text: "Tune panels no longer reopen from localStorage on load; laser preview and placement side effects only run while a panel is active. Walk power HUD skips redundant DOM writes each frame. Knife prototype removed for a fresh melee approach.",
+  },
   {
     tag: "v0.1.53",
     title: "Live redeploy",

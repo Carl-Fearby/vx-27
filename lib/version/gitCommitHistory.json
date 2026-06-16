@@ -1,19 +1,30 @@
 {
-  "generatedAt": "2026-06-12T23:54:20.179Z",
-  "head": "0b4d60d",
-  "count": 208,
+  "generatedAt": "2026-06-15T17:31:25.814Z",
+  "head": "8384ebf",
+  "count": 209,
   "codebase": {
     "files": 250,
-    "lines": 84966,
-    "nonBlankLines": 77557
+    "lines": 85016,
+    "nonBlankLines": 77606
   },
   "historyStats": {
-    "filesChanged": 2317,
-    "insertions": 133269,
-    "deletions": 42719,
+    "filesChanged": 2318,
+    "insertions": 133286,
+    "deletions": 42725,
     "binaryFiles": 633
   },
   "commits": [
+    {
+      "sha": "8384ebf",
+      "date": "2026-06-13",
+      "subject": "Refresh version history after loop cleanup",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 17,
+        "deletions": 6,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "0b4d60d",
       "date": "2026-06-13",

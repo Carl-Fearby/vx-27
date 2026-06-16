@@ -285,7 +285,6 @@ import {
   enterBarrelPlacementEditor,
   isBarrelPlacementGroupTarget,
   loadOilBarrelPlacementState,
-  loadOilBarrelPlacementTuneEnabled,
   placementApplyOptionsFromState,
   saveOilBarrelPlacementState,
   saveOilBarrelPlacementTuneEnabled,
@@ -308,7 +307,6 @@ import {
 } from "@/lib/oil-barrel/ToxicOilSpill";
 import {
   loadToxicOilSpillTuning,
-  loadToxicOilSpillTuneEnabled,
   saveToxicOilSpillTuning,
   saveToxicOilSpillTuneEnabled,
 } from "@/lib/oil-barrel/ToxicOilSpillTuning";
@@ -389,9 +387,7 @@ import {
   DEFAULT_PISTOL_HIP_ROUND_DISPLAY,
   getPistolRoundDisplayTuning,
   getWeaponRoundDisplayTuning,
-  loadPistolRoundDisplayTuneEnabled,
   loadPistolRoundDisplayTuning,
-  loadWeaponRoundDisplayTuneEnabled,
   loadWeaponRoundDisplayTuning,
   savePistolRoundDisplayTuneEnabled,
   savePistolRoundDisplayTuning,
@@ -404,10 +400,7 @@ import {
   normalizeLaserEmitterTuning,
   saveLaserEmitterTuning,
 } from "@/lib/weapons/LaserEmitterTuning";
-import {
-  loadPrimaryWeaponTuneEnabled,
-  savePrimaryWeaponTuneEnabled,
-} from "@/lib/weapons/PrimaryWeaponTuneTuning";
+import { savePrimaryWeaponTuneEnabled } from "@/lib/weapons/PrimaryWeaponTuneTuning";
 import {
   shouldDropAmmoCrate,
   loadAmmoDropSpareThreshold,
@@ -426,7 +419,6 @@ import WeaponRoundDisplayTunePanel from "@/components/tuning-panels/WeaponRoundD
 import PrimaryWeaponTunePanel from "@/components/tuning-panels/PrimaryWeaponTunePanel";
 import {
   loadCargoModuleDoorTuning,
-  loadCargoModuleDoorTuneEnabled,
   saveCargoModuleDoorTuning,
   saveCargoModuleDoorTuneEnabled,
 } from "@/lib/vx27-container/CargoModuleDoorGeometryTuning";
@@ -434,7 +426,6 @@ import {
   CARGO_CONSOLE_PROP_ID,
   CARGO_CONTAINER_PROP_ID,
   loadCargoModulePropsPlacement,
-  loadCargoModulePropsTuneEnabled,
   saveCargoModulePropsPlacement,
   saveCargoModulePropsTuneEnabled,
 } from "@/lib/vx27-container/CargoModulePropsTuning";
@@ -822,13 +813,43 @@ function updateScoreHud(el, score) {
   if (el.textContent !== text) el.textContent = text;
 }
 
+function getWalkPowerHudParts(el) {
+  if (!el.__walkPowerHudParts) {
+    el.__walkPowerHudParts = {
+      track: el.querySelector(".hudStaminaTrack"),
+      fill: el.querySelector(".hudWalkPowerFill"),
+      radioLayer: el.querySelector(".hudWalkPowerRadioactiveLayer"),
+      textWhite: el.querySelector(".hudStaminaTextWhite"),
+      textBlack: el.querySelector(".hudStaminaTextBlack"),
+      visible: null,
+      radioactive: null,
+      overload: null,
+      shakeSpeed: null,
+      fillWidth: null,
+      orangeOp: null,
+      redOp: null,
+      greenOp: null,
+      label: null,
+      textBlackWidth: null,
+    };
+  }
+  return el.__walkPowerHudParts;
+}
+
 function updateWalkPowerHud(el, stamina, staminaMax, playerHealth, visible) {
   if (!el) return;
+  const parts = getWalkPowerHudParts(el);
   if (!visible || playerHealth <= 0) {
-    el.style.visibility = "hidden";
+    if (parts.visible !== false) {
+      el.style.visibility = "hidden";
+      parts.visible = false;
+    }
     return;
   }
-  el.style.visibility = "visible";
+  if (parts.visible !== true) {
+    el.style.visibility = "visible";
+    parts.visible = true;
+  }
 
   const radioactive = playerHealth > 100;
   const overload = playerHealth > 150;
@@ -840,27 +861,46 @@ function updateWalkPowerHud(el, stamina, staminaMax, playerHealth, visible) {
     greenOp = Math.min(1, (Math.min(displayVal, hpCap) - 100) / (hpCap - 100));
   }
 
-  const track = el.querySelector(".hudStaminaTrack");
+  const track = parts.track;
   if (track) {
-    track.classList.toggle("hudWalkPowerRadioactive", greenOp > 0.01);
-    track.classList.toggle("hudWalkPowerOverload", overload && greenOp > 0.01);
+    const radioactiveOn = greenOp > 0.01;
+    const overloadOn = overload && radioactiveOn;
+    if (parts.radioactive !== radioactiveOn) {
+      track.classList.toggle("hudWalkPowerRadioactive", radioactiveOn);
+      parts.radioactive = radioactiveOn;
+    }
+    if (parts.overload !== overloadOn) {
+      track.classList.toggle("hudWalkPowerOverload", overloadOn);
+      parts.overload = overloadOn;
+    }
     if (greenOp > 0.01) {
       if (overload) {
-        track.style.setProperty(
-          "--shake-speed",
-          `${Math.max(0.15, 0.6 - (Math.min(playerHealth, 190) - 150) * 0.01125)}s`
-        );
+        const shakeSpeed = `${Math.max(0.15, 0.6 - (Math.min(playerHealth, 190) - 150) * 0.01125)}s`;
+        if (parts.shakeSpeed !== shakeSpeed) {
+          track.style.setProperty("--shake-speed", shakeSpeed);
+          parts.shakeSpeed = shakeSpeed;
+        }
       } else {
-        track.style.removeProperty("--shake-speed");
+        if (parts.shakeSpeed !== "") {
+          track.style.removeProperty("--shake-speed");
+          parts.shakeSpeed = "";
+        }
       }
     } else {
-      track.style.removeProperty("--shake-speed");
+      if (parts.shakeSpeed !== "") {
+        track.style.removeProperty("--shake-speed");
+        parts.shakeSpeed = "";
+      }
     }
   }
 
-  const fill = el.querySelector(".hudWalkPowerFill");
+  const fill = parts.fill;
   if (fill) {
-    fill.style.width = `${pctOfHpCap * 100}%`;
+    const fillWidth = `${pctOfHpCap * 100}%`;
+    if (parts.fillWidth !== fillWidth) {
+      fill.style.width = fillWidth;
+      parts.fillWidth = fillWidth;
+    }
     let orangeOp = 0;
     let redOp = 0;
     if (displayVal <= 100) {
@@ -870,22 +910,35 @@ function updateWalkPowerHud(el, stamina, staminaMax, playerHealth, visible) {
       if (pctOfHpCap <= 0.5) orangeOp = 1;
       if (pctOfHpCap <= 0.25) redOp = 1;
     }
-    fill.style.setProperty("--orange-op", orangeOp);
-    fill.style.setProperty("--red-op", redOp);
+    if (parts.orangeOp !== orangeOp) {
+      fill.style.setProperty("--orange-op", orangeOp);
+      parts.orangeOp = orangeOp;
+    }
+    if (parts.redOp !== redOp) {
+      fill.style.setProperty("--red-op", redOp);
+      parts.redOp = redOp;
+    }
   }
 
-  const radioLayer = el.querySelector(".hudWalkPowerRadioactiveLayer");
-  if (radioLayer) {
+  const radioLayer = parts.radioLayer;
+  if (radioLayer && parts.greenOp !== greenOp) {
     radioLayer.style.opacity = String(greenOp);
+    parts.greenOp = greenOp;
   }
 
   const label = `${displayVal}%`;
-  const textWhite = el.querySelector(".hudStaminaTextWhite");
-  const textBlack = el.querySelector(".hudStaminaTextBlack");
-  if (textWhite) textWhite.textContent = label;
-  if (textBlack) {
+  const textWhite = parts.textWhite;
+  const textBlack = parts.textBlack;
+  if (parts.label !== label) {
+    if (textWhite) textWhite.textContent = label;
+    if (textBlack) textBlack.textContent = label;
+    parts.label = label;
+  }
+  const textBlackWidth = `${pctOfHpCap * 100}%`;
+  if (textBlack && parts.textBlackWidth !== textBlackWidth) {
     textBlack.textContent = label;
-    textBlack.style.width = `${pctOfHpCap * 100}%`;
+    textBlack.style.width = textBlackWidth;
+    parts.textBlackWidth = textBlackWidth;
   }
 }
 
@@ -1075,31 +1128,28 @@ export default function FpsGame() {
     loadOilBarrelPlacementState()
   );
   const [oilBarrelPlacementTuneEnabled, setOilBarrelPlacementTuneEnabled] =
-    useState(() => loadOilBarrelPlacementTuneEnabled());
+    useState(false);
   const oilBarrelPlacementRef = useRef(loadOilBarrelPlacementState());
   const oilBarrelLastPickedPropIdRef = useRef(null);
-  const oilBarrelPlacementTuneEnabledRef = useRef(
-    loadOilBarrelPlacementTuneEnabled(),
-  );
+  const oilBarrelPlacementTuneEnabledRef = useRef(false);
   const oilBarrelPickMeshesRef = useRef([]);
   const [cargoModuleDoorTuning, setCargoModuleDoorTuning] = useState(() =>
     loadCargoModuleDoorTuning(),
   );
   const [cargoModuleDoorTuneEnabled, setCargoModuleDoorTuneEnabled] =
-    useState(() => loadCargoModuleDoorTuneEnabled());
+    useState(false);
   const cargoModuleDoorTuningRef = useRef(loadCargoModuleDoorTuning());
   const [cargoModuleProps, setCargoModuleProps] = useState(() =>
     loadCargoModulePropsPlacement(),
   );
   const [cargoModulePropsTuneEnabled, setCargoModulePropsTuneEnabled] =
-    useState(() => loadCargoModulePropsTuneEnabled());
+    useState(false);
   const cargoModulePropsRef = useRef(loadCargoModulePropsPlacement());
   const [toxicOilSpillTuning, setToxicOilSpillTuning] = useState(() =>
     loadToxicOilSpillTuning(),
   );
-  const [toxicOilSpillTuneEnabled, setToxicOilSpillTuneEnabled] = useState(() =>
-    loadToxicOilSpillTuneEnabled(),
-  );
+  const [toxicOilSpillTuneEnabled, setToxicOilSpillTuneEnabled] =
+    useState(false);
   const toxicOilSpillTuningRef = useRef(loadToxicOilSpillTuning());
   const toxicOilSpillRef = useRef(null);
   const [snowEnabled, setSnowEnabled] = useState(() => loadSnowEnabled());
@@ -1638,15 +1688,12 @@ export default function FpsGame() {
       ? { hip: DEFAULT_HIP_ROUND_DISPLAY, aim: DEFAULT_AIM_ROUND_DISPLAY }
       : loadWeaponRoundDisplayTuning()
   );
-  const [roundDisplayTuneEnabled, setRoundDisplayTuneEnabled] = useState(() =>
-    loadWeaponRoundDisplayTuneEnabled(),
-  );
+  const [roundDisplayTuneEnabled, setRoundDisplayTuneEnabled] =
+    useState(false);
   const roundDisplayTuneEnabledRef = useRef(false);
   const [roundDisplayPreviewAim, setRoundDisplayPreviewAim] = useState(false);
   const roundDisplayPreviewAimRef = useRef(false);
-  const pendingRifleRoundDisplayTuneSwapRef = useRef(
-    typeof window === "undefined" ? false : loadWeaponRoundDisplayTuneEnabled(),
-  );
+  const pendingRifleRoundDisplayTuneSwapRef = useRef(false);
   const [pistolRoundDisplayHip, setPistolRoundDisplayHip] = useState(() => {
     if (typeof window === "undefined") return DEFAULT_PISTOL_HIP_ROUND_DISPLAY;
     return loadPistolRoundDisplayTuning().hip;
@@ -1664,14 +1711,12 @@ export default function FpsGame() {
       : loadPistolRoundDisplayTuning()
   );
   const [pistolRoundDisplayTuneEnabled, setPistolRoundDisplayTuneEnabled] =
-    useState(() => loadPistolRoundDisplayTuneEnabled());
+    useState(false);
   const pistolRoundDisplayTuneEnabledRef = useRef(false);
   const [pistolRoundDisplayPreviewAim, setPistolRoundDisplayPreviewAim] =
     useState(false);
   const pistolRoundDisplayPreviewAimRef = useRef(false);
-  const pendingPistolRoundDisplayTuneSwapRef = useRef(
-    typeof window === "undefined" ? false : loadPistolRoundDisplayTuneEnabled(),
-  );
+  const pendingPistolRoundDisplayTuneSwapRef = useRef(false);
   const [laserEmitterTuning, setLaserEmitterTuning] = useState(() =>
     typeof window === "undefined"
       ? DEFAULT_LASER_EMITTER_TUNING
@@ -1682,22 +1727,16 @@ export default function FpsGame() {
       ? DEFAULT_LASER_EMITTER_TUNING
       : loadLaserEmitterTuning(),
   );
-  const [primaryWeaponTuneEnabled, setPrimaryWeaponTuneEnabled] = useState(() =>
-    typeof window === "undefined" ? false : loadPrimaryWeaponTuneEnabled(),
-  );
-  const primaryWeaponTuneEnabledRef = useRef(
-    typeof window === "undefined" ? false : loadPrimaryWeaponTuneEnabled(),
-  );
+  const [primaryWeaponTuneEnabled, setPrimaryWeaponTuneEnabled] =
+    useState(false);
+  const primaryWeaponTuneEnabledRef = useRef(false);
   const [primaryWeaponTuneWeapon, setPrimaryWeaponTuneWeapon] =
     useState("pistol");
   const primaryWeaponTuneWeaponRef = useRef("pistol");
   const [primaryWeaponTuneMode, setPrimaryWeaponTuneMode] = useState("hip");
   const primaryWeaponTuneModeRef = useRef("hip");
-  const pendingPrimaryWeaponTuneSwapRef = useRef(
-    typeof window !== "undefined" && loadPrimaryWeaponTuneEnabled()
-      ? "pistol"
-      : null,
-  );
+  const pendingPrimaryWeaponTuneSwapRef = useRef(null);
+  const devTuningActiveRef = useRef(false);
   const rebindActionRef = useRef(null);
 
   useEffect(() => {
@@ -1743,13 +1782,6 @@ export default function FpsGame() {
     const laserTuning = loadLaserEmitterTuning();
     laserEmitterTuningRef.current = laserTuning;
     setLaserEmitterTuning(laserTuning);
-    const primaryWeaponTuneOn = loadPrimaryWeaponTuneEnabled();
-    primaryWeaponTuneEnabledRef.current = primaryWeaponTuneOn;
-    setPrimaryWeaponTuneEnabled(primaryWeaponTuneOn);
-    if (primaryWeaponTuneOn) {
-      pendingPrimaryWeaponTuneSwapRef.current =
-        primaryWeaponTuneWeaponRef.current;
-    }
   }, []);
   weaponTuningRef.current = {
     hip: hipWeaponPose,
@@ -1776,6 +1808,14 @@ export default function FpsGame() {
   primaryWeaponTuneEnabledRef.current = primaryWeaponTuneEnabled;
   primaryWeaponTuneWeaponRef.current = primaryWeaponTuneWeapon;
   primaryWeaponTuneModeRef.current = primaryWeaponTuneMode;
+  devTuningActiveRef.current =
+    oilBarrelPlacementTuneEnabled ||
+    cargoModuleDoorTuneEnabled ||
+    cargoModulePropsTuneEnabled ||
+    toxicOilSpillTuneEnabled ||
+    roundDisplayTuneEnabled ||
+    pistolRoundDisplayTuneEnabled ||
+    primaryWeaponTuneEnabled;
   laserEmitterTuningRef.current = laserEmitterTuning;
   crosshairTuningRef.current = crosshairTuning;
   bindingsRef.current = bindings;
@@ -3057,6 +3097,7 @@ export default function FpsGame() {
         primaryWeaponTuneWeaponRef,
         primaryWeaponTuneModeRef,
         pendingPrimaryWeaponTuneSwapRef,
+        devTuningActiveRef,
         laserEmitterTuningRef,
         gameRootRef,
         rendererRef,

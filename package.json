@@ -1,7 +1,7 @@
 {
   "name": "game-engine2-fps",
   "private": true,
-  "version": "0.1.54",
+  "version": "0.1.55",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:http": "node scripts/dev.mjs --http",
@@ -10,6 +10,12 @@
     "build": "next build",
     "start": "next start",
     "clean": "node scripts/clean-next.mjs",
+    "wasm:build": "npm run wasm:build:hack && npm run wasm:build:game",
+    "wasm:build:hack": "wasm-pack build rust/hack_core --target web --out-dir pkg",
+    "wasm:build:game": "wasm-pack build rust/game_core --target web --out-dir pkg",
+    "wasm:test": "cargo test --manifest-path rust/hack_core/Cargo.toml && cargo test --manifest-path rust/game_core/Cargo.toml",
+    "wasm:watch:hack": "cargo watch -w rust/hack_core/src -s \"wasm-pack build rust/hack_core --target web --out-dir pkg\"",
+    "wasm:watch:game": "cargo watch -w rust/game_core/src -s \"wasm-pack build rust/game_core --target web --out-dir pkg\"",
     "prebuild": "node scripts/clean-next.mjs && node scripts/generate-version-history.mjs",
     "version:history": "node scripts/generate-version-history.mjs",
     "release": "node scripts/release.mjs",

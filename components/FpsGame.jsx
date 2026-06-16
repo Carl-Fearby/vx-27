@@ -117,9 +117,8 @@ import { prefersTouchControls } from "@/lib/player/TouchDetect.js";
 import TouchControls from "@/components/TouchControls";
 import {
   createPlayerController,
-  RADIOACTIVE_OVERFLOW_DECAY_INTERVAL_SEC,
-  RADIOACTIVE_OVERFLOW_DECAY_PCT,
 } from "@/lib/player/PlayerController";
+import { createGameCoreEngine } from "@/lib/game-core/gameCore";
 import {
   createSoundManager,
   DEFAULT_LEVEL_TRACK_ID,
@@ -151,6 +150,7 @@ import {
   createDefaultFireModePool,
   getOtherPrimaryWeaponId,
   getPrimaryWeaponConfig,
+  getPrimaryWeaponStartingAmmo,
   PRIMARY_WEAPONS,
   resolveFireModeForWeapon,
 } from "@/lib/weapons/PrimaryWeapons";
@@ -159,7 +159,7 @@ import {
   wasPrimarySwapPressed,
 } from "@/lib/weapons/PrimaryWeaponSlots";
 import { createPistolShop, createRifleShop } from "@/lib/weapons/RifleShop";
-import { createDefaultWallShopStages } from "@/lib/weapons/WallWeaponShop";
+import { createDefaultWallShopStages, SERVICE_ROOM_RIFLE_SHOP_OFFER } from "@/lib/weapons/WallWeaponShop";
 import {
   applyDevStartBothPrimaryWeapons,
   loadDevStartBothPrimaryWeapons,
@@ -1083,6 +1083,7 @@ export default function FpsGame() {
   const renderScaleRef = useRef(DEFAULT_RENDER_SCALE);
   const rendererRef = useRef(null);
   const cameraRef = useRef(null);
+  const gameCoreRef = useRef(null);
   const soundsRef = useRef(null);
   const [keyboardLook, setKeyboardLook] = useState(DEFAULT_KEYBOARD_LOOK);
   const [keyboardEase, setKeyboardEase] = useState(DEFAULT_KEYBOARD_EASE);
@@ -1197,22 +1198,66 @@ export default function FpsGame() {
     playerScoreRef.current += rewards.credits ?? 0;
     updateScoreHud(scoreHudRef.current, playerScoreRef.current);
 
-    const pistolSpare = Math.ceil((rewards.pistolAmmo ?? 0) / 12);
-    if (pistolSpare > 0) {
-      ammoPoolSnapshotRef.current.pistol.spare += pistolSpare;
+    if (rewards.pistolAmmo > 0) {
+      ammoPoolSnapshotRef.current.pistol.spare += 1;
+    }
+
+    if (rewards.rifleSpareMag > 0 && rifleUnlockedRef.current) {
+      const rifleStore = ammoPoolSnapshotRef.current.rifle ?? { rounds: 0, spare: 0 };
+      rifleStore.spare += rewards.rifleSpareMag;
+      ammoPoolSnapshotRef.current.rifle = rifleStore;
+    }
+
+    if (rewards.rifle) {
+      rifleUnlockedRef.current = true;
+      setRifleUnlocked(true);
+      const wasOwned = (wallShopStageRef.current?.rifle ?? 0) >= 1;
+      wallShopStageRef.current = {
+        ...wallShopStageRef.current,
+        rifle: Math.max(wallShopStageRef.current?.rifle ?? 0, 1),
+      };
+      const store = ammoPoolSnapshotRef.current.rifle ?? { rounds: 0, spare: 0 };
+      if (wasOwned) {
+        store.spare += SERVICE_ROOM_RIFLE_SHOP_OFFER.resupplyMagCount;
+      } else {
+        const starting = getPrimaryWeaponStartingAmmo("rifle");
+        store.rounds = starting.rounds;
+        store.spare = starting.spare;
+      }
+      ammoPoolSnapshotRef.current.rifle = store;
     }
 
     let playedHpPickup = false;
     if (rewards.medkit) {
       playerHealthRef.current = Math.min(100, playerHealthRef.current + 40 * rewards.medkit);
+      gameCoreRef.current?.setPlayerHealth(playerHealthRef.current);
       soundsRef.current?.playHpPickup?.();
       playedHpPickup = true;
     }
 
-    for (const item of formatHackGrantedRewards(rewards)) {
+    if (rewards.grenade) {
+      grenadeCountRef.current += rewards.grenade;
+      setGrenadeCount(grenadeCountRef.current);
+    }
+    if (rewards.flashbang) {
+      flashbangCountRef.current += rewards.flashbang;
+      setFlashbangCount(flashbangCountRef.current);
+    }
+
+    for (const item of formatHackGrantedRewards(rewards, {
+      grantRifleAmmo: rifleUnlockedRef.current,
+    })) {
       pickupFlashLayerRef.current?.show(item.pickup);
     }
-    if (!playedHpPickup && (rewards.pistolAmmo || rewards.credits)) {
+    if (
+      !playedHpPickup &&
+      (rewards.pistolAmmo ||
+        rewards.rifleSpareMag ||
+        rewards.credits ||
+        rewards.grenade ||
+        rewards.flashbang ||
+        rewards.rifle)
+    ) {
       soundsRef.current?.playSupplyPickup?.();
     }
 
@@ -1239,7 +1284,6 @@ export default function FpsGame() {
   }, []);
 
   const openConsoleHack = useCallback((target) => {
-    const canvas = canvasRef.current;
     inputRef.current?.discardLookDelta?.();
     inputRef.current?.clearHeldState?.();
     consoleHackPanelRef.current = target.group;
@@ -1250,10 +1294,10 @@ export default function FpsGame() {
     setConsoleHackLayout(hackLayout);
     setConsoleHackOpen(true);
     resetKillPredictiveCache();
+    safeExitPointerLock();
     if (musicEnabledRef.current) {
       soundsRef.current?.startHackMusic?.();
     }
-    safeRequestPointerLock(canvas);
   }, []);
 
   const closeConsoleHack = useCallback(() => {
@@ -2152,6 +2196,7 @@ export default function FpsGame() {
     let rafId = 0;
     let level = null;
     let player = null;
+    let gameCore = null;
     let input = null;
     let weapon = null;
     const primaryWeapons = { rifle: null, pistol: null };
@@ -2220,6 +2265,8 @@ export default function FpsGame() {
 
       const HIP_FOV = 75;
       const ADS_FOV = 41.6;
+      gameCore = await createGameCoreEngine(playerHealthRef.current);
+      gameCoreRef.current = gameCore;
       const camera = new THREE.PerspectiveCamera(
         HIP_FOV,
         window.innerWidth / window.innerHeight,
@@ -2739,6 +2786,7 @@ export default function FpsGame() {
           const hp = playerHealthRef.current;
           return hp > 100 ? hp / 100 : 1;
         },
+        gameCore,
         onFootstep: ({ speed, crouching, sprinting, onStairs }) => {
           if (!loadDoneRef.current) return;
           const t = resolveWalkBobTuning(walkBobTuningRef.current);
@@ -2943,6 +2991,7 @@ export default function FpsGame() {
         level,
         camera,
         player,
+        get gameCore() { return gameCore; },
         input,
         get weapon() { return weapon; },
         set weapon(v) { weapon = v; },
@@ -3158,6 +3207,7 @@ export default function FpsGame() {
           ds.respawned = true;
           ds.fadeEndTime = performance.now() + DEATH_FADE_MS;
           playerHealthRef.current = 100;
+          gameCoreRef.current?.setPlayerHealth(100);
           setPlayerHealth(100);
           flashbangBlindStartRef.current = 0;
           updateFlashbangOverlay(flashbangOverlayRef.current, 0);
@@ -3441,6 +3491,7 @@ export default function FpsGame() {
       screenCrosshairRef.current = null;
       soundsRef.current?.dispose();
       soundsRef.current = null;
+      gameCoreRef.current = null;
       respawnCallbackRef.current = null;
       hemiRef.current = null;
       inputRef.current = null;
@@ -4714,6 +4765,7 @@ export default function FpsGame() {
             ds.respawned = true;
             ds.fadeEndTime = performance.now() + DEATH_FADE_MS;
             playerHealthRef.current = 100;
+            gameCoreRef.current?.setPlayerHealth(100);
             setPlayerHealth(100);
             grenadeCountRef.current = getGrenadeParams().grenadeCount;
             setGrenadeCount(grenadeCountRef.current);

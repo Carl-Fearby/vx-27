@@ -24,7 +24,8 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
-  { label: "BUILD", value: `v${BUILD_VERSION} · dev tuning fixes · HUD perf · melee reset` },
+  { label: "BUILD", value: `v${BUILD_VERSION} · NODE BREACH retries · ammo defaults · RUSH migration` },
+  { label: "RUSH", value: "Migrating hot-path logic to Rust/WASM · game_core live · hack_core next" },
   { label: "PLATFORM", value: "Desktop · iPad Safari · zero install" },
   { label: "ZONE", value: "Exclusion sector · sealed" },
   { label: "RENDER", value: "WebGL · Three.js · GPU preload on load" },
@@ -34,16 +35,21 @@ const TELEMETRY = [
 const NODE_BREACH_SPECS = [
   ["Console access", "H or click screen/body · H again to end early"],
   ["Breach grid", "WASD select nodes · SPACE confirm routes"],
-  ["Timer", "60s pressure · security trip retries same seed"],
-  ["Security shuffle", "Death moves one tripped node · clock resets"],
+  ["Timer", "60s pressure · five tries · security or timeout auto-retries"],
+  ["Security shuffle", "Death moves one tripped node · clock resets · biased auto-aim"],
   ["Screen C", "Green on success · red on fail or early exit"],
   ["Shelf D", "PBR shelf quad · clamped hero UV"],
   ["Hull prop", "Sharp extrusion · plinth clearance · tiled PBR"],
   ["Hack audio", "Neon Gate Rush · combat mix muted underneath"],
-  ["Rewards", "Score cache pickup · four-second HUD flash"],
+  ["Rewards", "Random loot table · credits · ammo · medkit · rifle · grenades · flashbangs"],
 ];
 
 const WHATS_NEW = [
+  {
+    tag: "v0.1.55",
+    title: "RUSH migration & NODE BREACH",
+    text: "Hot-path game logic is moving into RUSH — Rust compiled to WebAssembly. Player stamina, health, and grenade cooldown now tick through game_core; hack_core scaffolding is in place for the breach grid. NODE BREACH adds five retries, a random reward table, harder security auto-aim, and a pointer-lock exit fix. Default ammo is three mags for pistol and rifle.",
+  },
   {
     tag: "v0.1.54",
     title: "Dev tuning & HUD perf",
@@ -802,7 +808,7 @@ export default function MarketingSite() {
           You were sent to recover a weapon. You found something worse.
         </p>
         <p className="mktLaunchBuildNote">
-          Now live · v{BUILD_VERSION} · cinematic lasers · rifle shop · NODE BREACH
+          Now live · v{BUILD_VERSION} · RUSH migration · NODE BREACH retries · rifle shop
         </p>
         <Link href="/game" className="mktPlayBtn mktPlayBtnLaunch">
           <span className="mktPlayBtnLabel">Launch VX-27</span>

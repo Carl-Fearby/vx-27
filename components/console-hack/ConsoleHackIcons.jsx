@@ -127,3 +127,66 @@ export function HackCreditIcon({ className }) {
     </svg>
   );
 }
+
+/** Pineapple grenade silhouette. */
+export function HackGrenadeIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="6.2" y="2.3" width="3.6" height="1.6" rx="0.5" fill="currentColor" />
+      <path
+        d="M5.6 4.2h4.8c.7 0 1.2.55 1.2 1.2v6.2c0 .65-.55 1.2-1.2 1.2H5.6c-.65 0-1.2-.55-1.2-1.2V5.4c0-.65.55-1.2 1.2-1.2Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.05"
+      />
+      <path
+        d="M6.2 6.1h3.6M6.2 8h3.6M6.2 9.9h3.6"
+        stroke="currentColor"
+        strokeWidth="0.65"
+        strokeLinecap="round"
+        opacity="0.55"
+      />
+    </svg>
+  );
+}
+
+/** Flashbang — burst star on a canister. */
+export function HackFlashbangIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M5.8 4.8h4.4c.55 0 1 .45 1 1v5.4c0 .55-.45 1-1 1H5.8c-.55 0-1-.45-1-1V5.8c0-.55.45-1 1-1Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.05"
+      />
+      <path
+        d="M8 2.2v1.4M8 11.8v1.4M4.4 7.2H3M13 7.2h-1.4M5.5 4.7 4.6 3.8M10.5 4.7l.9-.9M5.5 9.7l-.9.9M10.5 9.7l.9.9"
+        stroke="currentColor"
+        strokeWidth="0.85"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** Rifle profile — long-barrel unlock reward. */
+export function HackRifleIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M2.2 8.4h8.6l1.4 1.2h2.2l.4-1.2H12l-1-2.2H4.1L2.2 8.4Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.05"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4.3 8.4V6.8M6.2 8.4V7.1"
+        stroke="currentColor"
+        strokeWidth="0.85"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}

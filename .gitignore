@@ -9,6 +9,7 @@ dist
 .env.local
 scripts/fasthosts.deploy.env
 scripts/*.deploy.env
+rust/**/target/
 
 # Raw source packs (runtime assets live under public/)
 CONSTRUCTION ASSETS/

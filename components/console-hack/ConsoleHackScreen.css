@@ -604,7 +604,7 @@
 .consoleHackTimerOverlay {
   position: absolute;
   inset: 0;
-  z-index: 8;
+  z-index: 20;
   display: flex;
   flex-direction: column;
   align-items: center;

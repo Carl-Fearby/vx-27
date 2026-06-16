@@ -21,22 +21,26 @@ import {
   createHackGameState,
   formatHackGrantedRewards,
   getHackObjectiveCount,
+  getHackPotentialRewardPreview,
+  getHackRetriesLabel,
   getHackRouteProgressPct,
   getHackStatusText,
   getNode,
-  HACK_DEFAULT_REWARDS,
+  HACK_MAX_RETRIES,
   HACK_SECURITY_ENABLED,
   HACK_REWARD_NODE_ID,
   HACK_START_NODE_ID,
   getStartPointerTarget,
   HACK_SECURITY_AUTO_RESET_MS,
   HACK_SUCCESS_DISMISS_MS,
+  isHackRetriesExhausted,
   isHackSecurityFailure,
   isHackTimerExpired,
   isHackTimerTicking,
   isSelectableNeighbor,
   resetHack,
   resetHackAfterSecurityDeath,
+  resetHackAfterTimerExpiry,
   navigateHackSelection,
   selectNodeByMouse,
   startHack,
@@ -53,14 +57,35 @@ import {
   HackAmmoIcon,
   HackClockIcon,
   HackCreditIcon,
+  HackFlashbangIcon,
+  HackGrenadeIcon,
   HackLockIcon,
   HackMedkitIcon,
+  HackRifleIcon,
 } from "@/components/console-hack/ConsoleHackIcons.jsx";
 import { HackSecureChannelBars, HackStatusPulse } from "@/components/console-hack/ConsoleHackPulse.jsx";
 import ConsoleHackGridArea from "@/components/console-hack/ConsoleHackGridArea.jsx";
 import { HackNodeSelectedRing } from "@/components/console-hack/ConsoleHackNodeDecor.jsx";
 import ConsoleHackTuneLine from "@/components/console-hack/ConsoleHackTuneLine.jsx";
 import "./console-hack/ConsoleHackScreen.css";
+
+const REWARD_ICONS = {
+  credits: HackCreditIcon,
+  ammo: HackAmmoIcon,
+  rifleAmmo: HackRifleIcon,
+  medkit: HackMedkitIcon,
+  grenade: HackGrenadeIcon,
+  flashbang: HackFlashbangIcon,
+  rifle: HackRifleIcon,
+};
+
+const POTENTIAL_REWARD_ROWS = getHackPotentialRewardPreview().map((entry, index) => ({
+  ...entry,
+  iconId: `rewardIcon${index + 1}`,
+  lineId: `rewardLine${index + 1}`,
+  Icon: REWARD_ICONS[entry.key],
+  text: `${entry.text} · ${Math.round(entry.chance * 100)}%`,
+}));
 
 const HACK_UI = {
   headerTitle: "NODE BREACH",
@@ -69,7 +94,7 @@ const HACK_UI = {
   objectiveLines: ["> ROUTE POWER", "> BYPASS 3 SECURITY NODES"],
   objectiveCount: "0/3",
   rewardTitle: "SUPPLY CACHE",
-  rewardSub: "+ CREDITS / AMMO / MEDKIT",
+  rewardSub: "RANDOM LOOT TABLE",
   timer: HACK_TIMER_DEFAULT,
   progressPct: 44,
   gridStart: "START",
@@ -77,11 +102,6 @@ const HACK_UI = {
   nodeId: "VX-27-NODE-9A",
   secureChannel: "SECURE CHANNEL",
   rewardPreview: "REWARD PREVIEW",
-  rewards: [
-    { iconId: "rewardIcon1", lineId: "rewardLine1", text: "+ 250 CREDITS", Icon: HackCreditIcon },
-    { iconId: "rewardIcon2", lineId: "rewardLine2", text: "+ 50 PISTOL AMMO", Icon: HackAmmoIcon },
-    { iconId: "rewardIcon3", lineId: "rewardLine3", text: "+ 1 MEDKIT", Icon: HackMedkitIcon },
-  ],
   footer: [
     { id: "footerMove", keys: ["W", "A", "S", "D"], label: "SELECT" },
     { id: "footerConfirm", keys: ["SPACE"], label: "CONFIRM" },
@@ -102,7 +122,7 @@ const HACK_UI = {
  *   onClose?: () => void,
  *   hackKeyCode?: string | string[],
  *   onHackDismiss?: (timerRemainingMs: number) => void,
- *   onHackComplete?: (rewards: typeof HACK_DEFAULT_REWARDS) => void,
+ *   onHackComplete?: (rewards: import("@/lib/console-hack/ConsoleHackGame.js").HackRewards) => void,
  *   onHackFailed?: () => void,
  *   sounds?: {
  *     playHackDeath?: () => void,
@@ -242,8 +262,8 @@ export default function ConsoleHackScreen({
   useEffect(() => {
     if (gameState.status !== "complete" || completeHandledRef.current) return;
     completeHandledRef.current = true;
-    onHackComplete?.(HACK_DEFAULT_REWARDS);
-  }, [gameState.status, onHackComplete]);
+    onHackComplete?.(gameState.rewards);
+  }, [gameState.rewards, gameState.status, onHackComplete]);
 
   useEffect(() => {
     if (!open || tuneEnabled || gameState.status !== "complete") return undefined;
@@ -254,18 +274,32 @@ export default function ConsoleHackScreen({
   useEffect(() => {
     if (!isHackSecurityFailure(gameState) || !gameState.failureConnection) return;
     sounds?.playHackDeath?.();
-    onHackFailed?.();
-  }, [gameState.failureConnection, gameState.failureKind, gameState.status, sounds, onHackFailed]);
+    if (isHackRetriesExhausted(gameState)) onHackFailed?.();
+  }, [
+    gameState.failureConnection,
+    gameState.failureKind,
+    gameState.retriesUsed,
+    gameState.status,
+    sounds,
+    onHackFailed,
+  ]);
 
   useEffect(() => {
     if (!isHackTimerExpired(gameState) || timerExpiredHandledRef.current) return;
     timerExpiredHandledRef.current = true;
     sounds?.playHackDeath?.();
-    onHackFailed?.();
-  }, [gameState.failureKind, gameState.status, sounds, onHackFailed]);
+    if (isHackRetriesExhausted(gameState)) onHackFailed?.();
+  }, [
+    gameState.failureKind,
+    gameState.retriesUsed,
+    gameState.status,
+    sounds,
+    onHackFailed,
+  ]);
 
   useEffect(() => {
     if (!open || tuneEnabled || !isHackSecurityFailure(gameState)) return undefined;
+    if (isHackRetriesExhausted(gameState)) return undefined;
 
     const id = window.setTimeout(() => {
       setGameState((prev) => resetHackAfterSecurityDeath(prev));
@@ -278,6 +312,26 @@ export default function ConsoleHackScreen({
     tuneEnabled,
     gameState.failureKind,
     gameState.failureConnection,
+    gameState.retriesUsed,
+    gameState.status,
+  ]);
+
+  useEffect(() => {
+    if (!open || tuneEnabled || !isHackTimerExpired(gameState)) return undefined;
+    if (isHackRetriesExhausted(gameState)) return undefined;
+
+    const id = window.setTimeout(() => {
+      setGameState((prev) => resetHackAfterTimerExpiry(prev));
+      hackTimerLastRef.current = performance.now();
+      timerExpiredHandledRef.current = false;
+    }, HACK_SECURITY_AUTO_RESET_MS);
+
+    return () => window.clearTimeout(id);
+  }, [
+    open,
+    tuneEnabled,
+    gameState.failureKind,
+    gameState.retriesUsed,
     gameState.status,
   ]);
 
@@ -285,17 +339,22 @@ export default function ConsoleHackScreen({
   const hackProgressPct = getHackRouteProgressPct(gameState);
   const hackStatusText = getHackStatusText(gameState);
   const hackObjectiveCount = getHackObjectiveCount(gameState);
-  const showTimerExpiredOverlay = isHackTimerExpired(gameState);
+  const showTimerExpiredOverlay =
+    isHackTimerExpired(gameState) && isHackRetriesExhausted(gameState);
+  const showRetriesExhaustedOverlay =
+    isHackRetriesExhausted(gameState) && isHackSecurityFailure(gameState);
   const showSecurityFailure = isHackSecurityFailure(gameState);
   const showSuccessOverlay = gameState.status === "complete";
+  const showTerminalFailureOverlay =
+    showTimerExpiredOverlay || showRetriesExhaustedOverlay;
+
+  const handleFailureExit = useCallback(() => {
+    onClose?.();
+  }, [onClose]);
+
   const grantedRewards = showSuccessOverlay
-    ? formatHackGrantedRewards(HACK_DEFAULT_REWARDS)
+    ? formatHackGrantedRewards(gameState.rewards)
     : [];
-  const REWARD_ICONS = {
-    credits: HackCreditIcon,
-    ammo: HackAmmoIcon,
-    medkit: HackMedkitIcon,
-  };
 
   const handleReset = useCallback(() => {
     setGameState((prev) => {
@@ -319,7 +378,7 @@ export default function ConsoleHackScreen({
         e.preventDefault();
         e.stopPropagation();
         if (
-          !isHackTimerExpired(state) &&
+          (!isHackTimerExpired(state) || isHackRetriesExhausted(state)) &&
           state.status !== "complete"
         ) {
           onHackDismiss?.(state.timerRemainingMs);
@@ -330,13 +389,13 @@ export default function ConsoleHackScreen({
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        if (!isHackTimerExpired(state)) {
+        if (!isHackTimerExpired(state) || isHackRetriesExhausted(state)) {
           onClose?.();
         }
         return;
       }
 
-      if (isHackTimerExpired(state)) {
+      if (isHackTimerExpired(state) || isHackRetriesExhausted(state)) {
         return;
       }
 
@@ -516,7 +575,7 @@ export default function ConsoleHackScreen({
               {...tuneLineProps("statusValue")}
               className={[
                 "consoleHackValue",
-                showSecurityFailure || showTimerExpiredOverlay
+                showSecurityFailure || showTimerExpiredOverlay || showRetriesExhaustedOverlay
                   ? "consoleHackValue--alert"
                   : "",
                 gameState.status === "complete" ? "consoleHackValue--success" : "",
@@ -565,7 +624,7 @@ export default function ConsoleHackScreen({
             </ConsoleHackTuneLine>
 
             <ConsoleHackTuneLine {...tuneLineProps("timerLabel")} className="consoleHackLabel">
-              TIMER
+              TIMER ({getHackRetriesLabel(gameState)})
             </ConsoleHackTuneLine>
             <ConsoleHackTuneLine
               {...tuneLineProps("timerIcon")}
@@ -705,7 +764,9 @@ export default function ConsoleHackScreen({
               spriteDragSpace={spriteDragSpace}
               gridCols={gridCols}
               gridRows={gridRows}
-              gameState={tuneEnabled ? null : gameState}
+              gameState={
+                tuneEnabled || showTerminalFailureOverlay ? null : gameState
+              }
               onSelectGameNode={(nodeId) => {
                 setGameState((prev) => selectNodeByMouse(prev, nodeId));
               }}
@@ -748,14 +809,14 @@ export default function ConsoleHackScreen({
               >
                 {showSuccessOverlay ? "GRANTED REWARDS" : "POTENTIAL REWARDS"}
               </ConsoleHackTuneLine>
-              {(showSuccessOverlay ? grantedRewards : HACK_UI.rewards).map((entry) => {
+              {(showSuccessOverlay ? grantedRewards : POTENTIAL_REWARD_ROWS).map((entry, index) => {
                 const rowKey = showSuccessOverlay ? entry.key : entry.lineId;
                 const text = entry.text;
                 const Icon = showSuccessOverlay
                   ? REWARD_ICONS[entry.key]
                   : entry.Icon;
-                const iconId = entry.iconId ?? `${rowKey}Icon`;
-                const lineId = entry.lineId ?? `${rowKey}Line`;
+                const iconId = entry.iconId ?? `rewardIcon${index + 1}`;
+                const lineId = entry.lineId ?? `rewardLine${index + 1}`;
                 return (
                   <span
                     key={rowKey}
@@ -807,29 +868,46 @@ export default function ConsoleHackScreen({
             ))}
           </div>
 
-          {showTimerExpiredOverlay ? (
-            <button
-              type="button"
-              className="consoleHackTimerOverlay"
-              role="alertdialog"
-              aria-modal="true"
-              aria-label="Time expired. Click to exit."
-              onClick={() => onClose?.()}
-            >
-              <p className="consoleHackTimerOverlayTitle">TIME EXPIRED</p>
-              <p className="consoleHackTimerOverlaySub">
-                Breach window closed — session terminated
-              </p>
-              <p className="consoleHackTimerOverlayHint">Click to exit</p>
-            </button>
-          ) : null}
-
           {showSuccessOverlay ? (
             <div className="consoleHackSuccessOverlay" role="status" aria-live="polite">
               <p className="consoleHackSuccessOverlayTitle">ACCESS GRANTED</p>
             </div>
           ) : null}
         </div>
+
+        {showTimerExpiredOverlay ? (
+          <button
+            type="button"
+            className="consoleHackTimerOverlay"
+            role="alertdialog"
+            aria-modal="true"
+            aria-label="Time expired. Click to exit."
+            onClick={handleFailureExit}
+          >
+            <p className="consoleHackTimerOverlayTitle">TIME EXPIRED</p>
+            <p className="consoleHackTimerOverlaySub">
+              Breach window closed — no retries remaining ({HACK_MAX_RETRIES}/{HACK_MAX_RETRIES})
+            </p>
+            <p className="consoleHackTimerOverlayHint">Click to exit</p>
+          </button>
+        ) : null}
+
+        {showRetriesExhaustedOverlay ? (
+          <button
+            type="button"
+            className="consoleHackTimerOverlay"
+            role="alertdialog"
+            aria-modal="true"
+            aria-label="Retries exhausted. Click to exit."
+            onClick={handleFailureExit}
+          >
+            <p className="consoleHackTimerOverlayTitle">RETRIES EXHAUSTED</p>
+            <p className="consoleHackTimerOverlaySub">
+              Security lockout — session terminated ({HACK_MAX_RETRIES}/{HACK_MAX_RETRIES})
+            </p>
+            <p className="consoleHackTimerOverlayHint">Click to exit</p>
+          </button>
+        ) : null}
       </div>
 
       {tuneEnabled ? (

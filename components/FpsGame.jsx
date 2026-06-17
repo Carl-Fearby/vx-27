@@ -335,6 +335,7 @@ import {
   updateLiveTargetsFloorHoles,
   updateTargetsRepair,
   updateTargetHealthBars,
+  resetAllTargetsToSpawn,
   blindTargetFromFlashbang,
   updateFlashbangBlindVisuals,
   getFlashbangBlindDurationSec,
@@ -655,9 +656,21 @@ function rollGrenadeDrop(grenadeCount) {
  * reflow trick (remove → reflow → re-add) lets back-to-back deaths replay
  * the animation instead of being deduped by the browser.
  */
-function showDeathOverlay(overlayEl, reasonEl, reason) {
-  if (reasonEl) reasonEl.textContent = reason ?? "";
+function showDeathOverlay(overlayEl, reasonEl, reason, opts = {}) {
+  const { gameOver = false, titleEl, hintEl } = opts;
+  if (titleEl) {
+    titleEl.textContent = gameOver ? "GAME OVER" : "YOU DIED";
+  }
+  if (hintEl) {
+    hintEl.textContent = gameOver ? "Click to restart" : "Click to respawn";
+  }
+  if (reasonEl) {
+    reasonEl.textContent = gameOver
+      ? "No lives remaining"
+      : (reason ?? "");
+  }
   if (!overlayEl) return;
+  overlayEl.setAttribute("aria-hidden", "false");
   overlayEl.classList.remove("deathOverlayFading");
   overlayEl.classList.remove("deathOverlayActive");
   // eslint-disable-next-line no-unused-expressions
@@ -682,6 +695,7 @@ function hideDeathOverlay(overlayEl) {
   if (!overlayEl) return;
   overlayEl.classList.remove("deathOverlayActive");
   overlayEl.classList.remove("deathOverlayFading");
+  overlayEl.setAttribute("aria-hidden", "true");
 }
 
 /** CSS overlay: 3s full blind → smooth fade out. HUD stays above (z-index 15+). */
@@ -1069,6 +1083,8 @@ export default function FpsGame() {
   const hurtVignetteFlashEndRef = useRef(0);
   const walkPowerRef = useRef(null);
   const deathReasonRef = useRef(null);
+  const deathTitleRef = useRef(null);
+  const deathHintRef = useRef(null);
   /** Non-null while a death sequence is playing. The player stays frozen
    *  until they click to respawn. Input/physics/weapon are gated on this. */
   const deathStateRef = useRef(null);
@@ -1078,6 +1094,7 @@ export default function FpsGame() {
   /** Callback set by the game loop to trigger a respawn from outside the
    *  effect (e.g. the overlay's onClick handler). */
   const respawnCallbackRef = useRef(null);
+  const resetGameToStartScreenRef = useRef(null);
   const [invertYLook, setInvertYLook] = useState(false);
   const [renderScale, setRenderScale] = useState(DEFAULT_RENDER_SCALE);
   const renderScaleRef = useRef(DEFAULT_RENDER_SCALE);
@@ -1198,15 +1215,46 @@ export default function FpsGame() {
     playerScoreRef.current += rewards.credits ?? 0;
     updateScoreHud(scoreHudRef.current, playerScoreRef.current);
 
-    if (rewards.pistolAmmo > 0) {
-      ammoPoolSnapshotRef.current.pistol.spare += 1;
-    }
+    const syncPistolSpareToActive = () => {
+      if (activePrimaryIdRef.current !== "pistol") return;
+      const spare = ammoPoolRef.current?.pistol?.spare ??
+        ammoPoolSnapshotRef.current.pistol.spare;
+      spareMagsRef.current = spare;
+      setSpareMags(spare);
+    };
 
-    if (rewards.rifleSpareMag > 0 && rifleUnlockedRef.current) {
-      const rifleStore = ammoPoolSnapshotRef.current.rifle ?? { rounds: 0, spare: 0 };
-      rifleStore.spare += rewards.rifleSpareMag;
-      ammoPoolSnapshotRef.current.rifle = rifleStore;
-    }
+    const syncRifleSpareToActive = () => {
+      if (activePrimaryIdRef.current !== "rifle") return;
+      const spare =
+        ammoPoolRef.current?.rifle?.spare ??
+        ammoPoolSnapshotRef.current.rifle?.spare ??
+        0;
+      spareMagsRef.current = spare;
+      setSpareMags(spare);
+    };
+
+    const syncRifleAmmoToActive = () => {
+      if (activePrimaryIdRef.current !== "rifle") return;
+      const store = ammoPoolRef.current?.rifle ?? ammoPoolSnapshotRef.current.rifle;
+      if (!store) return;
+      roundsInMagRef.current = store.rounds;
+      spareMagsRef.current = store.spare;
+      setRoundsInMag(store.rounds);
+      setSpareMags(store.spare);
+    };
+
+    const pushRifleStore = (store) => {
+      if (ammoPoolRef.current) {
+        ammoPoolRef.current.rifle = {
+          rounds: store.rounds,
+          spare: store.spare,
+        };
+      }
+      ammoPoolSnapshotRef.current.rifle = {
+        rounds: store.rounds,
+        spare: store.spare,
+      };
+    };
 
     if (rewards.rifle) {
       rifleUnlockedRef.current = true;
@@ -1216,7 +1264,10 @@ export default function FpsGame() {
         ...wallShopStageRef.current,
         rifle: Math.max(wallShopStageRef.current?.rifle ?? 0, 1),
       };
-      const store = ammoPoolSnapshotRef.current.rifle ?? { rounds: 0, spare: 0 };
+      const store = {
+        ...(ammoPoolRef.current?.rifle ??
+          ammoPoolSnapshotRef.current.rifle ?? { rounds: 0, spare: 0 }),
+      };
       if (wasOwned) {
         store.spare += SERVICE_ROOM_RIFLE_SHOP_OFFER.resupplyMagCount;
       } else {
@@ -1224,7 +1275,32 @@ export default function FpsGame() {
         store.rounds = starting.rounds;
         store.spare = starting.spare;
       }
-      ammoPoolSnapshotRef.current.rifle = store;
+      pushRifleStore(store);
+      syncRifleAmmoToActive();
+    }
+
+    if (rewards.pistolAmmo > 0) {
+      if (ammoPoolRef.current) {
+        ammoPoolRef.current.pistol.spare += 1;
+      }
+      ammoPoolSnapshotRef.current.pistol.spare += 1;
+      syncPistolSpareToActive();
+    }
+
+    if (rewards.rifleSpareMag > 0 && rifleUnlockedRef.current) {
+      const store = {
+        ...(ammoPoolRef.current?.rifle ??
+          ammoPoolSnapshotRef.current.rifle ?? { rounds: 0, spare: 0 }),
+      };
+      store.spare += rewards.rifleSpareMag;
+      pushRifleStore(store);
+      syncRifleSpareToActive();
+    } else if (rewards.rifleSpareMag > 0 && !rifleUnlockedRef.current) {
+      if (ammoPoolRef.current) {
+        ammoPoolRef.current.pistol.spare += 1;
+      }
+      ammoPoolSnapshotRef.current.pistol.spare += 1;
+      syncPistolSpareToActive();
     }
 
     let playedHpPickup = false;
@@ -1244,7 +1320,13 @@ export default function FpsGame() {
       setFlashbangCount(flashbangCountRef.current);
     }
 
-    for (const item of formatHackGrantedRewards(rewards, {
+    const displayRewards = { ...rewards };
+    if (rewards.rifleSpareMag > 0 && !rifleUnlockedRef.current) {
+      displayRewards.rifleSpareMag = 0;
+      displayRewards.pistolAmmo = PRIMARY_WEAPONS.pistol.magazineSize;
+    }
+
+    for (const item of formatHackGrantedRewards(displayRewards, {
       grantRifleAmmo: rifleUnlockedRef.current,
     })) {
       pickupFlashLayerRef.current?.show(item.pickup);
@@ -1259,6 +1341,24 @@ export default function FpsGame() {
         rewards.rifle)
     ) {
       soundsRef.current?.playSupplyPickup?.();
+    }
+
+    const pistolMagGranted =
+      rewards.pistolAmmo > 0 ||
+      (rewards.rifleSpareMag > 0 && !rifleUnlockedRef.current);
+    const rifleMagGranted =
+      rewards.rifleSpareMag > 0 && rifleUnlockedRef.current;
+    const grantedActiveAmmo =
+      (pistolMagGranted && activePrimaryIdRef.current === "pistol") ||
+      (activePrimaryIdRef.current === "rifle" &&
+        rifleUnlockedRef.current &&
+        (rifleMagGranted || rewards.rifle));
+    if (
+      grantedActiveAmmo &&
+      roundsInMagRef.current <= 0 &&
+      spareMagsRef.current > 0
+    ) {
+      tryReloadRef.current?.(true);
     }
 
     if (consoleHackPanelRef.current) {
@@ -1608,6 +1708,7 @@ export default function FpsGame() {
   const pickupFlashLayerRef = useRef(null);
   const hudSyncPendingRef = useRef(false);
   const scheduleGameplayHudSyncRef = useRef(() => {});
+  const tryReloadRef = useRef(null);
   const [grenadeCount, setGrenadeCount] = useState(
     () => getGrenadeParams().grenadeCount
   );
@@ -1654,6 +1755,8 @@ export default function FpsGame() {
     }
     return pool;
   })());
+  /** Live combat ammo pool — set when the game loop mounts. */
+  const ammoPoolRef = useRef(null);
   selectedWeaponSlotRef.current = selectedWeaponSlot;
   const [playerLives, setPlayerLives] = useState(3);
   const missionTimeRef = useRef(0);
@@ -2210,6 +2313,7 @@ export default function FpsGame() {
         pistol: { ...ammoPool.pistol },
       };
     }
+    ammoPoolRef.current = ammoPool;
     const weaponSwap = createWeaponSwapController();
     let weaponLoadId = 0;
     let flashTimeout = null;
@@ -3092,6 +3196,8 @@ export default function FpsGame() {
         grenadeSuicideRef,
         deathOverlayRef,
         deathReasonRef,
+        deathTitleRef,
+        deathHintRef,
         flashbangOverlayRef,
         flashbangBlindStartRef,
         compassTapeRef,
@@ -3186,6 +3292,135 @@ export default function FpsGame() {
         tickCenterInteractPrompt: tickCenterInteractPromptHud,
       };
       attachCombatRuntime(gameLoopCtx);
+      tryReloadRef.current = gameLoopCtx.tryReload ?? null;
+
+      resetGameToStartScreenRef.current = () => {
+        if (disposed) return;
+
+        gameSessionStarted = false;
+        loadDoneRef.current = false;
+        setLoadDone(false);
+
+        sounds?.updateOilBarrelFire?.(oilBarrelRuntimeIndex.fireLights, false);
+
+        input?.discardLookDelta?.();
+        input?.clearHeldState?.();
+        safeExitPointerLock();
+
+        hideDeathOverlay(deathOverlayRef.current);
+        deathStateRef.current = null;
+
+        if (consoleHackOpenRef.current) {
+          closeConsoleHackRef.current?.();
+        }
+
+        playerScoreRef.current = STARTING_PLAYER_SCORE;
+        updateScoreHud(scoreHudRef.current, STARTING_PLAYER_SCORE);
+
+        playerLivesRef.current = 3;
+        setPlayerLives(3);
+
+        playerHealthRef.current = 100;
+        gameCore?.setPlayerHealth(100);
+        gameCore?.resetPlayerCore?.();
+        setPlayerHealth(100);
+
+        grenadeCountRef.current = getGrenadeParams().grenadeCount;
+        setGrenadeCount(grenadeCountRef.current);
+        flashbangCountRef.current = DEFAULT_FLASHBANG_COUNT;
+        setFlashbangCount(flashbangCountRef.current);
+        flashbangBlindStartRef.current = 0;
+        updateFlashbangOverlay(flashbangOverlayRef.current, 0);
+        grenadeSuicideRef.current = false;
+        holeFallCryPlayedRef.current = false;
+
+        missionTimeRef.current = 0;
+        updateMissionTimerHud(missionTimerHudRef.current, 0);
+        hostileCountRef.current = 0;
+        updateHostileCountHud(hostileCountHudRef.current, 0);
+
+        const devStartBothWeapons = loadDevStartBothPrimaryWeapons();
+        if (devStartBothWeapons) {
+          rifleUnlockedRef.current = true;
+          wallShopStageRef.current = { ...createDefaultWallShopStages(), rifle: 1 };
+          setRifleUnlocked(true);
+        } else {
+          rifleUnlockedRef.current = false;
+          wallShopStageRef.current = createDefaultWallShopStages();
+          setRifleUnlocked(false);
+        }
+        pendingWallWeaponEquipRef.current = null;
+
+        Object.assign(ammoPool, createDefaultAmmoPool());
+        if (devStartBothWeapons) {
+          applyDevStartBothPrimaryWeapons(ammoPool);
+        }
+        ammoPoolSnapshotRef.current = {
+          rifle: { ...ammoPool.rifle },
+          pistol: { ...ammoPool.pistol },
+        };
+
+        fireModeByWeaponRef.current = createDefaultFireModePool();
+        fireModeRef.current = fireModeByWeaponRef.current.pistol;
+        setFireMode(fireModeRef.current);
+        setSelectedWeaponSlot(GRENADE_WEAPON_SLOT);
+        selectedWeaponSlotRef.current = GRENADE_WEAPON_SLOT;
+
+        disposeAllHpOrbs(hpOrbs);
+        hpOrbs.length = 0;
+        disposeAllAmmoDrops(ammoDrops);
+        ammoDrops.length = 0;
+        disposeAllGrenades(grenades, scene);
+        grenades.length = 0;
+        disposeAllGrenadeDrops(grenadeDrops);
+        grenadeDrops.length = 0;
+        disposeAllBloodSplatters(bloodSplatters, scene);
+        bloodSplatters.length = 0;
+        pendingKillBlood.length = 0;
+        bloodAfterRagdoll.length = 0;
+        disposeAllBulletHoles();
+        resetKillPredictiveCache();
+
+        if (level?.targets?.length) {
+          resetAllTargetsToSpawn(level.targets, {
+            config: level.targetConfig,
+            bounds: level.arenaBounds,
+            colliders: level.colliders,
+            floorHoles: level.floorHoles,
+            spawnCtx: targetSpawnCtx,
+          });
+        }
+
+        player?.respawn();
+        if (primaryWeapons.rifle) {
+          primaryWeapons.rifle.holder.visible = false;
+        }
+        if (primaryWeapons.pistol) {
+          primaryWeapons.pistol.holder.visible = true;
+        }
+        activePrimaryId = "pistol";
+        gameLoopCtx.setActivePrimaryWeaponView("pistol");
+        gameLoopCtx.loadActiveAmmo("pistol");
+        weapon = primaryWeapons.pistol ?? null;
+        weaponRef.current = weapon;
+        weapon?.replayRaise?.();
+
+        const wallShops = wallWeaponShopsRef.current;
+        if (Array.isArray(wallShops)) {
+          for (const shop of wallShops) shop?.syncWallPrice?.(gameLoopCtx);
+        } else {
+          rifleShopRef.current?.syncWallPrice?.(gameLoopCtx);
+        }
+
+        sounds?.stopLevelMusic();
+        if (musicEnabledRef.current) {
+          sounds?.resume();
+          sounds?.startLoadingMusic({ trackId: loadingMusicTrackIdRef.current });
+        }
+
+        scheduleGameplayHudSyncRef.current?.();
+      };
+
       const animate = createGameLoop(gameLoopCtx, {
         isDisposed: () => disposed,
         isReady: () => gameReady,
@@ -3196,12 +3431,20 @@ export default function FpsGame() {
 
       onCanvasClick = (e) => {
         if (e.target !== canvas) return;
+        if (!loadDoneRef.current) return;
         sounds.resume();
         if (loadDoneRef.current && musicEnabledRef.current) {
           sounds.startLevelMusic({ trackId: levelMusicTrackIdRef.current });
         }
         const ds = deathStateRef.current;
-        if (ds && !ds.respawned && performance.now() >= ds.minDisplayEnd) {
+        if (
+          ds?.gameOver &&
+          performance.now() >= ds.minDisplayEnd
+        ) {
+          resetGameToStartScreenRef.current?.();
+          return;
+        }
+        if (ds && !ds.respawned && !ds.gameOver && performance.now() >= ds.minDisplayEnd) {
           player.respawn();
           weapon?.replayRaise?.();
           ds.respawned = true;
@@ -3437,6 +3680,9 @@ export default function FpsGame() {
 
     return () => {
       disposed = true;
+      ammoPoolRef.current = null;
+      tryReloadRef.current = null;
+      resetGameToStartScreenRef.current = null;
       gameReady = false;
       resetKillPredictiveCache();
       resetGameGpuPreload();
@@ -4758,9 +5004,17 @@ export default function FpsGame() {
         role="alertdialog"
         aria-live="assertive"
         aria-hidden="true"
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           const ds = deathStateRef.current;
-          if (ds && !ds.respawned && performance.now() >= ds.minDisplayEnd) {
+          if (
+            ds?.gameOver &&
+            performance.now() >= ds.minDisplayEnd
+          ) {
+            resetGameToStartScreenRef.current?.();
+            return;
+          }
+          if (ds && !ds.respawned && !ds.gameOver && performance.now() >= ds.minDisplayEnd) {
             respawnCallbackRef.current?.();
             ds.respawned = true;
             ds.fadeEndTime = performance.now() + DEATH_FADE_MS;
@@ -4777,12 +5031,16 @@ export default function FpsGame() {
         }}
       >
         <div className="deathOverlayInner">
-          <h1 className="deathOverlayTitle">YOU DIED</h1>
+          <h1 ref={deathTitleRef} className="deathOverlayTitle">
+            YOU DIED
+          </h1>
           <p
             ref={deathReasonRef}
             className="deathOverlayReason"
           />
-          <p className="deathOverlayHint">Click to respawn</p>
+          <p ref={deathHintRef} className="deathOverlayHint">
+            Click to respawn
+          </p>
         </div>
       </div>
     </div>

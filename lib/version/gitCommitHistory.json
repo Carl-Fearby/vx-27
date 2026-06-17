@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-16T22:37:48.341Z",
-  "head": "00073e6",
-  "count": 212,
+  "generatedAt": "2026-06-16T23:54:13.486Z",
+  "head": "e6d99fe",
+  "count": 214,
   "codebase": {
-    "files": 251,
-    "lines": 85348,
-    "nonBlankLines": 77925
+    "files": 250,
+    "lines": 85837,
+    "nonBlankLines": 78368
   },
   "historyStats": {
-    "filesChanged": 2329,
-    "insertions": 133504,
-    "deletions": 42843,
+    "filesChanged": 2359,
+    "insertions": 136604,
+    "deletions": 43104,
     "binaryFiles": 633
   },
   "commits": [
+    {
+      "sha": "e6d99fe",
+      "date": "2026-06-17",
+      "subject": "Fix v0.1.55 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "d178527",
+      "date": "2026-06-17",
+      "subject": "Release v0.1.55: NODE BREACH retries & RUSH migration.",
+      "stats": {
+        "filesChanged": 29,
+        "insertions": 3099,
+        "deletions": 260,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "00073e6",
       "date": "2026-06-16",

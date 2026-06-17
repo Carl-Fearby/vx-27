@@ -24,7 +24,7 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
-  { label: "BUILD", value: `v${BUILD_VERSION} · NODE BREACH retries · ammo defaults · RUSH migration` },
+  { label: "BUILD", value: `v${BUILD_VERSION} · game over · ADS tuning · hack loot fixes` },
   { label: "RUSH", value: "Migrating hot-path logic to Rust/WASM · game_core live · hack_core next" },
   { label: "PLATFORM", value: "Desktop · iPad Safari · zero install" },
   { label: "ZONE", value: "Exclusion sector · sealed" },
@@ -41,10 +41,15 @@ const NODE_BREACH_SPECS = [
   ["Shelf D", "PBR shelf quad · clamped hero UV"],
   ["Hull prop", "Sharp extrusion · plinth clearance · tiled PBR"],
   ["Hack audio", "Neon Gate Rush · combat mix muted underneath"],
-  ["Rewards", "Random loot table · credits · ammo · medkit · rifle · grenades · flashbangs"],
+  ["Rewards", "Random loot · pistol or rifle mag · credits · medkit · rifle unlock · grenades · flashbangs"],
 ];
 
 const WHATS_NEW = [
+  {
+    tag: "v0.1.56",
+    title: "Game over & combat polish",
+    text: "Lives exhausted shows a GAME OVER splash — click to return to Start Game without the preloader. Load screen no longer runs live combat or barrel fire audio behind the overlay. ADS grants +30% damage and −40% recoil. Wall shops sell one mag per purchase. Hack rewards grant pistol or rifle ammo at random, fix live ammo pool sync, and auto-reload when your mag is empty.",
+  },
   {
     tag: "v0.1.55",
     title: "RUSH migration & NODE BREACH",
@@ -808,7 +813,7 @@ export default function MarketingSite() {
           You were sent to recover a weapon. You found something worse.
         </p>
         <p className="mktLaunchBuildNote">
-          Now live · v{BUILD_VERSION} · RUSH migration · NODE BREACH retries · rifle shop
+          Now live · v{BUILD_VERSION} · game over splash · ADS tuning · hack loot · one-mag shops
         </p>
         <Link href="/game" className="mktPlayBtn mktPlayBtnLaunch">
           <span className="mktPlayBtnLabel">Launch VX-27</span>

@@ -24,12 +24,30 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
-  { label: "BUILD", value: `v${BUILD_VERSION} · game over · ADS tuning · hack loot fixes` },
-  { label: "RUSH", value: "Migrating hot-path logic to Rust/WASM · game_core live · hack_core next" },
+  { label: "BUILD", value: `v${BUILD_VERSION} · RUSH combat rules · architecture on site` },
+  { label: "RUSH", value: "JS show · Rust compute · game_core live · hack_core next" },
   { label: "PLATFORM", value: "Desktop · iPad Safari · zero install" },
   { label: "ZONE", value: "Exclusion sector · sealed" },
   { label: "RENDER", value: "WebGL · Three.js · GPU preload on load" },
   { label: "DEPLOY", value: "Browser native · no app store" },
+];
+
+const RUSH_ARCHITECTURE = [
+  ["Split", "JavaScript renders — Rust/WASM computes hot-path game rules"],
+  [
+    "game_core",
+    "Live: vitality, stamina, ammo, throwables, combat score, target damage/repair, grenade blast math, kill drops, death/respawn, wall shop",
+  ],
+  [
+    "JavaScript",
+    "Three.js scene, raycasts, hit zones, grenade trajectories, ragdolls, audio, HUD, and all VFX",
+  ],
+  [
+    "hack_core",
+    "Grid puzzle engine compiled — NODE BREACH UI still on JS until wired",
+  ],
+  ["Bridge", "TypeScript loaders in lib/game-core and lib/hack · serde over WASM"],
+  ["Next", "Hit-zone damage math, grenade sim, player collision, hack_core integration"],
 ];
 
 const NODE_BREACH_SPECS = [
@@ -45,6 +63,11 @@ const NODE_BREACH_SPECS = [
 ];
 
 const WHATS_NEW = [
+  {
+    tag: "v0.1.57",
+    title: "RUSH architecture & combat rules",
+    text: "Hot-path combat rules now run in game_core WASM — ammo, throwables, score, target damage and repair, grenade blast falloff, kill drops, death/respawn, and wall shop purchases. JavaScript keeps Three.js rendering, raycasts, and VFX; Rust owns the numbers. hack_core grid puzzle is compiled and ready to wire. Marketing site documents the JS-show / Rust-compute split.",
+  },
   {
     tag: "v0.1.56",
     title: "Game over & combat polish",
@@ -315,6 +338,12 @@ const OPS = [
     accent: "0.12s response",
   },
   {
+    code: "RSH",
+    title: "RUSH · Rust/WASM core",
+    body: "JavaScript shows the zone — Three.js, audio, HUD, ragdolls. Rust computes the rules: health, stamina, ammo, score, blast damage, shop math. game_core is live every frame; hack_core grid scaffold ships next.",
+    accent: "JS show · Rust compute",
+  },
+  {
     code: "GRN",
     title: "Grenades & cooldown",
     body: "Throw with arc preview, five-second cooldown drain bar, and full sphere bounce inside cargo shells. Slots 3–4 for types; catwalk kill drops stay on the deck where you dropped them.",
@@ -372,6 +401,7 @@ export default function MarketingSite() {
         </Link>
         <nav className="mktNavLinks" aria-label="Primary">
           <a href="#briefing">Briefing</a>
+          <a href="#rush">RUSH</a>
           <a href="#story">Story</a>
           <a href="#factions">Threats</a>
           <a href="#breach">NODE BREACH</a>
@@ -479,10 +509,9 @@ export default function MarketingSite() {
           <p className="mktKicker">Transmission · build {BUILD_VERSION}</p>
           <h2 id="whats-new-heading">What landed this week</h2>
           <p className="mktWhatsNewDeck">
-            North-wall rifle shop, grenade cooldown and container bounce, hack and shop crosshairs,
-            toxic oil spill, laser tracers and headshot falloff, container ceiling flicker, and
-            unified interact prompts — plus NODE BREACH, rain and snow, and GPU preload.
-            Play v{BUILD_VERSION} in your browser; no install.
+            RUSH splits the stack — JavaScript renders, Rust/WASM computes combat rules in game_core.
+            Plus NODE BREACH, rifle shop, grenades, laser tracers, toxic spill, rain and snow, and
+            GPU preload. Play v{BUILD_VERSION} in your browser; no install.
           </p>
         </div>
         <div className="mktWhatsNewGrid">
@@ -503,6 +532,53 @@ export default function MarketingSite() {
             <span className="mktPlayBtnLabel">Play v{BUILD_VERSION}</span>
             <span className="mktPlayBtnSub">Desktop or iPad · free</span>
           </Link>
+        </div>
+      </section>
+
+      <section id="rush" className="mktBreach mktRush">
+        <div className="mktBreachCopy">
+          <p className="mktKicker">RUSH · SYS/CORE</p>
+          <h2>JavaScript shows the zone. Rust computes the rules.</h2>
+          <p className="mktBreachLead">
+            VX-27 is migrating hot-path game logic into RUSH — Rust compiled to WebAssembly.
+            The browser still runs Three.js for rendering, raycasts, and effects; WASM owns
+            deterministic combat state so rules stay fast, testable, and free of frame hitch.
+          </p>
+          <dl className="mktBreachSpecs">
+            {RUSH_ARCHITECTURE.map(([label, value]) => (
+              <div key={label} className="mktBreachSpecRow">
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <Link href="/version" className="mktGhostLink">
+            Version history &amp; release notes
+            <span aria-hidden>↗</span>
+          </Link>
+        </div>
+        <div className="mktRushDiagram" aria-hidden>
+          <div className="mktRushLayer mktRushLayerShow">
+            <span className="mktRushLayerLabel">SHOW</span>
+            <span className="mktRushLayerTech">JavaScript · Three.js · React</span>
+            <ul>
+              <li>Scene &amp; lighting</li>
+              <li>Raycasts &amp; hit zones</li>
+              <li>Ragdolls &amp; VFX</li>
+              <li>Audio &amp; HUD</li>
+            </ul>
+          </div>
+          <span className="mktRushArrow">↕</span>
+          <div className="mktRushLayer mktRushLayerCompute">
+            <span className="mktRushLayerLabel">COMPUTE</span>
+            <span className="mktRushLayerTech">RUSH · Rust/WASM</span>
+            <ul>
+              <li>Health &amp; stamina</li>
+              <li>Ammo &amp; throwables</li>
+              <li>Score &amp; shop math</li>
+              <li>Blast &amp; respawn rules</li>
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -686,6 +762,7 @@ export default function MarketingSite() {
             <li>Fire-mode HUD carousel — weapon and grenade selectors with night-aware icons</li>
             <li>Health, stamina pickups — full HUD with compass and radar</li>
             <li>GPU preload on the loading bar — fewer first-frame hitches after Start Game</li>
+            <li>RUSH game_core WASM — JS renders, Rust computes combat rules every frame</li>
           </ul>
           <p className="mktIntelBody" style={{ marginTop: "1rem" }}>
             Settings → Development opens live tuning panels on localhost when enabled —

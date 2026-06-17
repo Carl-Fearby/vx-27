@@ -1213,6 +1213,7 @@ export default function FpsGame() {
   const [consoleHackLayout, setConsoleHackLayout] = useState(() => loadConsoleHackLayout());
   const handleConsoleHackComplete = useCallback((rewards) => {
     playerScoreRef.current += rewards.credits ?? 0;
+    gameCoreRef.current?.syncPlayerScore(playerScoreRef.current);
     updateScoreHud(scoreHudRef.current, playerScoreRef.current);
 
     const syncPistolSpareToActive = () => {
@@ -1313,10 +1314,18 @@ export default function FpsGame() {
 
     if (rewards.grenade) {
       grenadeCountRef.current += rewards.grenade;
+      gameCoreRef.current?.syncThrowableCounts(
+        grenadeCountRef.current,
+        flashbangCountRef.current,
+      );
       setGrenadeCount(grenadeCountRef.current);
     }
     if (rewards.flashbang) {
       flashbangCountRef.current += rewards.flashbang;
+      gameCoreRef.current?.syncThrowableCounts(
+        grenadeCountRef.current,
+        flashbangCountRef.current,
+      );
       setFlashbangCount(flashbangCountRef.current);
     }
 
@@ -2370,6 +2379,12 @@ export default function FpsGame() {
       const HIP_FOV = 75;
       const ADS_FOV = 41.6;
       gameCore = await createGameCoreEngine(playerHealthRef.current);
+      gameCore.syncThrowableCounts(
+        grenadeCountRef.current,
+        flashbangCountRef.current,
+      );
+      gameCore.syncPlayerScore(playerScoreRef.current);
+      gameCore.syncPlayerLives(playerLivesRef.current);
       gameCoreRef.current = gameCore;
       const camera = new THREE.PerspectiveCamera(
         HIP_FOV,
@@ -3315,9 +3330,11 @@ export default function FpsGame() {
         }
 
         playerScoreRef.current = STARTING_PLAYER_SCORE;
+        gameCore?.syncPlayerScore(STARTING_PLAYER_SCORE);
         updateScoreHud(scoreHudRef.current, STARTING_PLAYER_SCORE);
 
         playerLivesRef.current = 3;
+        gameCore?.syncPlayerLives(3);
         setPlayerLives(3);
 
         playerHealthRef.current = 100;
@@ -3329,6 +3346,12 @@ export default function FpsGame() {
         setGrenadeCount(grenadeCountRef.current);
         flashbangCountRef.current = DEFAULT_FLASHBANG_COUNT;
         setFlashbangCount(flashbangCountRef.current);
+        gameCore?.syncThrowableCounts(
+          grenadeCountRef.current,
+          flashbangCountRef.current,
+        );
+        gameCore?.setGrenadeCooldown(0);
+        grenadeCooldownRemainingRef.current = 0;
         flashbangBlindStartRef.current = 0;
         updateFlashbangOverlay(flashbangOverlayRef.current, 0);
         grenadeSuicideRef.current = false;
@@ -3445,13 +3468,21 @@ export default function FpsGame() {
           return;
         }
         if (ds && !ds.respawned && !ds.gameOver && performance.now() >= ds.minDisplayEnd) {
+          const now = performance.now();
+          const respawn =
+            gameCoreRef.current?.planPlayerRespawn(now, DEATH_FADE_MS) ??
+            {
+              canRespawn: true,
+              playerHealth: 100,
+              fadeEndTime: now + DEATH_FADE_MS,
+            };
+          if (!respawn.canRespawn) return;
           player.respawn();
           weapon?.replayRaise?.();
           ds.respawned = true;
-          ds.fadeEndTime = performance.now() + DEATH_FADE_MS;
-          playerHealthRef.current = 100;
-          gameCoreRef.current?.setPlayerHealth(100);
-          setPlayerHealth(100);
+          ds.fadeEndTime = respawn.fadeEndTime;
+          playerHealthRef.current = respawn.playerHealth;
+          setPlayerHealth(respawn.playerHealth);
           flashbangBlindStartRef.current = 0;
           updateFlashbangOverlay(flashbangOverlayRef.current, 0);
           beginDeathOverlayFade(deathOverlayRef.current);
@@ -5015,14 +5046,26 @@ export default function FpsGame() {
             return;
           }
           if (ds && !ds.respawned && !ds.gameOver && performance.now() >= ds.minDisplayEnd) {
+            const now = performance.now();
+            const respawn =
+              gameCoreRef.current?.planPlayerRespawn(now, DEATH_FADE_MS) ??
+              {
+                canRespawn: true,
+                playerHealth: 100,
+                fadeEndTime: now + DEATH_FADE_MS,
+              };
+            if (!respawn.canRespawn) return;
             respawnCallbackRef.current?.();
             ds.respawned = true;
-            ds.fadeEndTime = performance.now() + DEATH_FADE_MS;
-            playerHealthRef.current = 100;
-            gameCoreRef.current?.setPlayerHealth(100);
-            setPlayerHealth(100);
+            ds.fadeEndTime = respawn.fadeEndTime;
+            playerHealthRef.current = respawn.playerHealth;
+            setPlayerHealth(respawn.playerHealth);
             grenadeCountRef.current = getGrenadeParams().grenadeCount;
             setGrenadeCount(grenadeCountRef.current);
+            gameCoreRef.current?.syncThrowableCounts(
+              grenadeCountRef.current,
+              flashbangCountRef.current,
+            );
             flashbangBlindStartRef.current = 0;
             updateFlashbangOverlay(flashbangOverlayRef.current, 0);
             beginDeathOverlayFade(deathOverlayRef.current);

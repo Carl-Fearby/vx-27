@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-16T23:54:13.486Z",
-  "head": "e6d99fe",
-  "count": 214,
+  "generatedAt": "2026-06-17T13:06:58.434Z",
+  "head": "b2fb1ac",
+  "count": 216,
   "codebase": {
     "files": 250,
-    "lines": 85837,
-    "nonBlankLines": 78368
+    "lines": 86528,
+    "nonBlankLines": 79020
   },
   "historyStats": {
-    "filesChanged": 2359,
-    "insertions": 136604,
-    "deletions": 43104,
+    "filesChanged": 2373,
+    "insertions": 137041,
+    "deletions": 43168,
     "binaryFiles": 633
   },
   "commits": [
+    {
+      "sha": "b2fb1ac",
+      "date": "2026-06-17",
+      "subject": "Fix v0.1.56 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "7fdd15b",
+      "date": "2026-06-17",
+      "subject": "Release v0.1.56: Game over splash & combat polish.",
+      "stats": {
+        "filesChanged": 13,
+        "insertions": 436,
+        "deletions": 63,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "e6d99fe",
       "date": "2026-06-17",

@@ -23,7 +23,7 @@ struct Node {
 #[derive(Clone, Debug, Serialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct HackConnection {
-    from_x: u32,
+    from_x: i32,
     from_y: u32,
     to_x: u32,
     to_y: u32,
@@ -81,6 +81,7 @@ pub struct HackGame {
     selected_y: u32,
     pointer_direction: PointerDirection,
     connections: Vec<HackConnection>,
+    started: bool,
     failed: bool,
     complete: bool,
 }
@@ -118,6 +119,9 @@ impl HackGame {
         if !self.in_bounds(next_x, next_y) {
             return false;
         }
+        if !self.started && next_x != 0 {
+            return false;
+        }
 
         self.selected_x = next_x as u32;
         self.selected_y = next_y as u32;
@@ -129,7 +133,7 @@ impl HackGame {
 
     #[wasm_bindgen(js_name = rotatePointer)]
     pub fn rotate_pointer(&mut self) -> bool {
-        if self.failed || self.complete {
+        if self.failed || self.complete || !self.started {
             return false;
         }
 
@@ -184,6 +188,7 @@ impl HackGame {
             selected_y: height / 2,
             pointer_direction: PointerDirection::Right,
             connections: Vec::new(),
+            started: false,
             failed: false,
             complete: false,
         };
@@ -236,14 +241,19 @@ impl HackGame {
             };
         }
 
-        let Some((target_x, target_y)) = self.pointer_target() else {
-            return ConfirmResult {
-                succeeded: false,
-                failed: false,
-                complete: false,
-                connection: None,
-                revealed_type: None,
+        let (target_x, target_y) = if self.started {
+            let Some(target) = self.pointer_target() else {
+                return ConfirmResult {
+                    succeeded: false,
+                    failed: false,
+                    complete: false,
+                    connection: None,
+                    revealed_type: None,
+                };
             };
+            target
+        } else {
+            (self.selected_x, self.selected_y)
         };
 
         let target_index = self.index(target_x, target_y);
@@ -262,13 +272,14 @@ impl HackGame {
         }
 
         let connection = HackConnection {
-            from_x: self.selected_x,
-            from_y: self.selected_y,
+            from_x: if self.started { self.selected_x as i32 } else { -1 },
+            from_y: if self.started { self.selected_y } else { self.height / 2 },
             to_x: target_x,
             to_y: target_y,
             kind: "power",
         };
         self.connections.push(connection.clone());
+        self.started = true;
         self.selected_x = target_x;
         self.selected_y = target_y;
         self.complete = self.selected_x == self.width - 1;
@@ -286,9 +297,12 @@ impl HackGame {
     }
 
     fn public_state(&self) -> PublicHackState {
-        let (pointer_target_x, pointer_target_y) = self
-            .pointer_target()
-            .unwrap_or((self.selected_x, self.selected_y));
+        let (pointer_target_x, pointer_target_y) = if self.started {
+            self.pointer_target()
+                .unwrap_or((self.selected_x, self.selected_y))
+        } else {
+            (self.selected_x, self.selected_y)
+        };
         let nodes = self
             .nodes
             .iter()
@@ -417,6 +431,7 @@ mod tests {
     #[test]
     fn pointer_never_points_outside_the_grid() {
         let mut game = game();
+        game.started = true;
         for x in 0..game.width {
             for y in 0..game.height {
                 game.selected_x = x;
@@ -434,6 +449,7 @@ mod tests {
     #[test]
     fn rotating_pointer_only_selects_valid_targets() {
         let mut game = game();
+        game.started = true;
         game.selected_x = game.width - 1;
         game.selected_y = 0;
         for _ in 0..4 {
@@ -445,7 +461,7 @@ mod tests {
     #[test]
     fn confirming_a_power_node_advances_state() {
         let mut game = game();
-        let (x, y) = game.pointer_target().expect("valid target");
+        let (x, y) = (game.selected_x, game.selected_y);
         set_node_type(&mut game, x, y, NodeType::Power);
 
         let result = game.confirm_selection_inner();
@@ -453,13 +469,16 @@ mod tests {
         assert!(result.succeeded);
         assert_eq!((game.selected_x, game.selected_y), (x, y));
         assert_eq!(game.connections.len(), 1);
+        assert_eq!(game.connections[0].from_x, -1);
+        assert_eq!(game.connections[0].from_y, game.height / 2);
+        assert_eq!((game.connections[0].to_x, game.connections[0].to_y), (x, y));
         assert!(!game.failed);
     }
 
     #[test]
     fn confirming_a_security_node_fails_the_hack() {
         let mut game = game();
-        let (x, y) = game.pointer_target().expect("valid target");
+        let (x, y) = (game.selected_x, game.selected_y);
         set_node_type(&mut game, x, y, NodeType::Security);
 
         let result = game.confirm_selection_inner();
@@ -471,9 +490,33 @@ mod tests {
     }
 
     #[test]
+    fn start_phase_cannot_move_selection_out_of_first_column() {
+        let mut game = game();
+        assert!(!game.move_selection("right"));
+        assert_eq!(game.selected_x, 0);
+    }
+
+    #[test]
+    fn second_power_confirmation_connects_from_active_grid_node() {
+        let mut game = game();
+        let first = (game.selected_x, game.selected_y);
+        set_node_type(&mut game, first.0, first.1, NodeType::Power);
+        assert!(game.confirm_selection_inner().succeeded);
+
+        let second = game.pointer_target().expect("valid second target");
+        set_node_type(&mut game, second.0, second.1, NodeType::Power);
+        assert!(game.confirm_selection_inner().succeeded);
+
+        assert_eq!(game.connections.len(), 2);
+        assert_eq!(game.connections[1].from_x, first.0 as i32);
+        assert_eq!(game.connections[1].from_y, first.1);
+        assert_eq!((game.connections[1].to_x, game.connections[1].to_y), second);
+    }
+
+    #[test]
     fn reset_clears_progress() {
         let mut game = game();
-        let (x, y) = game.pointer_target().expect("valid target");
+        let (x, y) = (game.selected_x, game.selected_y);
         set_node_type(&mut game, x, y, NodeType::Power);
         game.confirm_selection_inner();
 
@@ -489,7 +532,7 @@ mod tests {
     #[test]
     fn public_state_does_not_reveal_hidden_node_types_too_early() {
         let mut game = game();
-        let (x, y) = game.pointer_target().expect("valid target");
+        let (x, y) = (game.selected_x, game.selected_y);
         set_node_type(&mut game, x, y, NodeType::Power);
 
         let before = game.public_state();

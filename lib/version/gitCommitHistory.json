@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-17T22:27:26.010Z",
-  "head": "b361e93",
-  "count": 220,
+  "generatedAt": "2026-06-17T22:32:28.329Z",
+  "head": "75ac798",
+  "count": 222,
   "codebase": {
     "files": 263,
-    "lines": 86931,
-    "nonBlankLines": 79478
+    "lines": 86949,
+    "nonBlankLines": 79495
   },
   "historyStats": {
-    "filesChanged": 2392,
-    "insertions": 139231,
-    "deletions": 43429,
+    "filesChanged": 2478,
+    "insertions": 155371,
+    "deletions": 48897,
     "binaryFiles": 633
   },
   "commits": [
+    {
+      "sha": "75ac798",
+      "date": "2026-06-17",
+      "subject": "Fix v0.1.58 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "08a17ef",
+      "date": "2026-06-17",
+      "subject": "Release v0.1.58: RUSH physics migration & gameplay fixes.",
+      "stats": {
+        "filesChanged": 85,
+        "insertions": 16139,
+        "deletions": 5467,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "b361e93",
       "date": "2026-06-17",

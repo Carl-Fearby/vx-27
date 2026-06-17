@@ -21,9 +21,11 @@ Key files to inspect for any change
 Developer workflows (commands / semantics)
 - Install & dev (HTTPS by default):
   - npm install
-  - npm run dev        # runs `node scripts/dev.mjs` which starts `next dev` with --experimental-https
-  - npm run dev:http   # same but uses plain HTTP
-  - npm run dev:reset  # clears .next/cache and kills ports 3000/3001 then restarts
+  - npm run wasm:build   # compile RUSH crates before first dev session
+  - npm run dev          # webpack dev (default — Turbopack HMR breaks on wasm-bindgen .wasm)
+  - npm run dev:turbo    # opt-in Turbopack; pass --no-wasm-watch if needed
+  - npm run dev:http     # same but uses plain HTTP
+  - npm run dev:reset    # clears .next/cache and kills ports 3000/3001 then restarts
 - Build / start / clean:
   - npm run build      # next build
   - npm run start      # next start
@@ -39,7 +41,7 @@ Project-specific conventions & gotchas
 
 Integration points
 - Browser runtime: heavy client-side code with direct DOM and WebGL usage — changes must be tested in browser (https://localhost:3000 by default).
-- Server-side: Next.js provides minimal server logic — most game logic is client-only. `scripts/dev.mjs` wraps next for dev behavior (HTTPS, reset, webpack flag).
+- Server-side: Next.js provides minimal server logic — most game logic is client-only. `scripts/dev.mjs` wraps next for dev behavior (HTTPS, reset, webpack default for WASM).
 - External deps: `three` (rendering), `next`, `react`. No bundler customizations beyond Next config (`next.config.mjs`) and `dev.mjs` flags.
 
 Quick examples

@@ -6,7 +6,7 @@ import {
   DEFAULT_LASER_EMITTER_TUNING,
   formatLaserEmitterTuningForCopy,
   LASER_EMITTER_OFFSET_LIMITS,
-  normalizeLaserEmitterOffset,
+  normalizeLaserEmitterTuning,
 } from "@/lib/weapons/LaserEmitterTuning";
 import {
   DEFAULT_PISTOL_ADS_POSE,
@@ -329,7 +329,11 @@ export default function PrimaryWeaponTunePanel({
 
   const releasePointer = () => onReleasePointer?.();
   const isPistol = weaponId === "pistol";
-  const laserOffset = normalizeLaserEmitterOffset(laserTuning?.[weaponId]);
+  const laserMode = tuneMode === "ads" ? "ads" : "hip";
+  const laserWeaponOffsets = normalizeLaserEmitterTuning(laserTuning)[
+    isPistol ? "pistol" : "rifle"
+  ];
+  const laserOffset = laserWeaponOffsets[laserMode];
 
   const selectWeapon = (id) => {
     releasePointer();
@@ -391,7 +395,7 @@ export default function PrimaryWeaponTunePanel({
   };
 
   const updateLaserField = (field, value) => {
-    onLaserChange(weaponId, { ...laserOffset, [field]: value });
+    onLaserChange(weaponId, laserMode, { ...laserOffset, [field]: value });
   };
 
   const updateCrosshairField = (field, value) => {
@@ -439,7 +443,11 @@ export default function PrimaryWeaponTunePanel({
   };
 
   const handleResetLaser = () => {
-    onLaserChange(weaponId, DEFAULT_LASER_EMITTER_TUNING[weaponId]);
+    onLaserChange(
+      weaponId,
+      laserMode,
+      DEFAULT_LASER_EMITTER_TUNING[isPistol ? "pistol" : "rifle"][laserMode],
+    );
   };
 
   const handleResetCrosshair = () => {
@@ -460,11 +468,11 @@ export default function PrimaryWeaponTunePanel({
   const laserOffsetFields = (
     <>
       <p className="settingsGroup">
-        Laser emitter ({isPistol ? "pistol" : "rifle"})
+        Laser emitter ({isPistol ? "pistol" : "rifle"} · {laserMode === "ads" ? "Aim" : "Hip"})
       </p>
       <p className="settingsHint" style={{ marginTop: 0 }}>
-        Offset from the model muzzle for this weapon. +X along barrel, +Y up, +Z
-        sideways.
+        Offset from the model muzzle for this weapon and aim mode. +X along
+        barrel, +Y up, +Z sideways. Hip and Aim each have their own values.
       </p>
       <OffsetControl
         label="Local X"

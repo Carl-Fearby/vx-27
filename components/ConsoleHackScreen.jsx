@@ -20,6 +20,7 @@ import {
   confirmSelectedNode,
   createHackGameState,
   formatHackGrantedRewards,
+  initConsoleHackBridge,
   getHackObjectiveCount,
   getHackPotentialRewardPreview,
   getHackRetriesLabel,
@@ -150,9 +151,11 @@ export default function ConsoleHackScreen({
   const [selectedId, setSelectedId] = useState(null);
   const [layout, setLayout] = useState(() => layoutProp ?? loadConsoleHackLayout());
   const hackTimerTotalMs = useMemo(() => parseHackTimer(HACK_UI.timer), []);
-  const [gameState, setGameState] = useState(() => createHackGameState());
+  const [hackReady, setHackReady] = useState(false);
+  const [gameState, setGameState] = useState(null);
   const completeHandledRef = useRef(false);
   const timerExpiredHandledRef = useRef(false);
+  const securityFailureHandledRef = useRef(null);
   const hackTimerRafRef = useRef(0);
   const hackTimerLastRef = useRef(0);
   const gameStateRef = useRef(gameState);
@@ -235,14 +238,42 @@ export default function ConsoleHackScreen({
     );
     completeHandledRef.current = false;
     timerExpiredHandledRef.current = false;
+    securityFailureHandledRef.current = null;
     hackTimerLastRef.current = performance.now();
   }, [gridCols, gridRows, hackTimerTotalMs]);
 
-  useEffect(() => {
-    if (open && !tuneEnabled) beginHackSession();
-  }, [open, tuneEnabled, beginHackSession]);
+  const beginHackSessionRef = useRef(beginHackSession);
+  beginHackSessionRef.current = beginHackSession;
 
-  const hackTimerTicking = isHackTimerTicking(gameState);
+  useEffect(() => {
+    if (!open || tuneEnabled) {
+      setHackReady(false);
+      return undefined;
+    }
+    let cancelled = false;
+    initConsoleHackBridge()
+      .then(() => {
+        if (cancelled) return;
+        beginHackSessionRef.current();
+        setHackReady(true);
+      })
+      .catch((err) => {
+        console.error("Failed to load hack_core WASM", err);
+      });
+    return () => {
+      cancelled = true;
+      setHackReady(false);
+    };
+  }, [open, tuneEnabled]);
+
+  const securityFailureKey =
+    gameState &&
+    isHackSecurityFailure(gameState) &&
+    gameState.failureConnection
+      ? `${gameState.failureConnection.fromId}:${gameState.failureConnection.toId}:${gameState.retriesUsed}`
+      : null;
+
+  const hackTimerTicking = gameState ? isHackTimerTicking(gameState) : false;
 
   useEffect(() => {
     if (!open || tuneEnabled || !hackTimerTicking) return undefined;
@@ -250,7 +281,7 @@ export default function ConsoleHackScreen({
     const tick = (now) => {
       const delta = now - hackTimerLastRef.current;
       hackTimerLastRef.current = now;
-      setGameState((prev) => tickHackTimer(prev, delta));
+      setGameState((prev) => (prev ? tickHackTimer(prev, delta) : prev));
       hackTimerRafRef.current = requestAnimationFrame(tick);
     };
 
@@ -260,68 +291,59 @@ export default function ConsoleHackScreen({
   }, [open, tuneEnabled, hackTimerTicking]);
 
   useEffect(() => {
-    if (gameState.status !== "complete" || completeHandledRef.current) return;
+    if (!gameState || gameState.status !== "complete" || completeHandledRef.current) return;
     completeHandledRef.current = true;
     onHackComplete?.(gameState.rewards);
-  }, [gameState.rewards, gameState.status, onHackComplete]);
+  }, [gameState?.rewards, gameState?.status, onHackComplete]);
 
   useEffect(() => {
-    if (!open || tuneEnabled || gameState.status !== "complete") return undefined;
+    if (!open || tuneEnabled || !gameState || gameState.status !== "complete") return undefined;
     const id = window.setTimeout(() => onClose?.(), HACK_SUCCESS_DISMISS_MS);
     return () => window.clearTimeout(id);
-  }, [open, tuneEnabled, gameState.status, onClose]);
+  }, [open, tuneEnabled, gameState?.status, onClose]);
 
   useEffect(() => {
-    if (!isHackSecurityFailure(gameState) || !gameState.failureConnection) return;
+    if (!securityFailureKey) return;
+    if (securityFailureHandledRef.current === securityFailureKey) return;
+    securityFailureHandledRef.current = securityFailureKey;
     sounds?.playHackDeath?.();
-    if (isHackRetriesExhausted(gameState)) onHackFailed?.();
-  }, [
-    gameState.failureConnection,
-    gameState.failureKind,
-    gameState.retriesUsed,
-    gameState.status,
-    sounds,
-    onHackFailed,
-  ]);
+    const state = gameStateRef.current;
+    if (state && isHackRetriesExhausted(state)) onHackFailed?.();
+  }, [securityFailureKey, sounds, onHackFailed]);
 
   useEffect(() => {
-    if (!isHackTimerExpired(gameState) || timerExpiredHandledRef.current) return;
+    if (!gameState || !isHackTimerExpired(gameState) || timerExpiredHandledRef.current) return;
     timerExpiredHandledRef.current = true;
     sounds?.playHackDeath?.();
     if (isHackRetriesExhausted(gameState)) onHackFailed?.();
   }, [
-    gameState.failureKind,
-    gameState.retriesUsed,
-    gameState.status,
+    gameState?.failureKind,
+    gameState?.retriesUsed,
+    gameState?.status,
     sounds,
     onHackFailed,
   ]);
 
   useEffect(() => {
-    if (!open || tuneEnabled || !isHackSecurityFailure(gameState)) return undefined;
-    if (isHackRetriesExhausted(gameState)) return undefined;
+    if (!open || tuneEnabled || !securityFailureKey) return undefined;
+    const state = gameStateRef.current;
+    if (!state || isHackRetriesExhausted(state)) return undefined;
 
     const id = window.setTimeout(() => {
-      setGameState((prev) => resetHackAfterSecurityDeath(prev));
+      securityFailureHandledRef.current = null;
+      setGameState((prev) => (prev ? resetHackAfterSecurityDeath(prev) : prev));
       hackTimerLastRef.current = performance.now();
     }, HACK_SECURITY_AUTO_RESET_MS);
 
     return () => window.clearTimeout(id);
-  }, [
-    open,
-    tuneEnabled,
-    gameState.failureKind,
-    gameState.failureConnection,
-    gameState.retriesUsed,
-    gameState.status,
-  ]);
+  }, [open, tuneEnabled, securityFailureKey]);
 
   useEffect(() => {
-    if (!open || tuneEnabled || !isHackTimerExpired(gameState)) return undefined;
+    if (!open || tuneEnabled || !gameState || !isHackTimerExpired(gameState)) return undefined;
     if (isHackRetriesExhausted(gameState)) return undefined;
 
     const id = window.setTimeout(() => {
-      setGameState((prev) => resetHackAfterTimerExpiry(prev));
+      setGameState((prev) => (prev ? resetHackAfterTimerExpiry(prev) : prev));
       hackTimerLastRef.current = performance.now();
       timerExpiredHandledRef.current = false;
     }, HACK_SECURITY_AUTO_RESET_MS);
@@ -330,21 +352,25 @@ export default function ConsoleHackScreen({
   }, [
     open,
     tuneEnabled,
-    gameState.failureKind,
-    gameState.retriesUsed,
-    gameState.status,
+    gameState?.failureKind,
+    gameState?.retriesUsed,
+    gameState?.status,
   ]);
 
-  const hackTimerText = formatHackTimer(gameState.timerRemainingMs);
-  const hackProgressPct = getHackRouteProgressPct(gameState);
-  const hackStatusText = getHackStatusText(gameState);
-  const hackObjectiveCount = getHackObjectiveCount(gameState);
+  const hackTimerText = formatHackTimer(gameState?.timerRemainingMs ?? hackTimerTotalMs);
+  const hackProgressPct = gameState ? getHackRouteProgressPct(gameState) : 0;
+  const hackStatusText = gameState ? getHackStatusText(gameState) : HACK_UI.status;
+  const hackObjectiveCount = gameState ? getHackObjectiveCount(gameState) : HACK_UI.objectiveCount;
   const showTimerExpiredOverlay =
-    isHackTimerExpired(gameState) && isHackRetriesExhausted(gameState);
+    gameState != null &&
+    isHackTimerExpired(gameState) &&
+    isHackRetriesExhausted(gameState);
   const showRetriesExhaustedOverlay =
-    isHackRetriesExhausted(gameState) && isHackSecurityFailure(gameState);
-  const showSecurityFailure = isHackSecurityFailure(gameState);
-  const showSuccessOverlay = gameState.status === "complete";
+    gameState != null &&
+    isHackRetriesExhausted(gameState) &&
+    isHackSecurityFailure(gameState);
+  const showSecurityFailure = gameState != null && isHackSecurityFailure(gameState);
+  const showSuccessOverlay = gameState?.status === "complete";
   const showTerminalFailureOverlay =
     showTimerExpiredOverlay || showRetriesExhaustedOverlay;
 
@@ -352,16 +378,19 @@ export default function ConsoleHackScreen({
     onClose?.();
   }, [onClose]);
 
-  const grantedRewards = showSuccessOverlay
-    ? formatHackGrantedRewards(gameState.rewards)
-    : [];
+  const grantedRewards =
+    showSuccessOverlay && gameState
+      ? formatHackGrantedRewards(gameState.rewards)
+      : [];
 
   const handleReset = useCallback(() => {
     setGameState((prev) => {
+      if (!prev) return prev;
       const seed = Math.floor(Math.random() * 0xffffffff);
       return resetHack({ ...prev, seed });
     });
     completeHandledRef.current = false;
+    securityFailureHandledRef.current = null;
     hackTimerLastRef.current = performance.now();
   }, []);
 
@@ -373,6 +402,7 @@ export default function ConsoleHackScreen({
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
       const state = gameStateRef.current;
+      if (!state) return;
 
       if (hackKeyMatches(e.code)) {
         e.preventDefault();
@@ -418,6 +448,7 @@ export default function ConsoleHackScreen({
         e.preventDefault();
         e.stopPropagation();
         setGameState((prev) => {
+          if (!prev) return prev;
           const { state: next, event } = confirmSelectedNode(prev);
           if (event === "power_connected" || event === "walked_back") {
             sounds?.playHackConnect?.();
@@ -429,19 +460,19 @@ export default function ConsoleHackScreen({
       if (e.code === "KeyW" || key === "w") {
         e.preventDefault();
         e.stopPropagation();
-        setGameState((prev) => navigateHackSelection(prev, "w"));
+        setGameState((prev) => (prev ? navigateHackSelection(prev, "w") : prev));
       } else if (e.code === "KeyS" || key === "s") {
         e.preventDefault();
         e.stopPropagation();
-        setGameState((prev) => navigateHackSelection(prev, "s"));
+        setGameState((prev) => (prev ? navigateHackSelection(prev, "s") : prev));
       } else if (e.code === "KeyA" || key === "a") {
         e.preventDefault();
         e.stopPropagation();
-        setGameState((prev) => navigateHackSelection(prev, "a"));
+        setGameState((prev) => (prev ? navigateHackSelection(prev, "a") : prev));
       } else if (e.code === "KeyD" || key === "d") {
         e.preventDefault();
         e.stopPropagation();
-        setGameState((prev) => navigateHackSelection(prev, "d"));
+        setGameState((prev) => (prev ? navigateHackSelection(prev, "d") : prev));
       }
     };
     window.addEventListener("keydown", onKey, true);
@@ -457,11 +488,14 @@ export default function ConsoleHackScreen({
     onHackComplete,
   ]);
 
-  const startNode = getNode(gameState, HACK_START_NODE_ID);
-  const startIsActive = gameState.activeNodeId === HACK_START_NODE_ID;
-  const startIsSelected = gameState.selectedNodeId === HACK_START_NODE_ID;
+  const startNode = gameState ? getNode(gameState, HACK_START_NODE_ID) : null;
+  const startIsActive = gameState?.activeNodeId === HACK_START_NODE_ID;
+  const startIsSelected = gameState?.selectedNodeId === HACK_START_NODE_ID;
   const startPointerTarget =
-    !tuneEnabled && gameState.status === "active" && startIsActive && startNode
+    !tuneEnabled &&
+    gameState?.status === "active" &&
+    startIsActive &&
+    startNode
       ? getStartPointerTarget(gameState)
       : null;
   const showStartPointer =
@@ -496,13 +530,13 @@ export default function ConsoleHackScreen({
           )
         )
       : 0;
-  const activeNode = getNode(gameState, gameState.activeNodeId);
+  const activeNode = gameState ? getNode(gameState, gameState.activeNodeId) : null;
   const lastColIsActive = activeNode?.col === gridCols - 1;
-  const rewardNode = getNode(gameState, HACK_REWARD_NODE_ID);
-  const rewardIsSelected = gameState.selectedNodeId === HACK_REWARD_NODE_ID;
+  const rewardNode = gameState ? getNode(gameState, HACK_REWARD_NODE_ID) : null;
+  const rewardIsSelected = gameState?.selectedNodeId === HACK_REWARD_NODE_ID;
   const rewardIsSelectable =
     !tuneEnabled &&
-    gameState.status === "active" &&
+    gameState?.status === "active" &&
     rewardNode != null &&
     isSelectableNeighbor(gameState, rewardNode);
   const spriteCellW = gridArea ? gridArea.w / gridCols : 1;
@@ -578,7 +612,7 @@ export default function ConsoleHackScreen({
                 showSecurityFailure || showTimerExpiredOverlay || showRetriesExhaustedOverlay
                   ? "consoleHackValue--alert"
                   : "",
-                gameState.status === "complete" ? "consoleHackValue--success" : "",
+                gameState?.status === "complete" ? "consoleHackValue--success" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -624,7 +658,7 @@ export default function ConsoleHackScreen({
             </ConsoleHackTuneLine>
 
             <ConsoleHackTuneLine {...tuneLineProps("timerLabel")} className="consoleHackLabel">
-              TIMER ({getHackRetriesLabel(gameState)})
+              TIMER ({gameState ? getHackRetriesLabel(gameState) : `0/${HACK_MAX_RETRIES}`})
             </ConsoleHackTuneLine>
             <ConsoleHackTuneLine
               {...tuneLineProps("timerIcon")}
@@ -665,12 +699,15 @@ export default function ConsoleHackScreen({
               {...tuneLineProps("gridStartNode")}
               onClick={
                 !tuneEnabled && startIsActive
-                  ? () => setGameState((prev) => selectNodeByMouse(prev, HACK_START_NODE_ID))
+                  ? () =>
+                      setGameState((prev) =>
+                        prev ? selectNodeByMouse(prev, HACK_START_NODE_ID) : prev,
+                      )
                   : undefined
               }
               className={[
                 "consoleHackGridStartNode",
-                !tuneEnabled && gameState.status === "active" && startIsSelected
+                !tuneEnabled && gameState?.status === "active" && startIsSelected
                   ? "consoleHackGridStartNode--selected"
                   : "",
                 !tuneEnabled && startIsActive ? "consoleHackGridStartNode--active" : "",
@@ -716,12 +753,15 @@ export default function ConsoleHackScreen({
               {...tuneLineProps("gridRewardCache")}
               onClick={
                 rewardIsSelectable
-                  ? () => setGameState((prev) => selectNodeByMouse(prev, HACK_REWARD_NODE_ID))
+                  ? () =>
+                      setGameState((prev) =>
+                        prev ? selectNodeByMouse(prev, HACK_REWARD_NODE_ID) : prev,
+                      )
                   : undefined
               }
               className={[
                 "consoleHackGridRewardCache",
-                gameState.status === "active" && rewardIsSelected
+                gameState?.status === "active" && rewardIsSelected
                   ? "consoleHackGridRewardCache--selected"
                   : "",
                 lastColIsActive ? "consoleHackGridRewardCache--active" : "",
@@ -743,7 +783,7 @@ export default function ConsoleHackScreen({
                       draggable={false}
                     />
                   </span>
-                  {gameState.status === "active" && rewardIsSelected ? <HackNodeSelectedRing /> : null}
+                  {gameState?.status === "active" && rewardIsSelected ? <HackNodeSelectedRing /> : null}
                 </>
               ) : (
                 <img
@@ -765,10 +805,10 @@ export default function ConsoleHackScreen({
               gridCols={gridCols}
               gridRows={gridRows}
               gameState={
-                tuneEnabled || showTerminalFailureOverlay ? null : gameState
+                tuneEnabled || showTerminalFailureOverlay || !hackReady ? null : gameState
               }
               onSelectGameNode={(nodeId) => {
-                setGameState((prev) => selectNodeByMouse(prev, nodeId));
+                setGameState((prev) => (prev ? selectNodeByMouse(prev, nodeId) : prev));
               }}
             />
 

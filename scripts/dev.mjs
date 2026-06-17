@@ -12,10 +12,12 @@ const devEnv = {
 };
 const args = process.argv.slice(2);
 const reset = args.includes("--reset");
-const useWebpack = args.includes("--webpack");
+const useTurbo = args.includes("--turbo");
+const useWebpack = args.includes("--webpack") || !useTurbo;
 const useHttp = args.includes("--http");
 const skipWasmWatch = args.includes("--no-wasm-watch");
-const devArgs = useWebpack ? [] : ["--turbo"];
+// Turbopack HMR breaks on wasm-bindgen .wasm assets (especially when cargo-watch rebuilds).
+const devArgs = useTurbo ? ["--turbo"] : [];
 
 function killPort(port) {
   try {
@@ -100,7 +102,11 @@ let shuttingDown = false;
 if (!skipWasmWatch) {
   const hasCargoWatch = commandWorks("cargo", ["watch", "--version"]);
   const hasWasmPack = commandWorks("wasm-pack", ["--version"]);
-  if (hasCargoWatch && hasWasmPack) {
+  if (useTurbo) {
+    console.warn(
+      "Turbopack dev cannot HMR wasm-bindgen .wasm files — use webpack (default) or pass --no-wasm-watch with --turbo."
+    );
+  } else if (hasCargoWatch && hasWasmPack) {
     console.log("Starting Rust/WASM watchers (use --no-wasm-watch to skip)");
     wasmWatchers.push(spawnWasmWatcher("hack", "rust/hack_core"));
     wasmWatchers.push(spawnWasmWatcher("game", "rust/game_core"));
@@ -118,6 +124,11 @@ if (!useHttp) {
 
 if (!useHttp) {
   console.log("Starting dev server at https://localhost:3000 (use --http for plain HTTP)");
+}
+if (useWebpack) {
+  console.log("Dev bundler: webpack (default — required for RUSH/WASM). Pass --turbo to opt into Turbopack.");
+} else {
+  console.log("Dev bundler: Turbopack (--turbo). WASM hot reload is unsupported; prefer webpack.");
 }
 
 const child = spawn("next", nextArgs, {

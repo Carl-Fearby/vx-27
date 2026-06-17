@@ -2,18 +2,74 @@ import type {
   GameCoreEngine,
   GameCoreFrameInput,
   GameCorePublicState,
+  InteractionGateInput,
+  OilBarrelFireProximityInput,
+  WallWeaponResupplyInput,
+  PlayerMovementGateInput,
+  PlayerMovementGateOutput,
   CombatScoreOutput,
   GrenadeBlastOutput,
+  CollectFadeInput,
+  CollectFadeOutput,
   KillDropPlanOutput,
+  KillDropScatterInput,
+  KillDropScatterOutput,
   PlayerDeathOutput,
+  PlayerDeathTriggerInput,
+  PlayerDeathTriggerOutput,
+  PrimaryWeaponSwapInput,
+  PrimaryWeaponSwapOutput,
+  PickupCollectInput,
+  PickupCollectOutput,
   PlayerRespawnOutput,
+  RagdollImpulseSeedInput,
+  RagdollImpulseSeedOutput,
+  RewardDropLaunchInput,
+  RewardDropLaunchOutput,
+  SecondarySlotInput,
+  SecondarySlotOutput,
   PickupRewardOutput,
   TargetDamageOutput,
   TargetRepairOutput,
+  TargetZoneDamageInput,
+  TargetZoneDamageOutput,
+  ArenaBounds,
+  TargetOccupant,
+  PickRandomSpawnOutput,
+  ColliderBoxInput,
+  CollisionVec2,
+  ResolveBoxColliderOutput,
+  SpringStepOutput,
+  FireRecoilKickOutput,
+  AimRecoilStepInput,
+  AimRecoilStepOutput,
+  FlashbangBlindApplyOutput,
+  ProjectileVec3,
+  ProjectileLiveFloorOutput,
+  ProjectileFuseTickOutput,
+  ProjectilePreviewStepOutput,
   TargetRespawnOutput,
+  TargetRespawnPlacementInput,
+  TargetRespawnPlacementOutput,
   ThrowableOutput,
   WallShopPurchaseOutput,
   WeaponAmmoOutput,
+  HasHeadroomInput,
+  ResolveCeilingCollisionsInput,
+  ResolveCeilingCollisionsOutput,
+  SampleFlatSupportInput,
+  SampleFlatSupportOutput,
+  ResolveSupportInfoInput,
+  SupportInfoOutput,
+  Vx27ColliderInput,
+  ClampToBoundsOutput,
+  TickRagdollHoleFallInput,
+  TickRagdollHoleFallOutput,
+  TickRagdollCoreToppleInput,
+  TickRagdollCoreToppleOutput,
+  TickRagdollLaunchInput,
+  TickRagdollLaunchOutput,
+  RectBoundsInput,
 } from "@/lib/game-core/types";
 
 type WasmGameCore = {
@@ -21,6 +77,7 @@ type WasmGameCore = {
   tickFrame(input: GameCoreFrameInput): unknown;
   tickPlayerCore(input: unknown): unknown;
   tickPlayerVertical(input: unknown): unknown;
+  computePlayerMovementGates(input: unknown): unknown;
   setPlayerHealth(value: number): void;
   damagePlayer(amount: number): number;
   healPlayer(amount: number, cap?: number): number;
@@ -49,6 +106,106 @@ type WasmGameCore = {
     healthCap: number,
   ): unknown;
   applyTargetDamage(health: number, maxHealth: number, damage: number): unknown;
+  resolveTargetZoneDamage(input: unknown): unknown;
+  resolveAdsDamageScale(aimBlend: number): number;
+  resolveAdsRecoilScale(aimBlend: number): number;
+  resolveDamageFalloff(weaponId: string, shotDistance: number): number;
+  resolveHeadshotDamage(
+    weaponId: string,
+    currentHealth: number,
+    maxHealth: number,
+    shotDistance: number,
+  ): number;
+  resolveBodyZoneDamage(
+    weaponId: string,
+    zoneId: string,
+    zoneMult: number,
+    shotDistance: number,
+  ): number;
+  recoilSpringStepToward(
+    value: number,
+    velocity: number,
+    target: number,
+    stiffness: number,
+    damping: number,
+    dt: number,
+  ): unknown;
+  recoilSpringStep(
+    value: number,
+    velocity: number,
+    stiffness: number,
+    damping: number,
+    dt: number,
+  ): unknown;
+  clampRecoilPitchAnim(
+    pitch: number,
+    recoilPitchAnim: number,
+    pitchLimit: number,
+  ): number;
+  applyFireRecoilKick(
+    fireRecoilBack: number,
+    aimRecoilScale: number,
+    kickVelScale: number,
+    fireRecoilPitch: number,
+    pitchVelScale: number,
+  ): unknown;
+  stepAimRecoilPair(input: unknown): unknown;
+  getFlashbangBlindDurationSec(): number;
+  getFlashbangOverlayOpacity(elapsedSec: number): number;
+  isFlashbangBlindExpired(simTime: number, fadeEnd: number): boolean;
+  applyFlashbangBlindToTarget(
+    simTime: number,
+    currentlyBlinding: boolean,
+    blindStart: number,
+    blindFadeEnd: number,
+  ): unknown;
+  computeThrowVelocity(
+    aimX: number,
+    aimY: number,
+    aimZ: number,
+    throwSpeed: number,
+    loftAngleDeg: number,
+  ): unknown;
+  projectileSubstepCount(
+    speed: number,
+    dt: number,
+    maxMove: number,
+    maxSubsteps: number,
+  ): number;
+  projectileIntegrate(input: unknown): unknown;
+  projectileResolveFloorLive(input: unknown): unknown;
+  projectileResolveBounds(input: unknown): unknown;
+  projectileApplyGroundRoll(input: unknown): unknown;
+  projectileFuseTick(input: unknown): unknown;
+  projectilePreviewStep(input: unknown): unknown;
+  projectilePreviewFloorAndBounds(input: unknown): unknown;
+  overlapsTargets(
+    x: number,
+    z: number,
+    radius: number,
+    margin: number,
+    occupants: unknown,
+  ): boolean;
+  positionInAuthoredBounds(
+    x: number,
+    z: number,
+    bounds: unknown,
+    radius: number,
+    margin: number,
+  ): boolean;
+  shouldSpawnAuthoredPoint(isRandom: boolean, roll: number, chance: number): boolean;
+  pickRandomSpawnXz(input: unknown): unknown;
+  worldToBoxLocal(box: unknown, x: number, z: number): unknown;
+  rotatedBoxOverlapsCircle(box: unknown, x: number, z: number, radius: number): boolean;
+  pointInRoundedBoxFootprint(box: unknown, x: number, z: number, radius: number): boolean;
+  resolveBoxCollider(
+    posX: number,
+    posZ: number,
+    radius: number,
+    box: unknown,
+  ): unknown;
+  resolveProjectileAgainstColliders(input: unknown): unknown;
+  collectProjectileNearbyColliderIndices(input: unknown): unknown;
   tickTargetRepair(
     dt: number,
     health: number,
@@ -69,6 +226,14 @@ type WasmGameCore = {
     maxDamage: number,
     falloffPower: number,
   ): unknown;
+  resolvePickupCollect(input: PickupCollectInput): unknown;
+  resolveCollectFade(input: CollectFadeInput): unknown;
+  resolveSecondarySlot(input: SecondarySlotInput): unknown;
+  resolvePrimaryWeaponSwap(input: PrimaryWeaponSwapInput): unknown;
+  resolvePlayerDeathTrigger(input: PlayerDeathTriggerInput): unknown;
+  planKillDropScatter(input: KillDropScatterInput): unknown;
+  planRewardDropLaunch(input: RewardDropLaunchInput): unknown;
+  resolveRagdollImpulseSeed(input: RagdollImpulseSeedInput): unknown;
   planKillDrops(
     zone: string,
     explosiveKill: boolean,
@@ -80,8 +245,16 @@ type WasmGameCore = {
     devDropAllRewards: boolean,
   ): unknown;
   planTargetRespawn(respawnDelaySec: number): unknown;
+  resolveTargetRespawnPlacement(
+    input: TargetRespawnPlacementInput,
+  ): unknown;
   applyPlayerDeath(kind: string, nowMs: number, minDisplayMs: number): unknown;
   planPlayerRespawn(nowMs: number, fadeMs: number): unknown;
+  canInteractGate(input: InteractionGateInput): boolean;
+  tickOilBarrelFireProximityDamage(input: OilBarrelFireProximityInput): boolean;
+  applyGrenadeExplosionDamage(): number;
+  applyOilBarrelFireDamage(): number;
+  canWallWeaponResupply(input: WallWeaponResupplyInput): boolean;
   purchaseWallWeapon(
     score: number,
     stage: number,
@@ -94,6 +267,45 @@ type WasmGameCore = {
     unlockSpare: number,
     resupplySpare: number,
   ): unknown;
+  hasHeadroom(input: HasHeadroomInput): boolean;
+  resolveCeilingCollisions(input: ResolveCeilingCollisionsInput): unknown;
+  sampleFlatSupportAt(input: SampleFlatSupportInput): unknown;
+  resolveSupportInfo(input: ResolveSupportInfoInput): unknown;
+  isVx27ContainerEndOrDoorCollider(input: Vx27ColliderInput): boolean;
+  isVx27ContainerHorizontalCollider(input: Vx27ColliderInput): boolean;
+  isVx27ContainerColliderNearPlayer(
+    input: Vx27ColliderInput,
+    worldX: number,
+    worldZ: number,
+    margin: number,
+  ): boolean;
+  pointInVx27ExteriorColliderFootprint(
+    input: Vx27ColliderInput,
+    x: number,
+    z: number,
+    radius: number,
+  ): boolean;
+  shouldSkipVx27ContainerCollider(
+    input: Vx27ColliderInput,
+    worldX: number,
+    worldZ: number,
+    footY?: number | null,
+  ): boolean;
+  shouldSkipVx27ContainerHeadroom(
+    input: Vx27ColliderInput,
+    worldX: number,
+    worldZ: number,
+    footY?: number | null,
+  ): boolean;
+  clampToBounds(
+    px: number,
+    pz: number,
+    radius: number,
+    bounds: RectBoundsInput | null,
+  ): unknown;
+  tickRagdollHoleFall(input: TickRagdollHoleFallInput): unknown;
+  tickRagdollCoreTopple(input: TickRagdollCoreToppleInput): unknown;
+  tickRagdollLaunch(input: TickRagdollLaunchInput): unknown;
 };
 
 type GameCoreModule = {
@@ -116,6 +328,38 @@ function asPublicState(value: unknown): GameCorePublicState {
   return value as GameCorePublicState;
 }
 
+function asPickRandomSpawnOutput(value: unknown): PickRandomSpawnOutput {
+  return value as PickRandomSpawnOutput;
+}
+
+function asResolveBoxColliderOutput(value: unknown): ResolveBoxColliderOutput {
+  return value as ResolveBoxColliderOutput;
+}
+
+function asCollisionVec2(value: unknown): CollisionVec2 {
+  return value as CollisionVec2;
+}
+
+function asSpringStepOutput(value: unknown): SpringStepOutput {
+  return value as SpringStepOutput;
+}
+
+function asFireRecoilKickOutput(value: unknown): FireRecoilKickOutput {
+  return value as FireRecoilKickOutput;
+}
+
+function asAimRecoilStepOutput(value: unknown): AimRecoilStepOutput {
+  return value as AimRecoilStepOutput;
+}
+
+function asPlayerMovementGateOutput(value: unknown) {
+  return value as ReturnType<GameCoreEngine["computePlayerMovementGates"]>;
+}
+
+function asFlashbangBlindApplyOutput(value: unknown): FlashbangBlindApplyOutput {
+  return value as FlashbangBlindApplyOutput;
+}
+
 function asWeaponAmmoOutput(value: unknown): WeaponAmmoOutput {
   return value as WeaponAmmoOutput;
 }
@@ -132,6 +376,26 @@ function asTargetDamageOutput(value: unknown): TargetDamageOutput {
   return value as TargetDamageOutput;
 }
 
+function asProjectileVec3(value: unknown): ProjectileVec3 {
+  return value as ProjectileVec3;
+}
+
+function asProjectileLiveFloorOutput(value: unknown): ProjectileLiveFloorOutput {
+  return value as ProjectileLiveFloorOutput;
+}
+
+function asProjectileFuseTickOutput(value: unknown): ProjectileFuseTickOutput {
+  return value as ProjectileFuseTickOutput;
+}
+
+function asProjectilePreviewStepOutput(value: unknown): ProjectilePreviewStepOutput {
+  return value as ProjectilePreviewStepOutput;
+}
+
+function asTargetZoneDamageOutput(value: unknown): TargetZoneDamageOutput {
+  return value as TargetZoneDamageOutput;
+}
+
 function asTargetRepairOutput(value: unknown): TargetRepairOutput {
   return value as TargetRepairOutput;
 }
@@ -144,12 +408,50 @@ function asGrenadeBlastOutput(value: unknown): GrenadeBlastOutput {
   return value as GrenadeBlastOutput;
 }
 
+function asPickupCollectOutput(value: unknown): PickupCollectOutput {
+  return value as PickupCollectOutput;
+}
+
+function asCollectFadeOutput(value: unknown): CollectFadeOutput {
+  return value as CollectFadeOutput;
+}
+
+function asSecondarySlotOutput(value: unknown): SecondarySlotOutput {
+  return value as SecondarySlotOutput;
+}
+
+function asPrimaryWeaponSwapOutput(value: unknown): PrimaryWeaponSwapOutput {
+  return value as PrimaryWeaponSwapOutput;
+}
+
+function asPlayerDeathTriggerOutput(value: unknown): PlayerDeathTriggerOutput {
+  return value as PlayerDeathTriggerOutput;
+}
+
+function asKillDropScatterOutput(value: unknown): KillDropScatterOutput {
+  return value as KillDropScatterOutput;
+}
+
+function asRewardDropLaunchOutput(value: unknown): RewardDropLaunchOutput {
+  return value as RewardDropLaunchOutput;
+}
+
+function asRagdollImpulseSeedOutput(value: unknown): RagdollImpulseSeedOutput {
+  return value as RagdollImpulseSeedOutput;
+}
+
 function asKillDropPlanOutput(value: unknown): KillDropPlanOutput {
   return value as KillDropPlanOutput;
 }
 
 function asTargetRespawnOutput(value: unknown): TargetRespawnOutput {
   return value as TargetRespawnOutput;
+}
+
+function asTargetRespawnPlacementOutput(
+  value: unknown,
+): TargetRespawnPlacementOutput {
+  return value as TargetRespawnPlacementOutput;
 }
 
 function asPlayerDeathOutput(value: unknown): PlayerDeathOutput {
@@ -162,6 +464,38 @@ function asPlayerRespawnOutput(value: unknown): PlayerRespawnOutput {
 
 function asWallShopPurchaseOutput(value: unknown): WallShopPurchaseOutput {
   return value as WallShopPurchaseOutput;
+}
+
+function asResolveCeilingCollisionsOutput(
+  value: unknown,
+): ResolveCeilingCollisionsOutput {
+  return value as ResolveCeilingCollisionsOutput;
+}
+
+function asSampleFlatSupportOutput(value: unknown): SampleFlatSupportOutput {
+  return value as SampleFlatSupportOutput;
+}
+
+function asSupportInfoOutput(value: unknown): SupportInfoOutput {
+  return value as SupportInfoOutput;
+}
+
+function asClampToBoundsOutput(value: unknown): ClampToBoundsOutput {
+  return value as ClampToBoundsOutput;
+}
+
+function asTickRagdollHoleFallOutput(value: unknown): TickRagdollHoleFallOutput {
+  return value as TickRagdollHoleFallOutput;
+}
+
+function asTickRagdollCoreToppleOutput(
+  value: unknown,
+): TickRagdollCoreToppleOutput {
+  return value as TickRagdollCoreToppleOutput;
+}
+
+function asTickRagdollLaunchOutput(value: unknown): TickRagdollLaunchOutput {
+  return value as TickRagdollLaunchOutput;
 }
 
 export async function createGameCoreEngine(playerHealth = 100): Promise<GameCoreEngine> {
@@ -180,6 +514,9 @@ export async function createGameCoreEngine(playerHealth = 100): Promise<GameCore
     },
     tickPlayerVertical(input) {
       return core.tickPlayerVertical(input) as ReturnType<GameCoreEngine["tickPlayerVertical"]>;
+    },
+    computePlayerMovementGates(input) {
+      return asPlayerMovementGateOutput(core.computePlayerMovementGates(input));
     },
     setPlayerHealth(value) {
       core.setPlayerHealth(value);
@@ -236,6 +573,221 @@ export async function createGameCoreEngine(playerHealth = 100): Promise<GameCore
     applyTargetDamage(health, maxHealth, damage) {
       return asTargetDamageOutput(core.applyTargetDamage(health, maxHealth, damage));
     },
+    resolveTargetZoneDamage(input) {
+      return asTargetZoneDamageOutput(core.resolveTargetZoneDamage(input));
+    },
+    resolveAdsDamageScale(aimBlend) {
+      return core.resolveAdsDamageScale(aimBlend);
+    },
+    resolveAdsRecoilScale(aimBlend) {
+      return core.resolveAdsRecoilScale(aimBlend);
+    },
+    resolveDamageFalloff(weaponId, shotDistance) {
+      return core.resolveDamageFalloff(weaponId, shotDistance);
+    },
+    resolveHeadshotDamage(weaponId, currentHealth, maxHealth, shotDistance) {
+      return core.resolveHeadshotDamage(
+        weaponId,
+        currentHealth,
+        maxHealth,
+        shotDistance,
+      );
+    },
+    resolveBodyZoneDamage(weaponId, zoneId, zoneMult, shotDistance) {
+      return core.resolveBodyZoneDamage(weaponId, zoneId, zoneMult, shotDistance);
+    },
+    recoilSpringStepToward(value, velocity, target, stiffness, damping, dt) {
+      return asSpringStepOutput(
+        core.recoilSpringStepToward(value, velocity, target, stiffness, damping, dt),
+      );
+    },
+    recoilSpringStep(value, velocity, stiffness, damping, dt) {
+      return asSpringStepOutput(
+        core.recoilSpringStep(value, velocity, stiffness, damping, dt),
+      );
+    },
+    clampRecoilPitchAnim(pitch, recoilPitchAnim, pitchLimit) {
+      return core.clampRecoilPitchAnim(pitch, recoilPitchAnim, pitchLimit);
+    },
+    applyFireRecoilKick(
+      fireRecoilBack,
+      aimRecoilScale,
+      kickVelScale,
+      fireRecoilPitch,
+      pitchVelScale,
+    ) {
+      return asFireRecoilKickOutput(
+        core.applyFireRecoilKick(
+          fireRecoilBack,
+          aimRecoilScale,
+          kickVelScale,
+          fireRecoilPitch,
+          pitchVelScale,
+        ),
+      );
+    },
+    stepAimRecoilPair(input) {
+      return asAimRecoilStepOutput(core.stepAimRecoilPair(input));
+    },
+    getFlashbangBlindDurationSec() {
+      return core.getFlashbangBlindDurationSec();
+    },
+    getFlashbangOverlayOpacity(elapsedSec) {
+      return core.getFlashbangOverlayOpacity(elapsedSec);
+    },
+    isFlashbangBlindExpired(simTime, fadeEnd) {
+      return core.isFlashbangBlindExpired(simTime, fadeEnd);
+    },
+    applyFlashbangBlindToTarget(
+      simTime,
+      currentlyBlinding,
+      blindStart,
+      blindFadeEnd,
+    ) {
+      return asFlashbangBlindApplyOutput(
+        core.applyFlashbangBlindToTarget(
+          simTime,
+          currentlyBlinding,
+          blindStart,
+          blindFadeEnd,
+        ),
+      );
+    },
+    computeThrowVelocity(aimX, aimY, aimZ, throwSpeed, loftAngleDeg) {
+      return asProjectileVec3(
+        core.computeThrowVelocity(aimX, aimY, aimZ, throwSpeed, loftAngleDeg),
+      );
+    },
+    projectileSubstepCount(speed, dt, maxMove, maxSubsteps) {
+      return core.projectileSubstepCount(speed, dt, maxMove, maxSubsteps);
+    },
+    projectileIntegrate(input) {
+      return core.projectileIntegrate(input) as ReturnType<GameCoreEngine["projectileIntegrate"]>;
+    },
+    projectileResolveFloorLive(input) {
+      return asProjectileLiveFloorOutput(core.projectileResolveFloorLive(input));
+    },
+    projectileResolveBounds(input) {
+      return core.projectileResolveBounds(input) as ReturnType<
+        GameCoreEngine["projectileResolveBounds"]
+      >;
+    },
+    projectileApplyGroundRoll(input) {
+      return core.projectileApplyGroundRoll(input) as ReturnType<
+        GameCoreEngine["projectileApplyGroundRoll"]
+      >;
+    },
+    projectileFuseTick(input) {
+      return asProjectileFuseTickOutput(core.projectileFuseTick(input));
+    },
+    projectilePreviewStep(input) {
+      return asProjectilePreviewStepOutput(core.projectilePreviewStep(input));
+    },
+    projectilePreviewFloorAndBounds(input) {
+      return asProjectilePreviewStepOutput(core.projectilePreviewFloorAndBounds(input));
+    },
+    overlapsTargets(x, z, radius, margin, occupants) {
+      return core.overlapsTargets(x, z, radius, margin, occupants);
+    },
+    positionInAuthoredBounds(x, z, bounds, radius, margin) {
+      return core.positionInAuthoredBounds(x, z, bounds, radius, margin);
+    },
+    shouldSpawnAuthoredPoint(isRandom, roll, chance) {
+      return core.shouldSpawnAuthoredPoint(isRandom, roll, chance);
+    },
+    pickRandomSpawnXz(input) {
+      return asPickRandomSpawnOutput(core.pickRandomSpawnXz(input));
+    },
+    worldToBoxLocal(box, x, z) {
+      return asCollisionVec2(core.worldToBoxLocal(box, x, z));
+    },
+    rotatedBoxOverlapsCircle(box, x, z, radius) {
+      return core.rotatedBoxOverlapsCircle(box, x, z, radius);
+    },
+    pointInRoundedBoxFootprint(box, x, z, radius) {
+      return core.pointInRoundedBoxFootprint(box, x, z, radius);
+    },
+    resolveBoxCollider(posX, posZ, radius, box) {
+      return asResolveBoxColliderOutput(core.resolveBoxCollider(posX, posZ, radius, box));
+    },
+    resolveProjectileAgainstColliders(input) {
+      return core.resolveProjectileAgainstColliders(input) as ReturnType<
+        GameCoreEngine["resolveProjectileAgainstColliders"]
+      >;
+    },
+    collectProjectileNearbyColliderIndices(input) {
+      return core.collectProjectileNearbyColliderIndices(input) as ReturnType<
+        GameCoreEngine["collectProjectileNearbyColliderIndices"]
+      >;
+    },
+    spawnBlockedAt(input) {
+      return core.spawnBlockedAt(input);
+    },
+    pushCircleOutOfColliders(input) {
+      return core.pushCircleOutOfColliders(input) as ReturnType<
+        GameCoreEngine["pushCircleOutOfColliders"]
+      >;
+    },
+    pointInFloorHole(x, z, holes, inset = 0) {
+      return core.pointInFloorHole(x, z, holes, inset);
+    },
+    resolveSpawnFootY(input) {
+      return core.resolveSpawnFootY(input) as ReturnType<
+        GameCoreEngine["resolveSpawnFootY"]
+      >;
+    },
+    resolvePlayerColliders(input) {
+      return core.resolvePlayerColliders(input) as ReturnType<
+        GameCoreEngine["resolvePlayerColliders"]
+      >;
+    },
+    computeResolvedWalkBounds(input) {
+      return core.computeResolvedWalkBounds(input) as ReturnType<
+        GameCoreEngine["computeResolvedWalkBounds"]
+      >;
+    },
+    hasHeadroom(input) {
+      return core.hasHeadroom(input);
+    },
+    resolveCeilingCollisions(input) {
+      return asResolveCeilingCollisionsOutput(core.resolveCeilingCollisions(input));
+    },
+    sampleFlatSupportAt(input) {
+      return asSampleFlatSupportOutput(core.sampleFlatSupportAt(input));
+    },
+    resolveSupportInfo(input) {
+      return asSupportInfoOutput(core.resolveSupportInfo(input));
+    },
+    isVx27ContainerEndOrDoorCollider(input) {
+      return core.isVx27ContainerEndOrDoorCollider(input);
+    },
+    isVx27ContainerHorizontalCollider(input) {
+      return core.isVx27ContainerHorizontalCollider(input);
+    },
+    isVx27ContainerColliderNearPlayer(input, worldX, worldZ, margin) {
+      return core.isVx27ContainerColliderNearPlayer(input, worldX, worldZ, margin);
+    },
+    pointInVx27ExteriorColliderFootprint(input, x, z, radius) {
+      return core.pointInVx27ExteriorColliderFootprint(input, x, z, radius);
+    },
+    shouldSkipVx27ContainerCollider(input, worldX, worldZ, footY) {
+      return core.shouldSkipVx27ContainerCollider(input, worldX, worldZ, footY);
+    },
+    shouldSkipVx27ContainerHeadroom(input, worldX, worldZ, footY) {
+      return core.shouldSkipVx27ContainerHeadroom(input, worldX, worldZ, footY);
+    },
+    clampToBounds(px, pz, radius, bounds) {
+      return asClampToBoundsOutput(core.clampToBounds(px, pz, radius, bounds));
+    },
+    tickRagdollHoleFall(input) {
+      return asTickRagdollHoleFallOutput(core.tickRagdollHoleFall(input));
+    },
+    tickRagdollCoreTopple(input) {
+      return asTickRagdollCoreToppleOutput(core.tickRagdollCoreTopple(input));
+    },
+    tickRagdollLaunch(input) {
+      return asTickRagdollLaunchOutput(core.tickRagdollLaunch(input));
+    },
     tickTargetRepair(dt, health, maxHealth, repairCooldown, repairPerSecond) {
       return asTargetRepairOutput(
         core.tickTargetRepair(dt, health, maxHealth, repairCooldown, repairPerSecond),
@@ -256,6 +808,30 @@ export async function createGameCoreEngine(playerHealth = 100): Promise<GameCore
       return asGrenadeBlastOutput(
         core.calculateGrenadeBlastHit(distance, blastRadius, maxDamage, falloffPower),
       );
+    },
+    resolvePickupCollect(input) {
+      return asPickupCollectOutput(core.resolvePickupCollect(input));
+    },
+    resolveCollectFade(input) {
+      return asCollectFadeOutput(core.resolveCollectFade(input));
+    },
+    resolveSecondarySlot(input) {
+      return asSecondarySlotOutput(core.resolveSecondarySlot(input));
+    },
+    resolvePrimaryWeaponSwap(input) {
+      return asPrimaryWeaponSwapOutput(core.resolvePrimaryWeaponSwap(input));
+    },
+    resolvePlayerDeathTrigger(input) {
+      return asPlayerDeathTriggerOutput(core.resolvePlayerDeathTrigger(input));
+    },
+    planKillDropScatter(input) {
+      return asKillDropScatterOutput(core.planKillDropScatter(input));
+    },
+    planRewardDropLaunch(input) {
+      return asRewardDropLaunchOutput(core.planRewardDropLaunch(input));
+    },
+    resolveRagdollImpulseSeed(input) {
+      return asRagdollImpulseSeedOutput(core.resolveRagdollImpulseSeed(input));
     },
     planKillDrops(
       zone,
@@ -283,11 +859,29 @@ export async function createGameCoreEngine(playerHealth = 100): Promise<GameCore
     planTargetRespawn(respawnDelaySec) {
       return asTargetRespawnOutput(core.planTargetRespawn(respawnDelaySec));
     },
+    resolveTargetRespawnPlacement(input) {
+      return asTargetRespawnPlacementOutput(core.resolveTargetRespawnPlacement(input));
+    },
     applyPlayerDeath(kind, nowMs, minDisplayMs) {
       return asPlayerDeathOutput(core.applyPlayerDeath(kind, nowMs, minDisplayMs));
     },
     planPlayerRespawn(nowMs, fadeMs) {
       return asPlayerRespawnOutput(core.planPlayerRespawn(nowMs, fadeMs));
+    },
+    canInteractGate(input) {
+      return core.canInteractGate(input);
+    },
+    tickOilBarrelFireProximityDamage(input) {
+      return core.tickOilBarrelFireProximityDamage(input);
+    },
+    applyGrenadeExplosionDamage() {
+      return core.applyGrenadeExplosionDamage();
+    },
+    applyOilBarrelFireDamage() {
+      return core.applyOilBarrelFireDamage();
+    },
+    canWallWeaponResupply(input) {
+      return core.canWallWeaponResupply(input);
     },
     purchaseWallWeapon(
       score,

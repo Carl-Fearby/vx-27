@@ -338,10 +338,7 @@ import {
   resetAllTargetsToSpawn,
   blindTargetFromFlashbang,
   updateFlashbangBlindVisuals,
-  getFlashbangBlindDurationSec,
-  FLASHBANG_BLIND_FULL_SEC,
-  FLASHBANG_BLIND_FADE_SEC,
-  FLASHBANG_BLIND_FULL_OPACITY,
+  getFlashbangOverlayOpacity,
 } from "@/lib/combat/Targets";
 import {
   flushKillPredictiveGpuWarm,
@@ -458,6 +455,12 @@ import {
   moonPositionFromAngles,
 } from "@/lib/lighting/MoonLightTuning";
 import { loadWalkBobTuning, resolveWalkBobTuning } from "@/lib/player/WalkBobTuning";
+import {
+  loadRecoilTuning,
+  saveRecoilTuning,
+  saveRecoilTuneEnabled,
+} from "@/lib/player/RecoilTuning";
+import RecoilTunePanel from "@/components/tuning-panels/RecoilTunePanel";
 import { loadStairWalkTuning, normalizeStairWalkTuning } from "@/lib/stairs/StairWalkTuning";
 import { loadHudBarTuning } from "@/lib/ui/HudBarTuning";
 import {
@@ -699,17 +702,7 @@ function hideDeathOverlay(overlayEl) {
 }
 
 /** CSS overlay: 3s full blind → smooth fade out. HUD stays above (z-index 15+). */
-function getFlashbangOverlayOpacity(elapsedSec) {
-  const fullEnd = FLASHBANG_BLIND_FULL_SEC;
-  const total = getFlashbangBlindDurationSec();
-  if (elapsedSec >= total) return 0;
-  if (elapsedSec < fullEnd) return FLASHBANG_BLIND_FULL_OPACITY;
-  const fadeT = Math.min(1, (elapsedSec - fullEnd) / FLASHBANG_BLIND_FADE_SEC);
-  const eased = fadeT * fadeT * (3 - 2 * fadeT);
-  return FLASHBANG_BLIND_FULL_OPACITY * (1 - eased);
-}
-
-function updateFlashbangOverlay(el, blindStartMs) {
+function updateFlashbangOverlay(el, blindStartMs, gameCore = null) {
   if (!el) return;
   if (!blindStartMs) {
     el.style.opacity = "0";
@@ -717,7 +710,7 @@ function updateFlashbangOverlay(el, blindStartMs) {
     return;
   }
   const elapsed = (performance.now() - blindStartMs) / 1000;
-  const opacity = getFlashbangOverlayOpacity(elapsed);
+  const opacity = getFlashbangOverlayOpacity(elapsed, gameCore);
   el.style.visibility = opacity > 0 ? "visible" : "hidden";
   el.style.opacity = String(opacity);
 }
@@ -1500,6 +1493,19 @@ export default function FpsGame() {
     applyToxicOilSpillTuning(spill, floorY, tuning);
   }
 
+  function handleRecoilTuningChange(next) {
+    recoilTuningRef.current = next;
+    setRecoilTuning(next);
+    saveRecoilTuning(next);
+  }
+
+  function closeRecoilTune() {
+    saveRecoilTuning(recoilTuningRef.current);
+    setRecoilTuneEnabled(false);
+    recoilTuneEnabledRef.current = false;
+    saveRecoilTuneEnabled(false);
+  }
+
   function handleToxicOilSpillTuningChange(next) {
     toxicOilSpillTuningRef.current = next;
     setToxicOilSpillTuning(next);
@@ -1667,6 +1673,10 @@ export default function FpsGame() {
 
   const stairParamsRef = useRef(initialStairTuning);
   const walkBobTuningRef = useRef(initialWalkBobTuning);
+  const [recoilTuning, setRecoilTuning] = useState(() => loadRecoilTuning());
+  const recoilTuningRef = useRef(loadRecoilTuning());
+  const [recoilTuneEnabled, setRecoilTuneEnabled] = useState(false);
+  const recoilTuneEnabledRef = useRef(false);
   const stairWalkTuningRef = useRef(initialStairWalkTuning);
   const sunRef = useRef(null);
   const moonRef = useRef(null);
@@ -1964,6 +1974,7 @@ export default function FpsGame() {
   primaryWeaponTuneEnabledRef.current = primaryWeaponTuneEnabled;
   primaryWeaponTuneWeaponRef.current = primaryWeaponTuneWeapon;
   primaryWeaponTuneModeRef.current = primaryWeaponTuneMode;
+  recoilTuneEnabledRef.current = recoilTuneEnabled;
   devTuningActiveRef.current =
     oilBarrelPlacementTuneEnabled ||
     cargoModuleDoorTuneEnabled ||
@@ -1971,7 +1982,8 @@ export default function FpsGame() {
     toxicOilSpillTuneEnabled ||
     roundDisplayTuneEnabled ||
     pistolRoundDisplayTuneEnabled ||
-    primaryWeaponTuneEnabled;
+    primaryWeaponTuneEnabled ||
+    recoilTuneEnabled;
   laserEmitterTuningRef.current = laserEmitterTuning;
   crosshairTuningRef.current = crosshairTuning;
   bindingsRef.current = bindings;
@@ -2035,12 +2047,17 @@ export default function FpsGame() {
     [requestPrimaryWeaponTuneWeapon],
   );
 
-  const handleLaserEmitterTuningChange = useCallback((weaponId, offset) => {
+  const handleLaserEmitterTuningChange = useCallback((weaponId, mode, offset) => {
     const id = weaponId === "rifle" ? "rifle" : "pistol";
+    const laserMode = mode === "ads" ? "ads" : "hip";
     setLaserEmitterTuning((prev) => {
+      const normalizedPrev = normalizeLaserEmitterTuning(prev);
       const next = normalizeLaserEmitterTuning({
-        ...prev,
-        [id]: offset,
+        ...normalizedPrev,
+        [id]: {
+          ...normalizedPrev[id],
+          [laserMode]: offset,
+        },
       });
       laserEmitterTuningRef.current = next;
       saveLaserEmitterTuning(next);
@@ -2513,7 +2530,7 @@ export default function FpsGame() {
       stairParamsRef.current = stairParams;
       const arenaLive = { ...arena, stairs: stairParams };
       arenaLiveRef.current = arenaLive;
-      level = createLevelFromConfig(scene, arenaLive, levelTextures);
+      level = createLevelFromConfig(scene, arenaLive, levelTextures, gameCore);
       levelRef.current = level;
       if (level.interiorLights?.length) {
         roomLights.push(...level.interiorLights);
@@ -2899,6 +2916,7 @@ export default function FpsGame() {
         getStandEyeHeight: () => playerHeightRef.current,
         getWalkBobTuning: () =>
           resolveWalkBobTuning(walkBobTuningRef.current),
+        getRecoilTuning: () => recoilTuningRef.current,
         getStairWalkTuning: () =>
           normalizeStairWalkTuning(stairWalkTuningRef.current),
         getStaminaMax: () => {
@@ -2976,6 +2994,8 @@ export default function FpsGame() {
           ...cfg.viewOptions,
           weaponId: id,
           laserEmitterOffset: laserEmitterTuningRef.current?.[id],
+          getRecoilTuning: () => recoilTuningRef.current,
+          getGameCore: () => gameCoreRef.current,
         })
         .then((loadedWeapon) => {
           if (disposed || currentWeaponLoad !== weaponLoadId) {
@@ -3196,6 +3216,7 @@ export default function FpsGame() {
         pistolTuningRef,
         weaponTuningRef,
         walkBobTuningRef,
+        recoilTuningRef,
         stairWalkTuningRef,
         ammoPoolSnapshotRef,
         scheduleGameplayHudSyncRef,
@@ -3290,8 +3311,10 @@ export default function FpsGame() {
         showDeathOverlay,
         beginDeathOverlayFade,
         hideDeathOverlay,
-        updateFlashbangOverlay,
-        updateFlashbangBlindVisuals,
+        updateFlashbangOverlay: (el, blindStartMs) =>
+          updateFlashbangOverlay(el, blindStartMs, gameCoreRef.current),
+        updateFlashbangBlindVisuals: (targets, simTime) =>
+          updateFlashbangBlindVisuals(targets, simTime, gameCoreRef.current),
         safeRequestPointerLock,
         updateDamageVignette,
         updateHurtVignette,
@@ -3411,6 +3434,7 @@ export default function FpsGame() {
             colliders: level.colliders,
             floorHoles: level.floorHoles,
             spawnCtx: targetSpawnCtx,
+            gameCore: gameCoreRef.current,
           });
         }
 
@@ -4770,6 +4794,23 @@ export default function FpsGame() {
               <label className="settingRow">
                 <input
                   type="checkbox"
+                  checked={recoilTuneEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    setRecoilTuneEnabled(enabled);
+                    recoilTuneEnabledRef.current = enabled;
+                    saveRecoilTuneEnabled(enabled);
+                  }}
+                />
+                <span>Weapon recoil panel</span>
+              </label>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Spring kick for camera aim and view-model recoil. Close settings
+                and fire to tune live — sliders auto-save.
+              </p>
+              <label className="settingRow">
+                <input
+                  type="checkbox"
                   checked={roundDisplayTuneEnabled}
                   onChange={(e) => {
                     const enabled = e.target.checked;
@@ -4881,6 +4922,14 @@ export default function FpsGame() {
           tuning={toxicOilSpillTuning}
           onChange={handleToxicOilSpillTuningChange}
           onClose={closeToxicOilSpillTune}
+        />
+      ) : null}
+      {loadDone && recoilTuneEnabled && !controlsOpen && !consoleHackOpen ? (
+        <RecoilTunePanel
+          tuning={recoilTuning}
+          onChange={handleRecoilTuningChange}
+          onReleasePointer={safeExitPointerLock}
+          onClose={closeRecoilTune}
         />
       ) : null}
       {loadDone &&

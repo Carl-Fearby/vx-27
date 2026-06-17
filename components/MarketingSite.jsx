@@ -64,6 +64,11 @@ const NODE_BREACH_SPECS = [
 
 const WHATS_NEW = [
   {
+    tag: "v0.1.58",
+    title: "RUSH physics & spawn fixes",
+    text: "Player collision, headroom, ground support, VX-27 filters, ragdoll core, target spawn, and reward-drop launch now live in game_core WASM modules — lib.rs split into focused Rust files with thin JS bridges. gameCore.ts exports the full surface; live paths require Rust. Fixes five-target level fill, container health bar visibility after hits, and a ragdoll toppleTime regression. hack_core grid logic is compiled; breach UI still mounts from JavaScript.",
+  },
+  {
     tag: "v0.1.57",
     title: "RUSH architecture & combat rules",
     text: "Hot-path combat rules now run in game_core WASM — ammo, throwables, score, target damage and repair, grenade blast falloff, kill drops, death/respawn, and wall shop purchases. JavaScript keeps Three.js rendering, raycasts, and VFX; Rust owns the numbers. hack_core grid puzzle is compiled and ready to wire. Marketing site documents the JS-show / Rust-compute split.",

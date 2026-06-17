@@ -1,19 +1,52 @@
 {
-  "generatedAt": "2026-06-17T22:32:28.329Z",
-  "head": "75ac798",
-  "count": 222,
+  "generatedAt": "2026-06-17T22:44:59.684Z",
+  "head": "150c1b4",
+  "count": 225,
   "codebase": {
     "files": 263,
-    "lines": 86949,
-    "nonBlankLines": 79495
+    "lines": 86969,
+    "nonBlankLines": 79514
   },
   "historyStats": {
-    "filesChanged": 2478,
-    "insertions": 155371,
-    "deletions": 48897,
+    "filesChanged": 2485,
+    "insertions": 155426,
+    "deletions": 48910,
     "binaryFiles": 633
   },
   "commits": [
+    {
+      "sha": "150c1b4",
+      "date": "2026-06-17",
+      "subject": "Fix v0.1.59 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "78d0798",
+      "date": "2026-06-17",
+      "subject": "Release v0.1.59: Aim recoil look-down fix.",
+      "stats": {
+        "filesChanged": 5,
+        "insertions": 24,
+        "deletions": 4,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "ced9394",
+      "date": "2026-06-17",
+      "subject": "Refresh git commit history after v0.1.58 release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 30,
+        "deletions": 8,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "75ac798",
       "date": "2026-06-17",

@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-17T13:06:58.434Z",
-  "head": "b2fb1ac",
-  "count": 216,
+  "generatedAt": "2026-06-17T13:07:07.439Z",
+  "head": "cad5b15",
+  "count": 218,
   "codebase": {
     "files": 250,
     "lines": 86528,
     "nonBlankLines": 79020
   },
   "historyStats": {
-    "filesChanged": 2373,
-    "insertions": 137041,
-    "deletions": 43168,
+    "filesChanged": 2390,
+    "insertions": 139186,
+    "deletions": 43417,
     "binaryFiles": 633
   },
   "commits": [
+    {
+      "sha": "cad5b15",
+      "date": "2026-06-17",
+      "subject": "Fix v0.1.57 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "803aebb",
+      "date": "2026-06-17",
+      "subject": "Release v0.1.57: RUSH combat rules in Rust.",
+      "stats": {
+        "filesChanged": 16,
+        "insertions": 2144,
+        "deletions": 248,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "b2fb1ac",
       "date": "2026-06-17",

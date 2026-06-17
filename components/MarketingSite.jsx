@@ -64,6 +64,11 @@ const NODE_BREACH_SPECS = [
 
 const WHATS_NEW = [
   {
+    tag: "v0.1.59",
+    title: "Recoil look-down fix",
+    text: "Accumulating aim recoil is unchanged — each shot still kicks the view up naturally. Base pitch limits now slide with recoil so pitch + recoilPitchAnim keeps the full vertical arc; you can compensate and look back at the floor after spraying downward.",
+  },
+  {
     tag: "v0.1.58",
     title: "RUSH physics & spawn fixes",
     text: "Player collision, headroom, ground support, VX-27 filters, ragdoll core, target spawn, and reward-drop launch now live in game_core WASM modules — lib.rs split into focused Rust files with thin JS bridges. gameCore.ts exports the full surface; live paths require Rust. Fixes five-target level fill, container health bar visibility after hits, and a ragdoll toppleTime regression. hack_core grid logic is compiled; breach UI still mounts from JavaScript.",

@@ -60,6 +60,7 @@ import {
   HEALTH_BAR_LAYER,
   ROOM_INTERIOR_LAYER,
   VIEWMODEL_LAYER,
+  WEATHER_LAYER,
   WORLD_LAYER,
 } from "@/lib/lighting/LightingLayers";
 import {
@@ -106,6 +107,11 @@ import {
   saveSnowIntensity,
   saveSnowStickRate,
 } from "@/lib/SnowTuning.js";
+import {
+  toggleWeather,
+  WEATHER_MAX_DURATION_SEC,
+} from "@/lib/weather/WeatherToggle.js";
+import { createWeatherTransitionState } from "@/lib/weather/WeatherTransition.js";
 import { buildRoomCullables, updateRoomCulling } from "@/lib/rooms/RoomCulling";
 import {
   initCandleFlicker,
@@ -163,7 +169,6 @@ import { createDefaultWallShopStages, SERVICE_ROOM_RIFLE_SHOP_OFFER } from "@/li
 import {
   applyDevStartBothPrimaryWeapons,
   loadDevStartBothPrimaryWeapons,
-  saveDevStartBothPrimaryWeapons,
 } from "@/lib/weapons/DevStartWeaponsTuning.js";
 import {
   DEFAULT_PISTOL_ADS_POSE,
@@ -192,7 +197,8 @@ import {
   buildOilBarrelRuntimeIndex,
   collectOilBarrelFireLights,
   ensureOilBarrelFlameMeshes,
-  refreshOilBarrelRenderLayers,
+  getOilBarrelTuning,
+  refreshOilBarrelMaterials,
 } from "@/lib/oil-barrel/OilBarrel";
 import {
   collectVx27ContainerRoomLights,
@@ -239,8 +245,6 @@ import {
 } from "@/lib/oil-barrel/OilBarrelFireLight";
 import {
   loadOilBarrelTuning,
-  normalizeOilBarrelTuning,
-  saveOilBarrelTuning,
 } from "@/lib/oil-barrel/OilBarrelTuning";
 import { rebuildLevelOilBarrels } from "@/lib/level/LevelProps";
 import {
@@ -278,38 +282,13 @@ import {
   getGpuPreloadMode,
   GPU_PRELOAD_READY_LABEL,
 } from "@/lib/dev/GpuPreload";
-import {
-  addBarrelToPlacement,
-  applyOilBarrelPlacements,
-  clearPlacementApplyRequests,
-  enterBarrelPlacementEditor,
-  isBarrelPlacementGroupTarget,
-  loadOilBarrelPlacementState,
-  placementApplyOptionsFromState,
-  saveOilBarrelPlacementState,
-  saveOilBarrelPlacementTuneEnabled,
-} from "@/lib/oil-barrel/OilBarrelPlacementTuning";
-import {
-  applyBarrelPlacementPick,
-  collectOilBarrelPickMeshes,
-  getBarrelPlacementHighlightIds,
-  ndcFromCanvasPointer,
-  pickOilBarrelPropAtNdc,
-} from "@/lib/oil-barrel/OilBarrelPlacementPick";
-import {
-  disposeBarrelPlacementHighlights,
-  updateBarrelPlacementHighlights,
-} from "@/lib/oil-barrel/OilBarrelPlacementHighlight";
+import { clearGameLocalStorage, formatGameLocalStorageJson } from "@/lib/dev/readLocalStorageTuning";
 import {
   applyToxicOilSpillTuning,
   createToxicOilSpill,
   disposeToxicOilSpill,
 } from "@/lib/oil-barrel/ToxicOilSpill";
-import {
-  loadToxicOilSpillTuning,
-  saveToxicOilSpillTuning,
-  saveToxicOilSpillTuneEnabled,
-} from "@/lib/oil-barrel/ToxicOilSpillTuning";
+import { loadToxicOilSpillTuning } from "@/lib/oil-barrel/ToxicOilSpillTuning";
 import { resetArenaCeilingDayNightCache } from "@/lib/lighting/ArenaCeilingDayNight";
 import { applyCombatScore, formatKillCallout } from "@/lib/combat/Score";
 import { createScorePopupLayer } from "@/lib/combat/ScorePopups";
@@ -387,18 +366,11 @@ import {
   getWeaponRoundDisplayTuning,
   loadPistolRoundDisplayTuning,
   loadWeaponRoundDisplayTuning,
-  savePistolRoundDisplayTuneEnabled,
-  savePistolRoundDisplayTuning,
-  saveWeaponRoundDisplayTuneEnabled,
-  saveWeaponRoundDisplayTuning,
 } from "@/lib/weapons/WeaponRoundDisplayTuning";
 import {
   DEFAULT_LASER_EMITTER_TUNING,
   loadLaserEmitterTuning,
-  normalizeLaserEmitterTuning,
-  saveLaserEmitterTuning,
 } from "@/lib/weapons/LaserEmitterTuning";
-import { savePrimaryWeaponTuneEnabled } from "@/lib/weapons/PrimaryWeaponTuneTuning";
 import {
   shouldDropAmmoCrate,
   loadAmmoDropSpareThreshold,
@@ -409,23 +381,13 @@ import {
 import HudCompass from "@/components/HudCompass";
 import HudFireModeCarousel from "@/components/HudFireModeCarousel";
 import HudPrimaryWeaponStack from "@/components/HudPrimaryWeaponStack";
-import OilBarrelPlacementTunePanel from "@/components/tuning-panels/OilBarrelPlacementTunePanel";
-import ToxicOilSpillTunePanel from "@/components/tuning-panels/ToxicOilSpillTunePanel";
-import Vx27ContainerDoorTunePanel from "@/components/tuning-panels/Vx27ContainerDoorTunePanel";
-import CargoModulePropsTunePanel from "@/components/tuning-panels/CargoModulePropsTunePanel";
-import WeaponRoundDisplayTunePanel from "@/components/tuning-panels/WeaponRoundDisplayTunePanel";
-import PrimaryWeaponTunePanel from "@/components/tuning-panels/PrimaryWeaponTunePanel";
 import {
   loadCargoModuleDoorTuning,
-  saveCargoModuleDoorTuning,
-  saveCargoModuleDoorTuneEnabled,
 } from "@/lib/vx27-container/CargoModuleDoorGeometryTuning";
 import {
   CARGO_CONSOLE_PROP_ID,
   CARGO_CONTAINER_PROP_ID,
   loadCargoModulePropsPlacement,
-  saveCargoModulePropsPlacement,
-  saveCargoModulePropsTuneEnabled,
 } from "@/lib/vx27-container/CargoModulePropsTuning";
 import {
   getStackDepthInOrder,
@@ -455,12 +417,7 @@ import {
   moonPositionFromAngles,
 } from "@/lib/lighting/MoonLightTuning";
 import { loadWalkBobTuning, resolveWalkBobTuning } from "@/lib/player/WalkBobTuning";
-import {
-  loadRecoilTuning,
-  saveRecoilTuning,
-  saveRecoilTuneEnabled,
-} from "@/lib/player/RecoilTuning";
-import RecoilTunePanel from "@/components/tuning-panels/RecoilTunePanel";
+import { loadRecoilTuning } from "@/lib/player/RecoilTuning";
 import { loadStairWalkTuning, normalizeStairWalkTuning } from "@/lib/stairs/StairWalkTuning";
 import { loadHudBarTuning } from "@/lib/ui/HudBarTuning";
 import {
@@ -716,11 +673,7 @@ function updateFlashbangOverlay(el, blindStartMs, gameCore = null) {
 }
 
 function safeRequestPointerLock(canvas, retries = 3) {
-  if (
-    touchControlsGateRef.current ||
-    oilBarrelPlacementTuneGateRef.current ||
-    !canvas
-  ) {
+  if (touchControlsGateRef.current || !canvas) {
     return;
   }
   if (document.pointerLockElement === canvas) return;
@@ -798,8 +751,6 @@ function formatMissionTimer(totalSecs) {
 
 /** Synced each render — skips pointer lock on touch/iPad UI. */
 const touchControlsGateRef = { current: false };
-/** When true, pointer lock stays off — WASD / arrows walk the level for dev placement. */
-const oilBarrelPlacementTuneGateRef = { current: false };
 
 /** Direct DOM update — avoids re-rendering the whole game tree every second. */
 function updateMissionTimerHud(el, totalSecs) {
@@ -1135,32 +1086,8 @@ export default function FpsGame() {
   const vx27ContainerCeilingLightRef = useRef(
     loadVx27ContainerCeilingLightEnabled()
   );
-  const [oilBarrelPlacement, setOilBarrelPlacement] = useState(() =>
-    loadOilBarrelPlacementState()
-  );
-  const [oilBarrelPlacementTuneEnabled, setOilBarrelPlacementTuneEnabled] =
-    useState(false);
-  const oilBarrelPlacementRef = useRef(loadOilBarrelPlacementState());
-  const oilBarrelLastPickedPropIdRef = useRef(null);
-  const oilBarrelPlacementTuneEnabledRef = useRef(false);
-  const oilBarrelPickMeshesRef = useRef([]);
-  const [cargoModuleDoorTuning, setCargoModuleDoorTuning] = useState(() =>
-    loadCargoModuleDoorTuning(),
-  );
-  const [cargoModuleDoorTuneEnabled, setCargoModuleDoorTuneEnabled] =
-    useState(false);
   const cargoModuleDoorTuningRef = useRef(loadCargoModuleDoorTuning());
-  const [cargoModuleProps, setCargoModuleProps] = useState(() =>
-    loadCargoModulePropsPlacement(),
-  );
-  const [cargoModulePropsTuneEnabled, setCargoModulePropsTuneEnabled] =
-    useState(false);
   const cargoModulePropsRef = useRef(loadCargoModulePropsPlacement());
-  const [toxicOilSpillTuning, setToxicOilSpillTuning] = useState(() =>
-    loadToxicOilSpillTuning(),
-  );
-  const [toxicOilSpillTuneEnabled, setToxicOilSpillTuneEnabled] =
-    useState(false);
   const toxicOilSpillTuningRef = useRef(loadToxicOilSpillTuning());
   const toxicOilSpillRef = useRef(null);
   const [snowEnabled, setSnowEnabled] = useState(() => loadSnowEnabled());
@@ -1175,6 +1102,14 @@ export default function FpsGame() {
     () => loadRainEnabled() && !loadSnowEnabled()
   );
   const rainEnabledRef = useRef(loadRainEnabled() && !loadSnowEnabled());
+  const weatherSessionRef = useRef({ active: false, elapsed: 0 });
+  const weatherTransitionRef = useRef(
+    createWeatherTransitionState({
+      rainOn: loadRainEnabled() && !loadSnowEnabled(),
+      snowOn: loadSnowEnabled(),
+    }),
+  );
+  const weatherToggleRef = useRef(null);
   const [ammoDropSpareThreshold, setAmmoDropSpareThreshold] = useState(
     DEFAULT_AMMO_DROP_SPARE_THRESHOLD
   );
@@ -1466,26 +1401,6 @@ export default function FpsGame() {
   const vx27ContainerCullablesRef = useRef([]);
   const controlPanelsRef = useRef([]);
 
-  function closeOilBarrelPlacementTune() {
-    setOilBarrelPlacementTuneEnabled(false);
-    saveOilBarrelPlacementTuneEnabled(false);
-  }
-
-  function closeCargoModuleDoorTune() {
-    setCargoModuleDoorTuneEnabled(false);
-    saveCargoModuleDoorTuneEnabled(false);
-  }
-
-  function closeCargoModulePropsTune() {
-    setCargoModulePropsTuneEnabled(false);
-    saveCargoModulePropsTuneEnabled(false);
-  }
-
-  function closeToxicOilSpillTune() {
-    setToxicOilSpillTuneEnabled(false);
-    saveToxicOilSpillTuneEnabled(false);
-  }
-
   function applyToxicOilSpill(tuning) {
     const spill = toxicOilSpillRef.current;
     if (!spill?.group) return;
@@ -1493,190 +1408,13 @@ export default function FpsGame() {
     applyToxicOilSpillTuning(spill, floorY, tuning);
   }
 
-  function handleRecoilTuningChange(next) {
-    recoilTuningRef.current = next;
-    setRecoilTuning(next);
-    saveRecoilTuning(next);
-  }
-
-  function closeRecoilTune() {
-    saveRecoilTuning(recoilTuningRef.current);
-    setRecoilTuneEnabled(false);
-    recoilTuneEnabledRef.current = false;
-    saveRecoilTuneEnabled(false);
-  }
-
-  function handleToxicOilSpillTuningChange(next) {
-    toxicOilSpillTuningRef.current = next;
-    setToxicOilSpillTuning(next);
-    saveToxicOilSpillTuning(next);
-    applyToxicOilSpill(next);
-  }
-
-  function refreshBarrelPlacementEditorUi(state) {
-    const root = sceneRef.current ?? levelRef.current?.group;
-    if (!root) return;
-    oilBarrelPickMeshesRef.current = collectOilBarrelPickMeshes(root);
-    updateBarrelPlacementHighlights(
-      root,
-      getBarrelPlacementHighlightIds(state),
-    );
-  }
-
-  function applyOilBarrelPlacementState(state) {
-    const root = sceneRef.current ?? levelRef.current?.group;
-    if (!root) return;
-    const floorY = levelRef.current?.floorY ?? 0;
-    applyOilBarrelPlacements(
-      root,
-      state,
-      floorY,
-      placementApplyOptionsFromState(state),
-    );
-    refreshBarrelPlacementEditorUi(state);
-  }
-
-  function hasBarrelPlacementApplyWork(state) {
-    const options = placementApplyOptionsFromState(state);
-    return Boolean(
-      options.applyHubGroup ||
-        options.applySingleIds?.length ||
-        options.fireSyncIds?.length ||
-        options.applyAddedId ||
-        options.applyRemovedId,
-    );
-  }
-
-  function handleAddOilBarrelPlacement() {
-    const root = sceneRef.current ?? levelRef.current?.group;
-    if (!root) return;
-    const floorY = levelRef.current?.floorY ?? 0;
-    handleOilBarrelPlacementChange(
-      addBarrelToPlacement(oilBarrelPlacementRef.current, root, floorY),
-    );
-  }
-
-  function handleOilBarrelPlacementChange(next) {
-    if (hasBarrelPlacementApplyWork(next)) {
-      applyOilBarrelPlacementState(next);
-    } else {
-      refreshBarrelPlacementEditorUi(next);
-    }
-    const cleared = clearPlacementApplyRequests(next);
-    if (
-      cleared.target &&
-      !isBarrelPlacementGroupTarget(cleared.target)
-    ) {
-      oilBarrelLastPickedPropIdRef.current = cleared.target;
-    }
-    oilBarrelPlacementRef.current = cleared;
-    setOilBarrelPlacement(cleared);
-    saveOilBarrelPlacementState(cleared);
-  }
-
-  const handleOilBarrelPlacementPickRef = useRef(null);
-
-  function handleOilBarrelPlacementPick(propId) {
-    const next = applyBarrelPlacementPick(
-      oilBarrelPlacementRef.current,
-      propId,
-      oilBarrelLastPickedPropIdRef.current,
-    );
-    oilBarrelLastPickedPropIdRef.current = propId;
-    handleOilBarrelPlacementChange(next);
-  }
-  handleOilBarrelPlacementPickRef.current = handleOilBarrelPlacementPick;
-
-  function applyCargoModuleDoorTuning(tuning) {
-    const container = vx27ContainersRef.current.find(
-      (group) => group.userData?.vx27PropId === CARGO_CONTAINER_PROP_ID,
-    );
-    if (!container) return;
-    const current = readVx27ContainerDoorTuning(container);
-    applyVx27ContainerDoorTuning(
-      container,
-      { ...current, ...tuning },
-      { animate: false },
-    );
-  }
-
-  function handleCargoModuleDoorTuningChange(next) {
-    cargoModuleDoorTuningRef.current = next;
-    setCargoModuleDoorTuning(next);
-    saveCargoModuleDoorTuning(next);
-    applyCargoModuleDoorTuning(next);
-  }
-
-  function applyCargoConsolePlacement(placement) {
-    const panel = controlPanelsRef.current.find(
-      (group) =>
-        group.userData?.controlPanelPropId === CARGO_CONSOLE_PROP_ID,
-    );
-    if (!panel) return;
-    panel.position.x = placement.x;
-    panel.position.z = placement.z;
-    panel.rotation.y = placement.rotationY;
-    syncControlPanelCollidersRef.current?.();
-  }
-
-  function applyCargoBarrelPlacement(placement) {
-    const root = sceneRef.current ?? levelRef.current?.group;
-    if (!root) return;
-    let barrel = null;
-    root.traverse((obj) => {
-      if (barrel || obj.name !== "oil_barrel" || !obj.isGroup) return;
-      if (obj.userData?.roomId === "vx27_cargo_module_qa") barrel = obj;
-    });
-    if (!barrel) return;
-    barrel.position.x = placement.x;
-    barrel.position.z = placement.z;
-    barrel.updateMatrixWorld(true);
-  }
-
-  function applyCargoModuleProps(placement) {
-    applyCargoConsolePlacement(placement.console);
-    applyCargoBarrelPlacement(placement.barrel);
-  }
-
-  function handleCargoModulePropsChange(next) {
-    cargoModulePropsRef.current = next;
-    setCargoModuleProps(next);
-    saveCargoModulePropsPlacement(next);
-    applyCargoModuleProps(next);
-  }
-
   const syncControlPanelCollidersRef = useRef(null);
   const playerPlacementRef = useRef({ x: 0, z: 0, y: 0 });
   const arenaLiveRef = useRef(null);
-  const onOilBarrelTuningChange = useCallback((key, value) => {
-    setOilBarrelTuning((prev) => {
-      const next = normalizeOilBarrelTuning({ ...prev, [key]: value });
-      saveOilBarrelTuning(next);
-      oilBarrelTuningRef.current = next;
-      applyOilBarrelMaterialTuning(next, sceneRef.current ?? undefined);
-      if (key === "topCap") {
-        if (value === false) {
-          ensureOilBarrelInteriorTextures().then(() => {
-            rebuildOilBarrelsRef.current?.();
-          });
-        } else {
-          rebuildOilBarrelsRef.current?.();
-        }
-      } else if (key === "interiorFire" && value === true) {
-        ensureOilBarrelInteriorTextures()
-          .then(() => ensureOilBarrelInteriorVideo())
-          .then(() => rebuildOilBarrelsRef.current?.());
-      }
-      return next;
-    });
-  }, []);
 
   const stairParamsRef = useRef(initialStairTuning);
   const walkBobTuningRef = useRef(initialWalkBobTuning);
-  const [recoilTuning, setRecoilTuning] = useState(() => loadRecoilTuning());
   const recoilTuningRef = useRef(loadRecoilTuning());
-  const [recoilTuneEnabled, setRecoilTuneEnabled] = useState(false);
-  const recoilTuneEnabledRef = useRef(false);
   const stairWalkTuningRef = useRef(initialStairWalkTuning);
   const sunRef = useRef(null);
   const moonRef = useRef(null);
@@ -1705,8 +1443,7 @@ export default function FpsGame() {
   const hemiDayRef = useRef(loadHemiDay());
   const hemiNightRef = useRef(loadHemiNight());
   const [fireMode, setFireMode] = useState("single");
-  const [devStartBothPrimaryWeapons, setDevStartBothPrimaryWeapons] =
-    useState(() => loadDevStartBothPrimaryWeapons());
+  const [localStorageClearMsg, setLocalStorageClearMsg] = useState("");
   const [rifleUnlocked, setRifleUnlocked] = useState(
     () => loadDevStartBothPrimaryWeapons(),
   );
@@ -1841,6 +1578,11 @@ export default function FpsGame() {
       ? DEFAULT_CROSSHAIR_TUNING
       : loadCrosshairTuning(),
   );
+  const roundDisplayTuningRef = useRef(
+    typeof window === "undefined"
+      ? { hip: DEFAULT_HIP_ROUND_DISPLAY, aim: DEFAULT_AIM_ROUND_DISPLAY }
+      : loadWeaponRoundDisplayTuning()
+  );
   const [roundDisplayHip, setRoundDisplayHip] = useState(() => {
     if (typeof window === "undefined") return DEFAULT_HIP_ROUND_DISPLAY;
     return loadWeaponRoundDisplayTuning().hip;
@@ -1849,17 +1591,6 @@ export default function FpsGame() {
     if (typeof window === "undefined") return DEFAULT_AIM_ROUND_DISPLAY;
     return loadWeaponRoundDisplayTuning().aim;
   });
-  const roundDisplayTuningRef = useRef(
-    typeof window === "undefined"
-      ? { hip: DEFAULT_HIP_ROUND_DISPLAY, aim: DEFAULT_AIM_ROUND_DISPLAY }
-      : loadWeaponRoundDisplayTuning()
-  );
-  const [roundDisplayTuneEnabled, setRoundDisplayTuneEnabled] =
-    useState(false);
-  const roundDisplayTuneEnabledRef = useRef(false);
-  const [roundDisplayPreviewAim, setRoundDisplayPreviewAim] = useState(false);
-  const roundDisplayPreviewAimRef = useRef(false);
-  const pendingRifleRoundDisplayTuneSwapRef = useRef(false);
   const [pistolRoundDisplayHip, setPistolRoundDisplayHip] = useState(() => {
     if (typeof window === "undefined") return DEFAULT_PISTOL_HIP_ROUND_DISPLAY;
     return loadPistolRoundDisplayTuning().hip;
@@ -1876,33 +1607,11 @@ export default function FpsGame() {
         }
       : loadPistolRoundDisplayTuning()
   );
-  const [pistolRoundDisplayTuneEnabled, setPistolRoundDisplayTuneEnabled] =
-    useState(false);
-  const pistolRoundDisplayTuneEnabledRef = useRef(false);
-  const [pistolRoundDisplayPreviewAim, setPistolRoundDisplayPreviewAim] =
-    useState(false);
-  const pistolRoundDisplayPreviewAimRef = useRef(false);
-  const pendingPistolRoundDisplayTuneSwapRef = useRef(false);
-  const [laserEmitterTuning, setLaserEmitterTuning] = useState(() =>
-    typeof window === "undefined"
-      ? DEFAULT_LASER_EMITTER_TUNING
-      : loadLaserEmitterTuning(),
-  );
   const laserEmitterTuningRef = useRef(
     typeof window === "undefined"
       ? DEFAULT_LASER_EMITTER_TUNING
       : loadLaserEmitterTuning(),
   );
-  const [primaryWeaponTuneEnabled, setPrimaryWeaponTuneEnabled] =
-    useState(false);
-  const primaryWeaponTuneEnabledRef = useRef(false);
-  const [primaryWeaponTuneWeapon, setPrimaryWeaponTuneWeapon] =
-    useState("pistol");
-  const primaryWeaponTuneWeaponRef = useRef("pistol");
-  const [primaryWeaponTuneMode, setPrimaryWeaponTuneMode] = useState("hip");
-  const primaryWeaponTuneModeRef = useRef("hip");
-  const pendingPrimaryWeaponTuneSwapRef = useRef(null);
-  const devTuningActiveRef = useRef(false);
   const rebindActionRef = useRef(null);
 
   useEffect(() => {
@@ -1947,7 +1656,6 @@ export default function FpsGame() {
 
     const laserTuning = loadLaserEmitterTuning();
     laserEmitterTuningRef.current = laserTuning;
-    setLaserEmitterTuning(laserTuning);
   }, []);
   weaponTuningRef.current = {
     hip: hipWeaponPose,
@@ -1961,30 +1669,8 @@ export default function FpsGame() {
     bodyLookUpAmount,
     bodyLookDownAmount,
   };
-  roundDisplayTuningRef.current = roundDisplayTuneEnabled
-    ? { hip: roundDisplayHip, aim: roundDisplayAim }
-    : getWeaponRoundDisplayTuning();
-  roundDisplayTuneEnabledRef.current = roundDisplayTuneEnabled;
-  roundDisplayPreviewAimRef.current = roundDisplayPreviewAim;
-  pistolRoundDisplayTuningRef.current = pistolRoundDisplayTuneEnabled
-    ? { hip: pistolRoundDisplayHip, aim: pistolRoundDisplayAim }
-    : getPistolRoundDisplayTuning();
-  pistolRoundDisplayTuneEnabledRef.current = pistolRoundDisplayTuneEnabled;
-  pistolRoundDisplayPreviewAimRef.current = pistolRoundDisplayPreviewAim;
-  primaryWeaponTuneEnabledRef.current = primaryWeaponTuneEnabled;
-  primaryWeaponTuneWeaponRef.current = primaryWeaponTuneWeapon;
-  primaryWeaponTuneModeRef.current = primaryWeaponTuneMode;
-  recoilTuneEnabledRef.current = recoilTuneEnabled;
-  devTuningActiveRef.current =
-    oilBarrelPlacementTuneEnabled ||
-    cargoModuleDoorTuneEnabled ||
-    cargoModulePropsTuneEnabled ||
-    toxicOilSpillTuneEnabled ||
-    roundDisplayTuneEnabled ||
-    pistolRoundDisplayTuneEnabled ||
-    primaryWeaponTuneEnabled ||
-    recoilTuneEnabled;
-  laserEmitterTuningRef.current = laserEmitterTuning;
+  roundDisplayTuningRef.current = getWeaponRoundDisplayTuning();
+  pistolRoundDisplayTuningRef.current = getPistolRoundDisplayTuning();
   crosshairTuningRef.current = crosshairTuning;
   bindingsRef.current = bindings;
   rebindActionRef.current = rebindAction;
@@ -2018,52 +1704,6 @@ export default function FpsGame() {
     setRoundsInMag(rounds);
     setSpareMags(spare);
   };
-
-  const requestPrimaryWeaponTuneWeapon = useCallback((weaponId) => {
-    const id = weaponId === "rifle" ? "rifle" : "pistol";
-    setPrimaryWeaponTuneWeapon(id);
-    primaryWeaponTuneWeaponRef.current = id;
-    pendingPrimaryWeaponTuneSwapRef.current = id;
-    if (id === "rifle") {
-      rifleUnlockedRef.current = true;
-      setRifleUnlocked(true);
-    }
-  }, []);
-
-  const openPrimaryWeaponTune = useCallback(
-    (weaponId, mode = "hip") => {
-      const id = weaponId === "rifle" ? "rifle" : "pistol";
-      const nextMode =
-        mode === "ads" || (id === "rifle" && mode === "look")
-          ? mode
-          : "hip";
-      setPrimaryWeaponTuneEnabled(true);
-      primaryWeaponTuneEnabledRef.current = true;
-      savePrimaryWeaponTuneEnabled(true);
-      setPrimaryWeaponTuneMode(nextMode);
-      primaryWeaponTuneModeRef.current = nextMode;
-      requestPrimaryWeaponTuneWeapon(id);
-    },
-    [requestPrimaryWeaponTuneWeapon],
-  );
-
-  const handleLaserEmitterTuningChange = useCallback((weaponId, mode, offset) => {
-    const id = weaponId === "rifle" ? "rifle" : "pistol";
-    const laserMode = mode === "ads" ? "ads" : "hip";
-    setLaserEmitterTuning((prev) => {
-      const normalizedPrev = normalizeLaserEmitterTuning(prev);
-      const next = normalizeLaserEmitterTuning({
-        ...normalizedPrev,
-        [id]: {
-          ...normalizedPrev[id],
-          [laserMode]: offset,
-        },
-      });
-      laserEmitterTuningRef.current = next;
-      saveLaserEmitterTuning(next);
-      return next;
-    });
-  }, []);
 
   useEffect(() => {
     const s = soundsRef.current;
@@ -2202,54 +1842,6 @@ export default function FpsGame() {
   useEffect(() => {
     inputRef.current?.setTouchMode(touchControlsActive);
   }, [touchControlsActive]);
-
-  useEffect(() => {
-    oilBarrelPlacementRef.current = oilBarrelPlacement;
-  }, [oilBarrelPlacement]);
-
-  useEffect(() => {
-    oilBarrelPlacementTuneEnabledRef.current = oilBarrelPlacementTuneEnabled;
-    oilBarrelPlacementTuneGateRef.current = oilBarrelPlacementTuneEnabled;
-    if (!loadDone || !oilBarrelPlacementTuneEnabled) {
-      const root = sceneRef.current ?? levelRef.current?.group;
-      if (root) disposeBarrelPlacementHighlights(root);
-      return;
-    }
-    safeExitPointerLock();
-    const root = sceneRef.current ?? levelRef.current?.group;
-    if (root) {
-      const prepared = enterBarrelPlacementEditor(
-        root,
-        oilBarrelPlacementRef.current,
-      );
-      oilBarrelPlacementRef.current = prepared;
-      setOilBarrelPlacement(prepared);
-      saveOilBarrelPlacementState(prepared);
-    }
-    refreshBarrelPlacementEditorUi(oilBarrelPlacementRef.current);
-  }, [loadDone, oilBarrelPlacementTuneEnabled]);
-
-  useEffect(() => {
-    cargoModuleDoorTuningRef.current = cargoModuleDoorTuning;
-  }, [cargoModuleDoorTuning]);
-
-  useEffect(() => {
-    if (!loadDone || !cargoModuleDoorTuneEnabled) return;
-    applyCargoModuleDoorTuning(cargoModuleDoorTuningRef.current);
-  }, [loadDone, cargoModuleDoorTuneEnabled]);
-
-  useEffect(() => {
-    cargoModulePropsRef.current = cargoModuleProps;
-  }, [cargoModuleProps]);
-
-  useEffect(() => {
-    if (!loadDone || !cargoModulePropsTuneEnabled) return;
-    applyCargoModuleProps(cargoModulePropsRef.current);
-  }, [loadDone, cargoModulePropsTuneEnabled]);
-
-  useEffect(() => {
-    toxicOilSpillTuningRef.current = toxicOilSpillTuning;
-  }, [toxicOilSpillTuning]);
 
   useEffect(() => {
     if (!loadDone) return;
@@ -2413,6 +2005,7 @@ export default function FpsGame() {
       camera.layers.enable(ROOM_INTERIOR_LAYER);
       camera.layers.enable(VIEWMODEL_LAYER);
       camera.layers.enable(HEALTH_BAR_LAYER);
+      camera.layers.enable(WEATHER_LAYER);
       cameraRef.current = camera;
       screenCrosshairRef.current = createScreenCrosshair(scene);
       const sounds = createSoundManager(camera);
@@ -2589,8 +2182,6 @@ export default function FpsGame() {
       let vx27DoorInteractMeshesCache = collectVx27DoorInteractMeshes(
         vx27ContainersRef.current
       );
-      const oilBarrelPickMeshesCache = collectOilBarrelPickMeshes(level.group);
-      oilBarrelPickMeshesRef.current = oilBarrelPickMeshesCache;
       if (vx27ContainersRef.current.length > 0) {
         const firstGroup = vx27ContainersRef.current[0];
         const propMaterial = firstGroup.userData.vx27PropDef?.materialTuning;
@@ -2632,7 +2223,7 @@ export default function FpsGame() {
         oilBarrelRuntimeIndex = buildOilBarrelRuntimeIndex(level.group);
       }
       ensureOilBarrelFlameMeshes(level.group);
-      refreshOilBarrelRenderLayers(level.group);
+      refreshOilBarrelMaterials(getOilBarrelTuning(), level.group);
       refreshVx27ContainerRenderLayers(level.group);
       refreshControlPanelRenderLayers(level.group);
       syncInteriorLighting();
@@ -3191,12 +2782,6 @@ export default function FpsGame() {
         wallWeaponShopsRef,
         rifleShopInteractMeshesCache,
         setRifleUnlocked,
-        get oilBarrelPickMeshesCache() {
-          return oilBarrelPickMeshesRef.current;
-        },
-        oilBarrelPlacementTuneEnabledRef,
-        oilBarrelPlacementRef,
-        handleOilBarrelPlacementPickRef,
         syncAllColliders,
         rollGrenadeDrop,
         playerHealthRef,
@@ -3250,6 +2835,9 @@ export default function FpsGame() {
         dayNightTargetNightnessRef,
         dayNightDemoCycleElapsedRef,
         dayNightToggleRef,
+        weatherSessionRef,
+        weatherTransitionRef,
+        weatherToggleRef,
         sunIsDayRef,
         gameplayHintsDismissedRef,
         gameplayHintRuntimeRef,
@@ -3273,22 +2861,13 @@ export default function FpsGame() {
         arenaLiveRef,
         sunRef,
         moonRef,
+        refitSunShadowRef,
+        refitMoonShadowRef,
         oilBarrelTuningRef,
         oilBarrelFireLightsRef,
         roomLightsRef,
         roundDisplayTuningRef,
-        roundDisplayTuneEnabledRef,
-        roundDisplayPreviewAimRef,
-        pendingRifleRoundDisplayTuneSwapRef,
         pistolRoundDisplayTuningRef,
-        pistolRoundDisplayTuneEnabledRef,
-        pistolRoundDisplayPreviewAimRef,
-        pendingPistolRoundDisplayTuneSwapRef,
-        primaryWeaponTuneEnabledRef,
-        primaryWeaponTuneWeaponRef,
-        primaryWeaponTuneModeRef,
-        pendingPrimaryWeaponTuneSwapRef,
-        devTuningActiveRef,
         laserEmitterTuningRef,
         gameRootRef,
         rendererRef,
@@ -3512,23 +3091,7 @@ export default function FpsGame() {
           beginDeathOverlayFade(deathOverlayRef.current);
         }
         if (!consoleHackOpenRef.current) {
-          if (oilBarrelPlacementTuneEnabledRef.current) {
-            const meshes = oilBarrelPickMeshesRef.current;
-            if (meshes.length) {
-              const ndc = ndcFromCanvasPointer(canvas, e.clientX, e.clientY);
-              const propId = pickOilBarrelPropAtNdc(
-                hitRaycaster,
-                camera,
-                ndc,
-                meshes,
-              );
-              if (propId && handleOilBarrelPlacementPickRef.current) {
-                handleOilBarrelPlacementPickRef.current(propId);
-              }
-            }
-          } else {
-            safeRequestPointerLock(canvas);
-          }
+          safeRequestPointerLock(canvas);
         }
       };
       onPointerLockChange = () => syncPointerLocked();
@@ -3863,6 +3426,20 @@ export default function FpsGame() {
   // any keypress handler can always call the latest version (without
   // having to be re-declared inside the init effect).
   dayNightToggleRef.current = handleDayNightChange;
+
+  const handleWeatherToggle = (opts = {}) => {
+    toggleWeather(
+      {
+        rainEnabledRef,
+        snowEnabledRef,
+        weatherSessionRef,
+        setRainEnabled,
+        setSnowEnabled,
+      },
+      opts,
+    );
+  };
+  weatherToggleRef.current = handleWeatherToggle;
 
   const weaponSlotLayoutStyle = {
     "--grenade-frame-w": `${grenFrameWidthRem}rem`,
@@ -4335,7 +3912,6 @@ export default function FpsGame() {
                           setSnowEnabled(false);
                           snowEnabledRef.current = false;
                           saveSnowEnabled(false);
-                          resetSnowSettled(snowRef.current);
                         }
                       }}
                     />
@@ -4373,8 +3949,6 @@ export default function FpsGame() {
                           setRainEnabled(false);
                           rainEnabledRef.current = false;
                           saveRainEnabled(false);
-                        } else {
-                          resetSnowSettled(snowRef.current);
                         }
                       }}
                     />
@@ -4423,6 +3997,9 @@ export default function FpsGame() {
                     drizzle / flurry up to 500% storm. Snow stick (to 500%)
                     controls how much stays on catwalks, stairs, and the arena
                     floor — separate from how hard it falls. Off in containers.
+                    While playing, press <kbd>.</kbd> to start random rain or
+                    snow (auto-off after {Math.round(WEATHER_MAX_DURATION_SEC / 60)}{" "}
+                    min); press <kbd>.</kbd> again to stop.
                   </p>
                 </>
               ) : null}
@@ -4495,20 +4072,6 @@ export default function FpsGame() {
                 count is at or below this value. Default 1 (drops when you have
                 one or no spares left). Set to {AMMO_DROP_SPARE_THRESHOLD_MAX}{" "}
                 to always drop.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={oilBarrelTuning.interiorFire !== false}
-                  onChange={(e) =>
-                    onOilBarrelTuningChange("interiorFire", e.target.checked)
-                  }
-                />
-                Oil barrel flames
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Interior fire video on open-top oil barrels. Saved with other
-                oil-barrel tuning.
               </p>
             </SettingsSection>
 
@@ -4615,54 +4178,6 @@ export default function FpsGame() {
             </SettingsSection>
 
             <SettingsSection title="Development">
-              <p className="settingsGroupLabel">Weapons</p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={devStartBothPrimaryWeapons}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setDevStartBothPrimaryWeapons(enabled);
-                    saveDevStartBothPrimaryWeapons(enabled);
-                  }}
-                />
-                <span>Start with pistol + rifle</span>
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Off by default — normal play is pistol-only at 0 pts; earn the
-                rifle at the north-wall shop. Applies on the next Start Game.
-              </p>
-              <p className="settingsGroupLabel">Level</p>
-              <div className="sliderRow">
-                <span className="sliderLabel">Arena config</span>
-                <select
-                  className="settingsSelect"
-                  value={selectedLevel}
-                  onChange={(e) => {
-                    const next = parseInt(e.target.value, 10);
-                    if (!isPlayableLevel(next)) return;
-                    saveSelectedLevel(next);
-                    if (loadDoneRef.current) {
-                      window.location.reload();
-                      return;
-                    }
-                    setSelectedLevel(next);
-                    setAssetsReady(false);
-                    setLoadProgress(0);
-                    setLoadAssetLabel("Switching level…");
-                  }}
-                >
-                  {AVAILABLE_LEVELS.map((n) => (
-                    <option key={n} value={n}>
-                      Level {n}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Also available on the loading screen. In-game changes reload the
-                page so the selected level can preload cleanly before Start Game.
-              </p>
               <p className="settingsGroupLabel">Player position</p>
               <p className="settingsHint" style={{ marginTop: 0 }}>
                 Live readout while settings are open. Stand at a spot and copy coordinates
@@ -4685,179 +4200,51 @@ export default function FpsGame() {
               >
                 Copy coordinates JSON
               </button>
-              <p className="settingsGroupLabel">Oil barrels</p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={oilBarrelPlacementTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setOilBarrelPlacementTuneEnabled(enabled);
-                    saveOilBarrelPlacementTuneEnabled(enabled);
-                  }}
-                />
-                <span>Oil barrel placement panel</span>
-              </label>
+              <p className="settingsGroupLabel">Tuning export</p>
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                Move the container pile as a group or tune one barrel. Copy JSON
-                into <code>level1.json</code> props when aligned.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={toxicOilSpillTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setToxicOilSpillTuneEnabled(enabled);
-                    saveToxicOilSpillTuneEnabled(enabled);
-                    if (enabled) {
-                      applyToxicOilSpill(toxicOilSpillTuningRef.current);
-                    }
-                  }}
-                />
-                <span>Toxic oil spill floor decal panel</span>
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Glowing spill under the container barrel pile — move, resize, and
-                tune emissive/opacity. Copy JSON when aligned.
-              </p>
-              <p className="settingsGroupLabel">VX-27 cargo module</p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={cargoModuleDoorTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setCargoModuleDoorTuneEnabled(enabled);
-                    saveCargoModuleDoorTuneEnabled(enabled);
-                  }}
-                />
-                <span>Cargo door geometry panel</span>
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Bottom-right panel — hinge, width/height, frame inframe, and open
-                angles. Copy JSON into <code>level1.json</code>{" "}
-                <code>doorTuning</code> when aligned.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={cargoModulePropsTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setCargoModulePropsTuneEnabled(enabled);
-                    saveCargoModulePropsTuneEnabled(enabled);
-                    if (enabled) {
-                      applyCargoModuleProps(cargoModulePropsRef.current);
-                    }
-                  }}
-                />
-                <span>Cargo console &amp; barrel placement panel</span>
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Bottom-left panel — move the interior console and fire barrel.
-                Copy JSON into <code>level1.json</code> props when aligned.
-              </p>
-              <p className="settingsGroupLabel">Weapons</p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={primaryWeaponTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setPrimaryWeaponTuneEnabled(enabled);
-                    primaryWeaponTuneEnabledRef.current = enabled;
-                    savePrimaryWeaponTuneEnabled(enabled);
-                    if (enabled) {
-                      requestPrimaryWeaponTuneWeapon(
-                        primaryWeaponTuneWeaponRef.current,
-                      );
-                    } else {
-                      pendingPrimaryWeaponTuneSwapRef.current = null;
-                    }
-                  }}
-                />
-                <span>Weapon, laser &amp; rifle reticle tuning wizard</span>
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Pistol or rifle — Hip/Aim pose, per-weapon laser offset, and
-                rifle Aim reticle size/offset in one panel. Live beam while
-                open; auto-saves to local storage.
+                Copies every <code>fps-*</code> localStorage entry as JSON — paste into
+                chat to bake into <code>lib/*Tuning.js</code> defaults.
               </p>
               <button
                 type="button"
                 className="settingsBtn settingsInlineBtn"
-                onClick={() => openPrimaryWeaponTune("rifle", "ads")}
+                onClick={() => {
+                  navigator.clipboard?.writeText(formatGameLocalStorageJson());
+                }}
               >
-                Open rifle Aim reticle tuner
+                Copy tuning JSON
               </button>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={recoilTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setRecoilTuneEnabled(enabled);
-                    recoilTuneEnabledRef.current = enabled;
-                    saveRecoilTuneEnabled(enabled);
-                  }}
-                />
-                <span>Weapon recoil panel</span>
-              </label>
+              <p className="settingsGroupLabel">Tuning reset</p>
               <p className="settingsHint" style={{ marginTop: 0 }}>
-                Spring kick for camera aim and view-model recoil. Close settings
-                and fire to tune live — sliders auto-save.
+                Removes every <code>fps-*</code> localStorage entry (settings, stale
+                tuning overrides). Built-in defaults apply after reload.
               </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={roundDisplayTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setRoundDisplayTuneEnabled(enabled);
-                    roundDisplayTuneEnabledRef.current = enabled;
-                    saveWeaponRoundDisplayTuneEnabled(enabled);
-                    if (enabled) {
-                      pendingRifleRoundDisplayTuneSwapRef.current = true;
-                    } else {
-                      setRoundDisplayPreviewAim(false);
-                      roundDisplayPreviewAimRef.current = false;
-                    }
-                  }}
-                />
-                <span>Rifle ammo screen tuning wizard</span>
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Align rounds, HP, and stamina with the gun reticule on the
-                rifle receiver. Equips the rifle automatically; Aim tab previews
-                ADS. Copy JSON into{" "}
-                <code>WeaponRoundDisplayTuning.js</code> when aligned.
-              </p>
-              <label className="settingRow">
-                <input
-                  type="checkbox"
-                  checked={pistolRoundDisplayTuneEnabled}
-                  onChange={(e) => {
-                    const enabled = e.target.checked;
-                    setPistolRoundDisplayTuneEnabled(enabled);
-                    pistolRoundDisplayTuneEnabledRef.current = enabled;
-                    savePistolRoundDisplayTuneEnabled(enabled);
-                    if (enabled) {
-                      pendingPistolRoundDisplayTuneSwapRef.current = true;
-                    } else {
-                      setPistolRoundDisplayPreviewAim(false);
-                      pistolRoundDisplayPreviewAimRef.current = false;
-                    }
-                  }}
-                />
-                <span>Pistol ammo screen tuning wizard</span>
-              </label>
-              <p className="settingsHint" style={{ marginTop: 0 }}>
-                Align rounds, HP, and stamina on the pistol slide. Equips the
-                pistol automatically; Aim tab previews ADS while adjusting.
-                Copy JSON into{" "}
-                <code>WeaponRoundDisplayTuning.js</code> when aligned.
-              </p>
+              <button
+                type="button"
+                className="settingsBtn settingsInlineBtn"
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      "Remove all fps-* localStorage entries? Reload the page afterward to apply built-in defaults.",
+                    )
+                  ) {
+                    return;
+                  }
+                  const removed = clearGameLocalStorage();
+                  setLocalStorageClearMsg(
+                    removed
+                      ? `Removed ${removed} entries. Reload to apply built-in defaults.`
+                      : "No fps-* entries to remove.",
+                  );
+                }}
+              >
+                Clear fps-* localStorage
+              </button>
+              {localStorageClearMsg ? (
+                <p className="settingsHint" role="status">
+                  {localStorageClearMsg}
+                </p>
+              ) : null}
             </SettingsSection>
             </div>
           </div>
@@ -4893,172 +4280,6 @@ export default function FpsGame() {
         </button>
       )}
       <PickupFlashLayer ref={pickupFlashLayerRef} />
-      {loadDone && oilBarrelPlacementTuneEnabled ? (
-        <OilBarrelPlacementTunePanel
-          state={oilBarrelPlacement}
-          sceneRoot={sceneRef.current ?? levelRef.current?.group}
-          floorY={levelRef.current?.floorY ?? 0}
-          onChange={handleOilBarrelPlacementChange}
-          onAddBarrel={handleAddOilBarrelPlacement}
-          onClose={closeOilBarrelPlacementTune}
-        />
-      ) : null}
-      {loadDone && cargoModuleDoorTuneEnabled ? (
-        <Vx27ContainerDoorTunePanel
-          tuning={cargoModuleDoorTuning}
-          onChange={handleCargoModuleDoorTuningChange}
-          onClose={closeCargoModuleDoorTune}
-        />
-      ) : null}
-      {loadDone && cargoModulePropsTuneEnabled ? (
-        <CargoModulePropsTunePanel
-          placement={cargoModuleProps}
-          onChange={handleCargoModulePropsChange}
-          onClose={closeCargoModulePropsTune}
-        />
-      ) : null}
-      {loadDone && toxicOilSpillTuneEnabled ? (
-        <ToxicOilSpillTunePanel
-          tuning={toxicOilSpillTuning}
-          onChange={handleToxicOilSpillTuningChange}
-          onClose={closeToxicOilSpillTune}
-        />
-      ) : null}
-      {loadDone && recoilTuneEnabled && !controlsOpen && !consoleHackOpen ? (
-        <RecoilTunePanel
-          tuning={recoilTuning}
-          onChange={handleRecoilTuningChange}
-          onReleasePointer={safeExitPointerLock}
-          onClose={closeRecoilTune}
-        />
-      ) : null}
-      {loadDone &&
-      primaryWeaponTuneEnabled &&
-      !controlsOpen &&
-      !consoleHackOpen ? (
-        <PrimaryWeaponTunePanel
-          weaponId={primaryWeaponTuneWeapon}
-          onWeaponChange={requestPrimaryWeaponTuneWeapon}
-          tuneMode={primaryWeaponTuneMode}
-          onTuneModeChange={(mode) => {
-            setPrimaryWeaponTuneMode(mode);
-            primaryWeaponTuneModeRef.current = mode;
-          }}
-          pistolHipPose={pistolHipPose}
-          pistolAdsPose={pistolAdsPose}
-          onPistolHipChange={setPistolHipPose}
-          onPistolAdsChange={setPistolAdsPose}
-          rifleHipPose={hipWeaponPose}
-          rifleAdsPose={adsWeaponPose}
-          onRifleHipChange={setHipWeaponPose}
-          onRifleAdsChange={setAdsWeaponPose}
-          laserTuning={laserEmitterTuning}
-          onLaserChange={handleLaserEmitterTuningChange}
-          crosshairTuning={crosshairTuning}
-          onCrosshairChange={setCrosshairTuning}
-          maxLookRate={maxLookRate}
-          onMaxLookRateChange={setMaxLookRate}
-          bodyLookUpAmount={bodyLookUpAmount}
-          onBodyLookUpAmountChange={setBodyLookUpAmount}
-          bodyLookDownAmount={bodyLookDownAmount}
-          onBodyLookDownAmountChange={setBodyLookDownAmount}
-          onReleasePointer={safeExitPointerLock}
-          onClose={() => {
-            saveLaserEmitterTuning(laserEmitterTuningRef.current);
-            setPrimaryWeaponTuneEnabled(false);
-            primaryWeaponTuneEnabledRef.current = false;
-            pendingPrimaryWeaponTuneSwapRef.current = null;
-            savePrimaryWeaponTuneEnabled(false);
-          }}
-        />
-      ) : null}
-      {loadDone &&
-      roundDisplayTuneEnabled &&
-      !controlsOpen &&
-      !consoleHackOpen ? (
-        <WeaponRoundDisplayTunePanel
-          title="Rifle ammo screen"
-          hint="Hip and Aim each have their own pose (blended in-game). Sliders auto-save. +X barrel, −X stock. Line up with the gun reticule."
-          defaultHip={DEFAULT_HIP_ROUND_DISPLAY}
-          defaultAim={DEFAULT_AIM_ROUND_DISPLAY}
-          onPersistTuning={saveWeaponRoundDisplayTuning}
-          previewAim={roundDisplayPreviewAim}
-          onPreviewAimChange={setRoundDisplayPreviewAim}
-          hipTuning={roundDisplayHip}
-          aimTuning={roundDisplayAim}
-          onHipChange={(next) => {
-            setRoundDisplayHip(next);
-            roundDisplayTuningRef.current = {
-              hip: next,
-              aim: roundDisplayAim,
-            };
-          }}
-          onAimChange={(next) => {
-            setRoundDisplayAim(next);
-            roundDisplayTuningRef.current = {
-              hip: roundDisplayHip,
-              aim: next,
-            };
-          }}
-          onSnapToReceiver={() =>
-            weaponRef.current?.getRoundDisplaySuggestedPose?.() ?? null
-          }
-          onReleasePointer={safeExitPointerLock}
-          onClose={() => {
-            saveWeaponRoundDisplayTuning(roundDisplayHip, roundDisplayAim);
-            setRoundDisplayPreviewAim(false);
-            setRoundDisplayTuneEnabled(false);
-            roundDisplayPreviewAimRef.current = false;
-            roundDisplayTuneEnabledRef.current = false;
-            saveWeaponRoundDisplayTuneEnabled(false);
-          }}
-        />
-      ) : null}
-      {loadDone &&
-      pistolRoundDisplayTuneEnabled &&
-      !controlsOpen &&
-      !consoleHackOpen ? (
-        <WeaponRoundDisplayTunePanel
-          title="Pistol ammo screen"
-          hint="Hip and Aim each have their own pose (blended in-game). Sliders auto-save. +X barrel, −X grip."
-          defaultHip={DEFAULT_PISTOL_HIP_ROUND_DISPLAY}
-          defaultAim={DEFAULT_PISTOL_AIM_ROUND_DISPLAY}
-          onPersistTuning={savePistolRoundDisplayTuning}
-          previewAim={pistolRoundDisplayPreviewAim}
-          onPreviewAimChange={setPistolRoundDisplayPreviewAim}
-          hipTuning={pistolRoundDisplayHip}
-          aimTuning={pistolRoundDisplayAim}
-          onHipChange={(next) => {
-            setPistolRoundDisplayHip(next);
-            pistolRoundDisplayTuningRef.current = {
-              hip: next,
-              aim: pistolRoundDisplayAim,
-            };
-          }}
-          onAimChange={(next) => {
-            setPistolRoundDisplayAim(next);
-            pistolRoundDisplayTuningRef.current = {
-              hip: pistolRoundDisplayHip,
-              aim: next,
-            };
-          }}
-          onSnapToReceiver={() =>
-            weaponRef.current?.getRoundDisplaySuggestedPose?.() ?? null
-          }
-          onReleasePointer={safeExitPointerLock}
-          onClose={() => {
-            savePistolRoundDisplayTuning(
-              pistolRoundDisplayHip,
-              pistolRoundDisplayAim,
-            );
-            setPistolRoundDisplayPreviewAim(false);
-            setPistolRoundDisplayTuneEnabled(false);
-            pistolRoundDisplayPreviewAimRef.current = false;
-            pistolRoundDisplayTuneEnabledRef.current = false;
-            savePistolRoundDisplayTuneEnabled(false);
-          }}
-        />
-      ) : null}
       <HudPrimaryWeaponStack
         activePrimaryWeapon={activePrimaryWeapon}
         primaryAmmo={primaryAmmo}

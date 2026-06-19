@@ -1,6 +1,7 @@
 mod ammo;
 mod lifecycle;
 mod collision;
+mod collectible;
 mod flashbang;
 mod gameplay_rules;
 mod grenade;
@@ -21,6 +22,7 @@ mod types;
 mod vx27_collision;
 mod walk_bounds;
 mod weapon_damage;
+mod weapon_fire;
 mod state;
 
 pub use state::{create_game_core, GameCore};

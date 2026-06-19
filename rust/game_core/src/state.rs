@@ -1,6 +1,6 @@
 use crate::{
     ammo::WeaponAmmoState,
-    lifecycle, types::*, SPRINT_STAMINA_BASE,
+    lifecycle, types::*, weapon_fire::WeaponFireState, SPRINT_STAMINA_BASE,
 };
 use wasm_bindgen::prelude::*;
 
@@ -24,6 +24,7 @@ pub struct GameCore {
     pub(crate) player_score: i32,
     pub(crate) player_lives: i32,
     pub(crate) oil_barrel_fire_proximity_cooldown: f64,
+    pub(crate) weapon_fire: WeaponFireState,
 }
 
 #[wasm_bindgen(js_name = createGameCore)]
@@ -47,6 +48,7 @@ pub fn create_game_core(player_health: Option<f64>) -> GameCore {
         player_score: 0,
         player_lives: 3,
         oil_barrel_fire_proximity_cooldown: 0.0,
+        weapon_fire: WeaponFireState::default(),
     }
 }
 

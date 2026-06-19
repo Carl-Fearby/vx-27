@@ -186,7 +186,7 @@ const WHATS_NEW = [
   {
     tag: "v0.1.37",
     title: "Hack UI & weather",
-    text: "NODE BREACH overlay with animated nodes, secure-channel pulse bars, and a layout tuning wizard. Outdoor rain and snow with intensity sliders — mutually exclusive, off inside containers.",
+    text: "NODE BREACH overlay with animated nodes, secure-channel pulse bars, and a layout tuning wizard. Outdoor rain with intensity slider — off inside containers.",
   },
   {
     tag: "v0.1.24",
@@ -319,8 +319,8 @@ const OPS = [
   },
   {
     code: "WX",
-    title: "Rain & snow",
-    body: "Outdoor streak rain with catwalk occluders, or round falling snow that settles on decks and stairs. Settings intensity 5%–500%; neither runs inside VX-27 containers.",
+    title: "Rain",
+    body: "Outdoor streak rain with catwalk occluders. Settings intensity 5%–500%; does not run inside VX-27 containers.",
     accent: "mutually exclusive",
   },
   {
@@ -520,7 +520,7 @@ export default function MarketingSite() {
           <h2 id="whats-new-heading">What landed this week</h2>
           <p className="mktWhatsNewDeck">
             RUSH splits the stack — JavaScript renders, Rust/WASM computes combat rules in game_core.
-            Plus NODE BREACH, rifle shop, grenades, laser tracers, toxic spill, rain and snow, and
+            Plus NODE BREACH, rifle shop, grenades, laser tracers, toxic spill, rain, and
             GPU preload. Play v{BUILD_VERSION} in your browser; no install.
           </p>
         </div>
@@ -765,7 +765,7 @@ export default function MarketingSite() {
             <li>Console and shop crosshairs fade in on aim; unified centre-screen interact prompts</li>
             <li>Procedural control panel — hull PBR, screen C emissive flash, shelf D quad overlays</li>
             <li>Neon Gate Rush hack theme · combat mix muted during breach · /music preview page</li>
-            <li>Score token disks, hack reward flashes, outdoor rain and snow intensity sliders</li>
+            <li>Score token disks, hack reward flashes, outdoor rain intensity slider</li>
             <li>VX-27 cargo container — flickering ceiling light, open doors on E, bullet decals</li>
             <li>Toxic oil spill decal under the barrel pile · burning drums with fire video</li>
             <li>Catwalks, stairs, attached service rooms with pillar-shell lighting</li>

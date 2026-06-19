@@ -1,4 +1,4 @@
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct WeaponAmmoState {
     pub rounds: i32,
     pub spare: i32,

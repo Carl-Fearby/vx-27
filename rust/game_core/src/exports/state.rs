@@ -3,6 +3,7 @@ use crate::lifecycle;
 use crate::score;
 use crate::state::GameCore;
 use crate::types::*;
+use crate::weapon_fire::{tick_weapon_fire, WeaponFireTickInput};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -142,6 +143,22 @@ impl GameCore {
         let (fired, reloaded) = ammo.try_consume_round(auto_reload);
         serde_wasm_bindgen::to_value(&ammo.to_output(reloaded, fired))
             .map_err(|err| JsValue::from_str(&err.to_string()))
+    }
+
+    #[wasm_bindgen(js_name = isWeaponBurstActive)]
+    pub fn is_weapon_burst_active(&self) -> bool {
+        self.weapon_fire.burst_shots_left > 0
+    }
+
+    #[wasm_bindgen(js_name = tickWeaponFire)]
+    pub fn tick_weapon_fire_wasm(&mut self, input: JsValue) -> Result<JsValue, JsValue> {
+        let input: WeaponFireTickInput = serde_wasm_bindgen::from_value(input)
+            .map_err(|err| JsValue::from_str(&err.to_string()))?;
+        let weapon_id = input.weapon_id.clone();
+        let mut ammo = *self.weapon_ammo_mut(&weapon_id)?;
+        let output = tick_weapon_fire(&mut self.weapon_fire, &mut ammo, input);
+        *self.weapon_ammo_mut(&weapon_id)? = ammo;
+        serde_wasm_bindgen::to_value(&output).map_err(|err| JsValue::from_str(&err.to_string()))
     }
 
     #[wasm_bindgen(js_name = addWeaponRounds)]

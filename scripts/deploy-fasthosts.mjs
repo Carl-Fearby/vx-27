@@ -17,7 +17,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "basic-ftp";
@@ -109,6 +109,31 @@ function requireEnv(name) {
   return value;
 }
 
+const WASM_MEDIA_HTACCESS = `# WASM MIME for Next.js hashed bundles (game_core / hack_core).
+<IfModule mod_mime.c>
+  AddType application/wasm .wasm
+</IfModule>
+<IfModule mod_headers.c>
+  <FilesMatch "\\.wasm$">
+    Header set Content-Type "application/wasm"
+  </FilesMatch>
+</IfModule>
+`;
+
+/** Ensure .htaccess sits next to exported *.wasm (Apache/LiteSpeed on Fasthosts). */
+function ensureWasmMimeHtaccess(outDir) {
+  const mediaDir = path.join(outDir, "_next", "static", "media");
+  if (!existsSync(mediaDir)) {
+    console.warn(
+      `Warning: ${mediaDir} not found — skipping WASM .htaccess (was npm run wasm:build run?)`
+    );
+    return;
+  }
+  const htaccessPath = path.join(mediaDir, ".htaccess");
+  writeFileSync(htaccessPath, WASM_MEDIA_HTACCESS);
+  console.log(`Wrote ${path.relative(ROOT, htaccessPath)} (application/wasm for *.wasm)`);
+}
+
 function runBuild() {
   console.log("Building static export (STATIC_EXPORT=1)…");
   const result = spawnSync("npm", ["run", "build"], {
@@ -123,6 +148,7 @@ function runBuild() {
     console.error(`Build finished but ${OUT_DIR}/index.html was not found.`);
     process.exit(1);
   }
+  ensureWasmMimeHtaccess(OUT_DIR);
 }
 
 function findListingName(listing, ...candidates) {
@@ -314,5 +340,6 @@ if (!buildOnly) {
     console.error(`--upload-only: ${OUT_DIR}/index.html was not found. Run build first.`);
     process.exit(1);
   }
+  ensureWasmMimeHtaccess(OUT_DIR);
   await uploadOutDir();
 }

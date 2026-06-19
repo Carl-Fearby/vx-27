@@ -4,9 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   getHackGridDimensions,
-  isHackSpriteElement,
   loadConsoleHackLayout,
-  saveConsoleHackLayout,
 } from "@/lib/console-hack/ConsoleHackLayoutTuning.js";
 import {
   HACK_NODE_LIVE_SRC,
@@ -52,8 +50,6 @@ import {
   HACK_TIMER_DEFAULT,
   parseHackTimer,
 } from "@/lib/console-hack/ConsoleHackTimer.js";
-import ConsoleHackTunePanel from "@/components/tuning-panels/ConsoleHackTunePanel.jsx";
-import { useConsoleHackTuneDrag } from "@/components/console-hack/useConsoleHackTuneDrag.js";
 import {
   HackAmmoIcon,
   HackClockIcon,
@@ -114,10 +110,7 @@ const HACK_UI = {
 /**
  * @param {{
  *   open: boolean,
- *   tuneEnabled?: boolean,
  *   layout?: import("@/lib/console-hack/ConsoleHackLayoutTuning.js").ConsoleHackLayoutTuning,
- *   onLayoutChange?: (layout: import("@/lib/console-hack/ConsoleHackLayoutTuning.js").ConsoleHackLayoutTuning) => void,
- *   onTuneClose?: () => void,
  *   panelId?: string | null,
  *   panelLabel?: string | null,
  *   onClose?: () => void,
@@ -134,10 +127,7 @@ const HACK_UI = {
  */
 export default function ConsoleHackScreen({
   open,
-  tuneEnabled = false,
   layout: layoutProp,
-  onLayoutChange,
-  onTuneClose,
   panelId,
   panelLabel,
   onClose,
@@ -148,7 +138,6 @@ export default function ConsoleHackScreen({
   sounds = null,
 }) {
   const frameRef = useRef(null);
-  const [selectedId, setSelectedId] = useState(null);
   const [layout, setLayout] = useState(() => layoutProp ?? loadConsoleHackLayout());
   const hackTimerTotalMs = useMemo(() => parseHackTimer(HACK_UI.timer), []);
   const [hackReady, setHackReady] = useState(false);
@@ -172,54 +161,6 @@ export default function ConsoleHackScreen({
   useEffect(() => {
     if (layoutProp) setLayout(layoutProp);
   }, [layoutProp]);
-
-  const commitLayout = useCallback(
-    (next) => {
-      setLayout(next);
-      saveConsoleHackLayout(next);
-      onLayoutChange?.(next);
-    },
-    [onLayoutChange]
-  );
-
-  const patchElement = useCallback(
-    (id, patch) => {
-      setLayout((prev) => {
-        let next = { ...prev, [id]: { ...prev[id], ...patch } };
-        if (isHackSpriteElement(id)) {
-          next[id] = { ...next[id], spriteCentered: true };
-          if (!("fontScale" in patch)) {
-            const shared = {
-              x: next[id].x,
-              y: next[id].y,
-              w: next[id].w,
-              h: next[id].h,
-              spriteCentered: true,
-            };
-            next = {
-              ...next,
-              nodeLive: { ...next.nodeLive, ...shared },
-              nodeDead: { ...next.nodeDead, ...shared },
-            };
-          }
-        }
-        saveConsoleHackLayout(next);
-        onLayoutChange?.(next);
-        return next;
-      });
-    },
-    [onLayoutChange]
-  );
-
-  const { startDrag } = useConsoleHackTuneDrag({
-    tuneEnabled: open && tuneEnabled,
-    frameRef,
-    onPatch: patchElement,
-  });
-
-  useEffect(() => {
-    if (!open) setSelectedId(null);
-  }, [open]);
 
   const gridArea = layout.gridArea;
   const { cols: gridCols, rows: gridRows } = getHackGridDimensions(gridArea);
@@ -246,7 +187,7 @@ export default function ConsoleHackScreen({
   beginHackSessionRef.current = beginHackSession;
 
   useEffect(() => {
-    if (!open || tuneEnabled) {
+    if (!open) {
       setHackReady(false);
       return undefined;
     }
@@ -264,7 +205,7 @@ export default function ConsoleHackScreen({
       cancelled = true;
       setHackReady(false);
     };
-  }, [open, tuneEnabled]);
+  }, [open]);
 
   const securityFailureKey =
     gameState &&
@@ -276,7 +217,7 @@ export default function ConsoleHackScreen({
   const hackTimerTicking = gameState ? isHackTimerTicking(gameState) : false;
 
   useEffect(() => {
-    if (!open || tuneEnabled || !hackTimerTicking) return undefined;
+    if (!open || !hackTimerTicking) return undefined;
 
     const tick = (now) => {
       const delta = now - hackTimerLastRef.current;
@@ -288,7 +229,7 @@ export default function ConsoleHackScreen({
     hackTimerLastRef.current = performance.now();
     hackTimerRafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(hackTimerRafRef.current);
-  }, [open, tuneEnabled, hackTimerTicking]);
+  }, [open, hackTimerTicking]);
 
   useEffect(() => {
     if (!gameState || gameState.status !== "complete" || completeHandledRef.current) return;
@@ -297,10 +238,10 @@ export default function ConsoleHackScreen({
   }, [gameState?.rewards, gameState?.status, onHackComplete]);
 
   useEffect(() => {
-    if (!open || tuneEnabled || !gameState || gameState.status !== "complete") return undefined;
+    if (!open || !gameState || gameState.status !== "complete") return undefined;
     const id = window.setTimeout(() => onClose?.(), HACK_SUCCESS_DISMISS_MS);
     return () => window.clearTimeout(id);
-  }, [open, tuneEnabled, gameState?.status, onClose]);
+  }, [open, gameState?.status, onClose]);
 
   useEffect(() => {
     if (!securityFailureKey) return;
@@ -325,7 +266,7 @@ export default function ConsoleHackScreen({
   ]);
 
   useEffect(() => {
-    if (!open || tuneEnabled || !securityFailureKey) return undefined;
+    if (!open || !securityFailureKey) return undefined;
     const state = gameStateRef.current;
     if (!state || isHackRetriesExhausted(state)) return undefined;
 
@@ -336,10 +277,10 @@ export default function ConsoleHackScreen({
     }, HACK_SECURITY_AUTO_RESET_MS);
 
     return () => window.clearTimeout(id);
-  }, [open, tuneEnabled, securityFailureKey]);
+  }, [open, securityFailureKey]);
 
   useEffect(() => {
-    if (!open || tuneEnabled || !gameState || !isHackTimerExpired(gameState)) return undefined;
+    if (!open || !gameState || !isHackTimerExpired(gameState)) return undefined;
     if (isHackRetriesExhausted(gameState)) return undefined;
 
     const id = window.setTimeout(() => {
@@ -351,7 +292,6 @@ export default function ConsoleHackScreen({
     return () => window.clearTimeout(id);
   }, [
     open,
-    tuneEnabled,
     gameState?.failureKind,
     gameState?.retriesUsed,
     gameState?.status,
@@ -397,7 +337,6 @@ export default function ConsoleHackScreen({
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
-      if (tuneEnabled) return;
       const tag = e.target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
@@ -482,7 +421,6 @@ export default function ConsoleHackScreen({
     onClose,
     onHackDismiss,
     hackKeyMatches,
-    tuneEnabled,
     handleReset,
     sounds,
     onHackComplete,
@@ -492,7 +430,6 @@ export default function ConsoleHackScreen({
   const startIsActive = gameState?.activeNodeId === HACK_START_NODE_ID;
   const startIsSelected = gameState?.selectedNodeId === HACK_START_NODE_ID;
   const startPointerTarget =
-    !tuneEnabled &&
     gameState?.status === "active" &&
     startIsActive &&
     startNode
@@ -535,35 +472,16 @@ export default function ConsoleHackScreen({
   const rewardNode = gameState ? getNode(gameState, HACK_REWARD_NODE_ID) : null;
   const rewardIsSelected = gameState?.selectedNodeId === HACK_REWARD_NODE_ID;
   const rewardIsSelectable =
-    !tuneEnabled &&
     gameState?.status === "active" &&
     rewardNode != null &&
     isSelectableNeighbor(gameState, rewardNode);
-  const spriteCellW = gridArea ? gridArea.w / gridCols : 1;
-  const spriteCellH = gridArea ? gridArea.h / gridRows : 1;
-  const spriteDragSpace = useMemo(
-    () => ({
-      space: "cell",
-      anchor: "center",
-      cellW: spriteCellW,
-      cellH: spriteCellH,
-    }),
-    [spriteCellW, spriteCellH]
-  );
-
   const tuneLineProps = useCallback(
     (id) => ({
       id,
       tune: layout[id],
-      tuneEnabled,
-      selected: selectedId === id,
-      onSelect: setSelectedId,
-      onStartDrag: startDrag,
     }),
-    [layout, tuneEnabled, selectedId, startDrag]
+    [layout]
   );
-
-  const pulseAnimate = !tuneEnabled;
 
   if (!open) return null;
 
@@ -577,16 +495,7 @@ export default function ConsoleHackScreen({
     >
       <div className="consoleHackShell">
         <div className="consoleHackFrame" ref={frameRef}>
-          <div
-            className={`consoleHackOverlay ${tuneEnabled ? "consoleHackOverlay--tune" : ""}`}
-            onMouseDown={
-              tuneEnabled
-                ? (e) => {
-                    if (e.target === e.currentTarget) setSelectedId(null);
-                  }
-                : undefined
-            }
-          >
+          <div className="consoleHackOverlay">
             <ConsoleHackTuneLine
               {...tuneLineProps("headerTitle")}
               className="consoleHackTitle consoleHackLine--center"
@@ -620,7 +529,7 @@ export default function ConsoleHackScreen({
               {hackStatusText}
             </ConsoleHackTuneLine>
             <ConsoleHackTuneLine {...tuneLineProps("statusPulse")} className="consoleHackPulseLine">
-              <HackStatusPulse animate={pulseAnimate} />
+              <HackStatusPulse animate />
             </ConsoleHackTuneLine>
 
             <ConsoleHackTuneLine {...tuneLineProps("objectiveLabel")} className="consoleHackLabel">
@@ -698,7 +607,7 @@ export default function ConsoleHackScreen({
             <ConsoleHackTuneLine
               {...tuneLineProps("gridStartNode")}
               onClick={
-                !tuneEnabled && startIsActive
+                startIsActive
                   ? () =>
                       setGameState((prev) =>
                         prev ? selectNodeByMouse(prev, HACK_START_NODE_ID) : prev,
@@ -707,41 +616,30 @@ export default function ConsoleHackScreen({
               }
               className={[
                 "consoleHackGridStartNode",
-                !tuneEnabled && gameState?.status === "active" && startIsSelected
+                gameState?.status === "active" && startIsSelected
                   ? "consoleHackGridStartNode--selected"
                   : "",
-                !tuneEnabled && startIsActive ? "consoleHackGridStartNode--active" : "",
+                startIsActive ? "consoleHackGridStartNode--active" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
             >
-              {!tuneEnabled ? (
-                <>
-                  <span
-                    className="consoleHackNodeSprite__zapWrap"
-                    style={hackNodePulseTimingStyle(0)}
-                  >
-                    <span className="consoleHackNodeSprite__glow consoleHackNodeSprite__glow--start" aria-hidden="true" />
-                    <img
-                      src={HACK_NODE_LIVE_SRC}
-                      alt=""
-                      className="consoleHackNodeSprite__img consoleHackNodeSprite__img--pulse"
-                      draggable={false}
-                    />
-                  </span>
-                  {startIsSelected ? <HackNodeSelectedRing /> : null}
-                  {showStartPointer && startPointerTarget ? (
-                    <HackNodePointerRing angleDeg={startPointerAngle} />
-                  ) : null}
-                </>
-              ) : (
+              <span
+                className="consoleHackNodeSprite__zapWrap"
+                style={hackNodePulseTimingStyle(0)}
+              >
+                <span className="consoleHackNodeSprite__glow consoleHackNodeSprite__glow--start" aria-hidden="true" />
                 <img
                   src={HACK_NODE_LIVE_SRC}
                   alt=""
-                  className="consoleHackNodeSprite__img consoleHackNodeSprite__img--tunePreview"
+                  className="consoleHackNodeSprite__img consoleHackNodeSprite__img--pulse"
                   draggable={false}
                 />
-              )}
+              </span>
+              {startIsSelected ? <HackNodeSelectedRing /> : null}
+              {showStartPointer && startPointerTarget ? (
+                <HackNodePointerRing angleDeg={startPointerAngle} />
+              ) : null}
             </ConsoleHackTuneLine>
             <ConsoleHackTuneLine
               {...tuneLineProps("gridReward")}
@@ -769,43 +667,27 @@ export default function ConsoleHackScreen({
                 .filter(Boolean)
                 .join(" ")}
             >
-              {!tuneEnabled ? (
-                <>
-                  <span
-                    className="consoleHackNodeSprite__zapWrap"
-                    style={hackNodePulseTimingStyle(5)}
-                  >
-                    <span className="consoleHackNodeSprite__glow" aria-hidden="true" />
-                    <img
-                      src={HACK_REWARD_CACHE_SRC}
-                      alt=""
-                      className="consoleHackNodeSprite__img consoleHackNodeSprite__img--pulse"
-                      draggable={false}
-                    />
-                  </span>
-                  {gameState?.status === "active" && rewardIsSelected ? <HackNodeSelectedRing /> : null}
-                </>
-              ) : (
+              <span
+                className="consoleHackNodeSprite__zapWrap"
+                style={hackNodePulseTimingStyle(5)}
+              >
+                <span className="consoleHackNodeSprite__glow" aria-hidden="true" />
                 <img
                   src={HACK_REWARD_CACHE_SRC}
                   alt=""
-                  className="consoleHackNodeSprite__img consoleHackNodeSprite__img--tunePreview"
+                  className="consoleHackNodeSprite__img consoleHackNodeSprite__img--pulse"
                   draggable={false}
                 />
-              )}
+              </span>
+              {gameState?.status === "active" && rewardIsSelected ? <HackNodeSelectedRing /> : null}
             </ConsoleHackTuneLine>
 
             <ConsoleHackGridArea
               layout={layout}
-              tuneEnabled={tuneEnabled}
-              selectedId={selectedId}
-              onSelectId={setSelectedId}
-              startDrag={startDrag}
-              spriteDragSpace={spriteDragSpace}
               gridCols={gridCols}
               gridRows={gridRows}
               gameState={
-                tuneEnabled || showTerminalFailureOverlay || !hackReady ? null : gameState
+                showTerminalFailureOverlay || !hackReady ? null : gameState
               }
               onSelectGameNode={(nodeId) => {
                 setGameState((prev) => (prev ? selectNodeByMouse(prev, nodeId) : prev));
@@ -835,7 +717,7 @@ export default function ConsoleHackScreen({
               {...tuneLineProps("secureChannelBars")}
               className="consoleHackPulseLine consoleHackSecureBarsWrap"
             >
-              <HackSecureChannelBars animate={pulseAnimate} />
+              <HackSecureChannelBars animate />
             </ConsoleHackTuneLine>
 
             <ConsoleHackTuneLine {...tuneLineProps("rewardPreviewLabel")} className="consoleHackLabel">
@@ -949,17 +831,6 @@ export default function ConsoleHackScreen({
           </button>
         ) : null}
       </div>
-
-      {tuneEnabled ? (
-        <ConsoleHackTunePanel
-          selectedId={selectedId}
-          layout={layout}
-          onSelect={setSelectedId}
-          onPatch={patchElement}
-          onLayoutReplace={commitLayout}
-          onClose={() => onTuneClose?.()}
-        />
-      ) : null}
     </div>
   );
 

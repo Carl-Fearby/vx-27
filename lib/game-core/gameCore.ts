@@ -11,6 +11,10 @@ import type {
   GrenadeBlastOutput,
   CollectFadeInput,
   CollectFadeOutput,
+  CollectibleMotionInput,
+  CollectibleMotionOutput,
+  CollectibleSpawnPlanInput,
+  CollectibleSpawnPlanOutput,
   KillDropPlanOutput,
   KillDropScatterInput,
   KillDropScatterOutput,
@@ -24,6 +28,10 @@ import type {
   PlayerRespawnOutput,
   RagdollImpulseSeedInput,
   RagdollImpulseSeedOutput,
+  RagdollLimbImpulseInput,
+  RagdollLimbImpulseOutput,
+  RagdollSeverPlanInput,
+  RagdollSeverPlanOutput,
   RewardDropLaunchInput,
   RewardDropLaunchOutput,
   SecondarySlotInput,
@@ -43,6 +51,8 @@ import type {
   FireRecoilKickOutput,
   AimRecoilStepInput,
   AimRecoilStepOutput,
+  AimRecoilKickInput,
+  AimRecoilKickOutput,
   FlashbangBlindApplyOutput,
   ProjectileVec3,
   ProjectileLiveFloorOutput,
@@ -54,6 +64,8 @@ import type {
   ThrowableOutput,
   WallShopPurchaseOutput,
   WeaponAmmoOutput,
+  WeaponFireTickInput,
+  WeaponFireTickOutput,
   HasHeadroomInput,
   ResolveCeilingCollisionsInput,
   ResolveCeilingCollisionsOutput,
@@ -97,6 +109,8 @@ type WasmGameCore = {
   ): unknown;
   tryReloadWeapon(id: string, force: boolean): unknown;
   tryConsumeWeaponRound(id: string, autoReload: boolean): unknown;
+  isWeaponBurstActive(): boolean;
+  tickWeaponFire(input: WeaponFireTickInput): unknown;
   addWeaponRounds(id: string, rounds: number): unknown;
   tryThrowThrowable(kind: string, cooldownSeconds: number): unknown;
   applyPickupReward(
@@ -150,6 +164,7 @@ type WasmGameCore = {
     pitchVelScale: number,
   ): unknown;
   stepAimRecoilPair(input: unknown): unknown;
+  planAimRecoilKick(input: AimRecoilKickInput): unknown;
   getFlashbangBlindDurationSec(): number;
   getFlashbangOverlayOpacity(elapsedSec: number): number;
   isFlashbangBlindExpired(simTime: number, fadeEnd: number): boolean;
@@ -228,12 +243,16 @@ type WasmGameCore = {
   ): unknown;
   resolvePickupCollect(input: PickupCollectInput): unknown;
   resolveCollectFade(input: CollectFadeInput): unknown;
+  planCollectibleSpawn(input: CollectibleSpawnPlanInput): unknown;
+  tickCollectibleMotion(input: CollectibleMotionInput): unknown;
   resolveSecondarySlot(input: SecondarySlotInput): unknown;
   resolvePrimaryWeaponSwap(input: PrimaryWeaponSwapInput): unknown;
   resolvePlayerDeathTrigger(input: PlayerDeathTriggerInput): unknown;
   planKillDropScatter(input: KillDropScatterInput): unknown;
   planRewardDropLaunch(input: RewardDropLaunchInput): unknown;
   resolveRagdollImpulseSeed(input: RagdollImpulseSeedInput): unknown;
+  planRagdollLimbImpulse(input: RagdollLimbImpulseInput): unknown;
+  planRagdollSever(input: RagdollSeverPlanInput): unknown;
   planKillDrops(
     zone: string,
     explosiveKill: boolean,
@@ -352,6 +371,10 @@ function asAimRecoilStepOutput(value: unknown): AimRecoilStepOutput {
   return value as AimRecoilStepOutput;
 }
 
+function asAimRecoilKickOutput(value: unknown): AimRecoilKickOutput {
+  return value as AimRecoilKickOutput;
+}
+
 function asPlayerMovementGateOutput(value: unknown) {
   return value as ReturnType<GameCoreEngine["computePlayerMovementGates"]>;
 }
@@ -416,6 +439,14 @@ function asCollectFadeOutput(value: unknown): CollectFadeOutput {
   return value as CollectFadeOutput;
 }
 
+function asCollectibleSpawnPlanOutput(value: unknown): CollectibleSpawnPlanOutput {
+  return value as CollectibleSpawnPlanOutput;
+}
+
+function asCollectibleMotionOutput(value: unknown): CollectibleMotionOutput {
+  return value as CollectibleMotionOutput;
+}
+
 function asSecondarySlotOutput(value: unknown): SecondarySlotOutput {
   return value as SecondarySlotOutput;
 }
@@ -438,6 +469,14 @@ function asRewardDropLaunchOutput(value: unknown): RewardDropLaunchOutput {
 
 function asRagdollImpulseSeedOutput(value: unknown): RagdollImpulseSeedOutput {
   return value as RagdollImpulseSeedOutput;
+}
+
+function asRagdollLimbImpulseOutput(value: unknown): RagdollLimbImpulseOutput {
+  return value as RagdollLimbImpulseOutput;
+}
+
+function asRagdollSeverPlanOutput(value: unknown): RagdollSeverPlanOutput {
+  return value as RagdollSeverPlanOutput;
 }
 
 function asKillDropPlanOutput(value: unknown): KillDropPlanOutput {
@@ -482,6 +521,10 @@ function asSupportInfoOutput(value: unknown): SupportInfoOutput {
 
 function asClampToBoundsOutput(value: unknown): ClampToBoundsOutput {
   return value as ClampToBoundsOutput;
+}
+
+function asWeaponFireTickOutput(value: unknown): WeaponFireTickOutput {
+  return value as WeaponFireTickOutput;
 }
 
 function asTickRagdollHoleFallOutput(value: unknown): TickRagdollHoleFallOutput {
@@ -559,6 +602,12 @@ export async function createGameCoreEngine(playerHealth = 100): Promise<GameCore
     tryConsumeWeaponRound(id, autoReload) {
       return asWeaponAmmoOutput(core.tryConsumeWeaponRound(id, autoReload));
     },
+    isWeaponBurstActive() {
+      return core.isWeaponBurstActive();
+    },
+    tickWeaponFire(input) {
+      return asWeaponFireTickOutput(core.tickWeaponFire(input));
+    },
     addWeaponRounds(id, rounds) {
       return asWeaponAmmoOutput(core.addWeaponRounds(id, rounds));
     },
@@ -628,6 +677,9 @@ export async function createGameCoreEngine(playerHealth = 100): Promise<GameCore
     },
     stepAimRecoilPair(input) {
       return asAimRecoilStepOutput(core.stepAimRecoilPair(input));
+    },
+    planAimRecoilKick(input) {
+      return asAimRecoilKickOutput(core.planAimRecoilKick(input));
     },
     getFlashbangBlindDurationSec() {
       return core.getFlashbangBlindDurationSec();
@@ -815,6 +867,12 @@ export async function createGameCoreEngine(playerHealth = 100): Promise<GameCore
     resolveCollectFade(input) {
       return asCollectFadeOutput(core.resolveCollectFade(input));
     },
+    planCollectibleSpawn(input) {
+      return asCollectibleSpawnPlanOutput(core.planCollectibleSpawn(input));
+    },
+    tickCollectibleMotion(input) {
+      return asCollectibleMotionOutput(core.tickCollectibleMotion(input));
+    },
     resolveSecondarySlot(input) {
       return asSecondarySlotOutput(core.resolveSecondarySlot(input));
     },
@@ -832,6 +890,12 @@ export async function createGameCoreEngine(playerHealth = 100): Promise<GameCore
     },
     resolveRagdollImpulseSeed(input) {
       return asRagdollImpulseSeedOutput(core.resolveRagdollImpulseSeed(input));
+    },
+    planRagdollLimbImpulse(input) {
+      return asRagdollLimbImpulseOutput(core.planRagdollLimbImpulse(input));
+    },
+    planRagdollSever(input) {
+      return asRagdollSeverPlanOutput(core.planRagdollSever(input));
     },
     planKillDrops(
       zone,

@@ -2,6 +2,10 @@ use crate::flashbang::{
     apply_flashbang_blind_to_target, get_flashbang_blind_duration_sec,
     get_flashbang_overlay_opacity, is_flashbang_blind_expired,
 };
+use crate::collectible::{
+    plan_collectible_spawn, tick_collectible_motion, CollectibleMotionInput,
+    CollectibleSpawnPlanInput,
+};
 use crate::grenade::calculate_grenade_blast_hit;
 use crate::gameplay_rules::{
     plan_kill_drop_scatter, plan_reward_drop_launch, resolve_collect_fade, resolve_pickup_collect,
@@ -12,16 +16,36 @@ use crate::gameplay_rules::{
 };
 use crate::hit_zones::{resolve_target_zone_damage, TargetZoneDamageInput};
 use crate::recoil::{
-    apply_fire_recoil_kick, clamp_recoil_pitch_anim, spring_step, spring_step_toward,
-    step_aim_recoil_pair, AimRecoilStepInput,
+    apply_fire_recoil_kick, clamp_recoil_pitch_anim, plan_aim_recoil_kick, spring_step,
+    spring_step_toward, step_aim_recoil_pair, AimRecoilKickInput, AimRecoilStepInput,
 };
 use crate::score::calculate_combat_score;
+use crate::ragdoll::{
+    plan_ragdoll_limb_impulse, plan_ragdoll_sever, RagdollLimbImpulseInput,
+    RagdollSeverPlanInput,
+};
 use crate::state::GameCore;
 use crate::weapon_damage;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 impl GameCore {
+    #[wasm_bindgen(js_name = planCollectibleSpawn)]
+    pub fn plan_collectible_spawn_wasm(&self, input: JsValue) -> Result<JsValue, JsValue> {
+        let input: CollectibleSpawnPlanInput = serde_wasm_bindgen::from_value(input)
+            .map_err(|err| JsValue::from_str(&err.to_string()))?;
+        serde_wasm_bindgen::to_value(&plan_collectible_spawn(input))
+            .map_err(|err| JsValue::from_str(&err.to_string()))
+    }
+
+    #[wasm_bindgen(js_name = tickCollectibleMotion)]
+    pub fn tick_collectible_motion_wasm(&self, input: JsValue) -> Result<JsValue, JsValue> {
+        let input: CollectibleMotionInput = serde_wasm_bindgen::from_value(input)
+            .map_err(|err| JsValue::from_str(&err.to_string()))?;
+        serde_wasm_bindgen::to_value(&tick_collectible_motion(input))
+            .map_err(|err| JsValue::from_str(&err.to_string()))
+    }
+
     #[wasm_bindgen(js_name = calculateCombatScore)]
     pub fn calculate_combat_score(
         &self,
@@ -114,6 +138,22 @@ impl GameCore {
         let input: RagdollImpulseSeedInput = serde_wasm_bindgen::from_value(input)
             .map_err(|err| JsValue::from_str(&err.to_string()))?;
         serde_wasm_bindgen::to_value(&resolve_ragdoll_impulse_seed(input))
+            .map_err(|err| JsValue::from_str(&err.to_string()))
+    }
+
+    #[wasm_bindgen(js_name = planRagdollLimbImpulse)]
+    pub fn plan_ragdoll_limb_impulse_wasm(&self, input: JsValue) -> Result<JsValue, JsValue> {
+        let input: RagdollLimbImpulseInput = serde_wasm_bindgen::from_value(input)
+            .map_err(|err| JsValue::from_str(&err.to_string()))?;
+        serde_wasm_bindgen::to_value(&plan_ragdoll_limb_impulse(input))
+            .map_err(|err| JsValue::from_str(&err.to_string()))
+    }
+
+    #[wasm_bindgen(js_name = planRagdollSever)]
+    pub fn plan_ragdoll_sever_wasm(&self, input: JsValue) -> Result<JsValue, JsValue> {
+        let input: RagdollSeverPlanInput = serde_wasm_bindgen::from_value(input)
+            .map_err(|err| JsValue::from_str(&err.to_string()))?;
+        serde_wasm_bindgen::to_value(&plan_ragdoll_sever(input))
             .map_err(|err| JsValue::from_str(&err.to_string()))
     }
 
@@ -230,6 +270,14 @@ impl GameCore {
         let input: AimRecoilStepInput = serde_wasm_bindgen::from_value(input)
             .map_err(|err| JsValue::from_str(&err.to_string()))?;
         serde_wasm_bindgen::to_value(&step_aim_recoil_pair(input))
+            .map_err(|err| JsValue::from_str(&err.to_string()))
+    }
+
+    #[wasm_bindgen(js_name = planAimRecoilKick)]
+    pub fn plan_aim_recoil_kick_wasm(&self, input: JsValue) -> Result<JsValue, JsValue> {
+        let input: AimRecoilKickInput = serde_wasm_bindgen::from_value(input)
+            .map_err(|err| JsValue::from_str(&err.to_string()))?;
+        serde_wasm_bindgen::to_value(&plan_aim_recoil_kick(input))
             .map_err(|err| JsValue::from_str(&err.to_string()))
     }
 

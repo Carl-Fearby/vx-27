@@ -1,6 +1,17 @@
 # Fasthosts / Apache — Next.js static export (flat .html routes)
 DirectoryIndex index.html
 
+# RUSH WASM (game_core / hack_core) — enables WebAssembly.instantiateStreaming in Chrome.
+# Hashed bundles live under /_next/static/media/*.wasm (see that folder's .htaccess too).
+<IfModule mod_mime.c>
+  AddType application/wasm .wasm
+</IfModule>
+<IfModule mod_headers.c>
+  <FilesMatch "\.wasm$">
+    Header set Content-Type "application/wasm"
+  </FilesMatch>
+</IfModule>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
 

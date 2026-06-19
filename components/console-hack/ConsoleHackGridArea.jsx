@@ -1,9 +1,5 @@
 import { memo } from "react";
-import {
-  HACK_ELEMENT_META,
-  hackRectStyle,
-  isHackSpriteElement,
-} from "@/lib/console-hack/ConsoleHackLayoutTuning.js";
+import { hackRectStyle } from "@/lib/console-hack/ConsoleHackLayoutTuning.js";
 import {
   getActivePointerTarget,
   getHackNodeVisualState,
@@ -14,7 +10,6 @@ import {
 import {
   hackConnectionNodeCenterInOverlay,
   hackConnectionStripStyle,
-  hackGridCellStyleInGrid,
   HACK_ERROR_LINE_SRC,
   HACK_LINE_SRC,
   HACK_NODE_DEAD_SRC,
@@ -192,17 +187,6 @@ function HackNodeContent({ visual, nodeIndex = 0 }) {
 /**
  * @param {{
  *   layout: import("@/lib/console-hack/ConsoleHackLayoutTuning.js").ConsoleHackLayoutTuning,
- *   tuneEnabled: boolean,
- *   selectedId: string | null,
- *   onSelectId: (id: string) => void,
- *   startDrag: (
- *     event: React.MouseEvent,
- *     id: string,
- *     mode: "move" | "resize",
- *     startRect: object,
- *     dragSpace?: import("@/components/console-hack/useConsoleHackTuneDrag.js").HackTuneDragSpace
- *   ) => void,
- *   spriteDragSpace: import("@/components/console-hack/useConsoleHackTuneDrag.js").HackTuneDragSpace,
  *   gridCols: number,
  *   gridRows: number,
  *   gameState?: import("@/lib/console-hack/ConsoleHackGame.js").HackGameState | null,
@@ -211,11 +195,6 @@ function HackNodeContent({ visual, nodeIndex = 0 }) {
  */
 function ConsoleHackGridArea({
   layout,
-  tuneEnabled,
-  selectedId,
-  onSelectId,
-  startDrag,
-  spriteDragSpace,
   gridCols,
   gridRows,
   gameState = null,
@@ -223,13 +202,18 @@ function ConsoleHackGridArea({
 }) {
   const tune = layout.gridArea;
   const liveTemplate = layout.nodeLive;
-  const deadTemplate = layout.nodeDead;
   if (!tune) return null;
 
-  const selected = selectedId === "gridArea";
-  const playMode = !tuneEnabled && gameState != null;
-
-  if (playMode) {
+  if (!gameState) {
+    return (
+      <div
+        className="consoleHackGridArea consoleHackGridArea--play"
+        style={elementStyle(tune)}
+        data-hack-id="gridArea"
+        aria-hidden="true"
+      />
+    );
+  }
     const gridNodes = gameState.nodes.filter(
       (n) => n.id !== HACK_START_NODE_ID && n.id !== HACK_REWARD_NODE_ID
     );
@@ -314,127 +298,6 @@ function ConsoleHackGridArea({
         })}
       </div>
     );
-  }
-
-  const cellNodes = [];
-  const tuningSprite = tuneEnabled && isHackSpriteElement(selectedId ?? "");
-  const previewOnly = tuningSprite ? selectedId : null;
-
-  if (tuneEnabled) {
-    for (let row = 0; row < gridRows; row++) {
-      for (let col = 0; col < gridCols; col++) {
-        cellNodes.push(
-          <div
-            key={`cell-${col}-${row}`}
-            className="consoleHackGridCell"
-            style={hackGridCellStyleInGrid(col, row, gridCols, gridRows)}
-          />
-        );
-      }
-    }
-  }
-
-  const visibleNodes = previewOnly
-    ? [
-        {
-          col: 0,
-          row: 0,
-          index: 0,
-          variant: previewOnly === "nodeLive" ? "live" : "dead",
-        },
-      ]
-    : [];
-
-  const spriteNodes =
-    liveTemplate && deadTemplate && previewOnly
-      ? visibleNodes.map((node) => {
-          const templateId = node.variant === "live" ? "nodeLive" : "nodeDead";
-          if (previewOnly !== templateId) return null;
-          const spriteTemplate = node.variant === "live" ? liveTemplate : deadTemplate;
-          const selectedSprite =
-            tuneEnabled && selectedId === templateId && node.col === 0 && node.row === 0;
-
-          return (
-            <div
-              key={`${node.variant}-${node.index}`}
-              className={[
-                "consoleHackNodeSprite",
-                tuneEnabled ? "consoleHackTuneBox consoleHackTuneBox--interactive" : "",
-                selectedSprite ? "consoleHackTuneBox--selected" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              style={hackNodeSpriteStyleInGrid(
-                node.col,
-                node.row,
-                spriteTemplate,
-                gridCols,
-                gridRows
-              )}
-              data-hack-id={templateId}
-              title={tuneEnabled ? HACK_ELEMENT_META[templateId]?.label : undefined}
-              onMouseDown={
-                tuneEnabled
-                  ? (e) => {
-                      e.stopPropagation();
-                      onSelectId(templateId);
-                      startDrag(e, templateId, "move", spriteTemplate, spriteDragSpace);
-                    }
-                  : undefined
-              }
-            >
-              <img
-                src={node.variant === "live" ? HACK_NODE_LIVE_SRC : HACK_NODE_DEAD_SRC}
-                alt=""
-                className="consoleHackNodeSprite__img"
-                draggable={false}
-              />
-              {tuneEnabled && selectedSprite ? (
-                <span
-                  className="consoleHackResizeHandle"
-                  onMouseDown={(e) =>
-                    startDrag(e, templateId, "resize", spriteTemplate, spriteDragSpace)
-                  }
-                />
-              ) : null}
-            </div>
-          );
-        })
-      : null;
-
-  return (
-    <div
-      className={[
-        "consoleHackGridArea",
-        tuneEnabled ? "consoleHackGridArea--tune" : "",
-        selected ? "consoleHackGridArea--selected" : "",
-        tuneEnabled ? "consoleHackTuneBox consoleHackTuneBox--interactive" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      style={elementStyle(tune)}
-      data-hack-id="gridArea"
-      title={tuneEnabled ? HACK_ELEMENT_META.gridArea?.label : undefined}
-      onMouseDown={
-        tuneEnabled
-          ? (e) => {
-              e.stopPropagation();
-              onSelectId("gridArea");
-              startDrag(e, "gridArea", "move", tune);
-            }
-          : undefined
-      }
-    >
-      {cellNodes}
-      {spriteNodes}
-      {tuneEnabled && selected ? (
-        <span
-          className="consoleHackResizeHandle"
-          onMouseDown={(e) => startDrag(e, "gridArea", "resize", tune)}
-        />
-      ) : null}
-    </div>
-  );
 }
 
 export default memo(ConsoleHackGridArea);

@@ -37,6 +37,26 @@ pub struct AimRecoilStepOutput {
     pub yaw_velocity: f64,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AimRecoilKickInput {
+    pub pitch: f64,
+    pub yaw: f64,
+    pub strength: f64,
+    pub kick_vel_scale: f64,
+    pub pitch_roll: f64,
+    pub yaw_roll: f64,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AimRecoilKickOutput {
+    pub pitch_target_delta: f64,
+    pub yaw_target_delta: f64,
+    pub pitch_velocity_delta: f64,
+    pub yaw_velocity_delta: f64,
+}
+
 pub fn spring_step_toward(
     value: f64,
     velocity: f64,
@@ -113,6 +133,25 @@ pub fn step_aim_recoil_pair(input: AimRecoilStepInput) -> AimRecoilStepOutput {
         pitch_velocity: pitch.velocity,
         yaw_value: yaw.value,
         yaw_velocity: yaw.velocity,
+    }
+}
+
+pub fn plan_aim_recoil_kick(input: AimRecoilKickInput) -> AimRecoilKickOutput {
+    const PITCH_RANDOM_MIN: f64 = 0.85;
+    const PITCH_RANDOM_SPREAD: f64 = 0.3;
+    let strength = input.strength.max(0.0);
+    let pitch_target_delta = input.pitch
+        * strength
+        * (PITCH_RANDOM_MIN + input.pitch_roll.clamp(0.0, 1.0) * PITCH_RANDOM_SPREAD);
+    let yaw_target_delta = (input.yaw_roll.clamp(0.0, 1.0) - 0.5)
+        * 2.0
+        * input.yaw
+        * strength;
+    AimRecoilKickOutput {
+        pitch_target_delta,
+        yaw_target_delta,
+        pitch_velocity_delta: pitch_target_delta * input.kick_vel_scale,
+        yaw_velocity_delta: yaw_target_delta * input.kick_vel_scale,
     }
 }
 
@@ -199,5 +238,21 @@ mod tests {
         assert!((batch.pitch_velocity - pitch.velocity).abs() < 1e-12);
         assert!((batch.yaw_value - yaw.value).abs() < 1e-12);
         assert!((batch.yaw_velocity - yaw.velocity).abs() < 1e-12);
+    }
+
+    #[test]
+    fn aim_recoil_kick_maps_random_rolls_to_target_and_velocity() {
+        let kick = plan_aim_recoil_kick(AimRecoilKickInput {
+            pitch: 0.03,
+            yaw: 0.01,
+            strength: 2.0,
+            kick_vel_scale: 4.0,
+            pitch_roll: 0.5,
+            yaw_roll: 0.0,
+        });
+        assert!((kick.pitch_target_delta - 0.06).abs() < 1e-12);
+        assert!((kick.yaw_target_delta + 0.02).abs() < 1e-12);
+        assert!((kick.pitch_velocity_delta - 0.24).abs() < 1e-12);
+        assert!((kick.yaw_velocity_delta + 0.08).abs() < 1e-12);
     }
 }

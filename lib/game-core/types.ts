@@ -99,6 +99,27 @@ export type WeaponAmmoOutput = {
   empty: boolean;
 };
 
+export type WeaponFireTickInput = {
+  weaponId: string;
+  mode: string;
+  dt: number;
+  shootPressed: boolean;
+  shootHeld: boolean;
+  burstShotCount: number;
+  burstInterval: number;
+  autoFireInterval: number;
+};
+
+export type WeaponFireTickOutput = {
+  shotsFired: number;
+  rounds: number;
+  spare: number;
+  reloaded: boolean;
+  lowAmmo: boolean;
+  empty: boolean;
+  burstActive: boolean;
+};
+
 export type ThrowableOutput = {
   thrown: boolean;
   kind: string;
@@ -588,6 +609,56 @@ export type CollectFadeOutput = {
   remove: boolean;
 };
 
+export type CollectibleSpawnPlanInput = {
+  rewardTypes: string[];
+  rewardRoll: number;
+  surfaceMode: "floor" | "catwalk" | "random";
+  surfaceRoll: number;
+  xRoll: number;
+  zRoll: number;
+  margin: number;
+  floorMinX: number;
+  floorMaxX: number;
+  floorMinZ: number;
+  floorMaxZ: number;
+  floorY: number;
+  catwalkMinX: number;
+  catwalkMaxX: number;
+  catwalkMinZ: number;
+  catwalkMaxZ: number;
+  catwalkY: number;
+};
+
+export type CollectibleSpawnPlanOutput = {
+  rewardType: string;
+  surface: "floor" | "catwalk";
+  x: number;
+  z: number;
+  floorY: number;
+};
+
+export type CollectibleMotionInput = {
+  kind: string;
+  dt: number;
+  time: number;
+  y: number;
+  velY: number;
+  floorY: number;
+  settleY: number;
+  settled: boolean;
+  settledTime: number;
+  settleBlend: number;
+};
+
+export type CollectibleMotionOutput = {
+  time: number;
+  y: number;
+  velY: number;
+  settled: boolean;
+  settledTime: number;
+  settleBlend: number;
+};
+
 export type SecondarySlotInput = {
   slot: number;
   grenadeSlot: number;
@@ -700,6 +771,55 @@ export type RagdollImpulseSeedOutput = {
   spinVel: number;
 };
 
+export type RagdollLimbImpulseInput = {
+  mode: "grenade" | "hit" | "passive";
+  isArm: boolean;
+  isLower: boolean;
+  isHitLimb: boolean;
+  profileImpulseMul: number;
+  blastKnockback: number;
+  bulletDirX?: number | null;
+  bulletDirZ?: number | null;
+  strengthRoll: number;
+  xRoll: number;
+  yRoll: number;
+  zRoll: number;
+};
+
+export type RagdollLimbImpulseOutput = {
+  x: number;
+  y: number;
+  z: number;
+  activationDelay: number;
+};
+
+export type RagdollSeverPlanInput = {
+  rootId: string;
+  blastFalloff: number;
+  knockbackMul: number;
+  spineDirX: number;
+  spineDirZ: number;
+  chanceRoll: number;
+  horizontalRoll: number;
+  velXRoll: number;
+  velYRoll: number;
+  velZRoll: number;
+  angularXRoll: number;
+  angularYRoll: number;
+  angularZRoll: number;
+};
+
+export type RagdollSeverPlanOutput = {
+  sever: boolean;
+  bloodDamage: number;
+  velX: number;
+  velY: number;
+  velZ: number;
+  angularX: number;
+  angularY: number;
+  angularZ: number;
+};
+
 export type TargetRespawnOutput = {
   delayMs: number;
   shouldSchedule: boolean;
@@ -796,6 +916,22 @@ export type AimRecoilStepOutput = {
   yawVelocity: number;
 };
 
+export type AimRecoilKickInput = {
+  pitch: number;
+  yaw: number;
+  strength: number;
+  kickVelScale: number;
+  pitchRoll: number;
+  yawRoll: number;
+};
+
+export type AimRecoilKickOutput = {
+  pitchTargetDelta: number;
+  yawTargetDelta: number;
+  pitchVelocityDelta: number;
+  yawVelocityDelta: number;
+};
+
 export type FlashbangBlindApplyOutput = {
   blindStart: number;
   blindFadeEnd: number;
@@ -827,6 +963,8 @@ export type GameCoreEngine = {
   ): WeaponAmmoOutput;
   tryReloadWeapon(id: string, force: boolean): WeaponAmmoOutput;
   tryConsumeWeaponRound(id: string, autoReload: boolean): WeaponAmmoOutput;
+  isWeaponBurstActive(): boolean;
+  tickWeaponFire(input: WeaponFireTickInput): WeaponFireTickOutput;
   addWeaponRounds(id: string, rounds: number): WeaponAmmoOutput;
   tryThrowThrowable(kind: string, cooldownSeconds: number): ThrowableOutput;
   applyPickupReward(
@@ -884,6 +1022,7 @@ export type GameCoreEngine = {
     pitchVelScale: number,
   ): FireRecoilKickOutput;
   stepAimRecoilPair(input: AimRecoilStepInput): AimRecoilStepOutput;
+  planAimRecoilKick(input: AimRecoilKickInput): AimRecoilKickOutput;
   getFlashbangBlindDurationSec(): number;
   getFlashbangOverlayOpacity(elapsedSec: number): number;
   isFlashbangBlindExpired(simTime: number, fadeEnd: number): boolean;
@@ -1121,6 +1260,8 @@ export type GameCoreEngine = {
   ): GrenadeBlastOutput;
   resolvePickupCollect(input: PickupCollectInput): PickupCollectOutput;
   resolveCollectFade(input: CollectFadeInput): CollectFadeOutput;
+  planCollectibleSpawn(input: CollectibleSpawnPlanInput): CollectibleSpawnPlanOutput;
+  tickCollectibleMotion(input: CollectibleMotionInput): CollectibleMotionOutput;
   resolveSecondarySlot(input: SecondarySlotInput): SecondarySlotOutput;
   resolvePrimaryWeaponSwap(
     input: PrimaryWeaponSwapInput,
@@ -1133,6 +1274,8 @@ export type GameCoreEngine = {
   resolveRagdollImpulseSeed(
     input: RagdollImpulseSeedInput,
   ): RagdollImpulseSeedOutput;
+  planRagdollLimbImpulse(input: RagdollLimbImpulseInput): RagdollLimbImpulseOutput;
+  planRagdollSever(input: RagdollSeverPlanInput): RagdollSeverPlanOutput;
   planKillDrops(
     zone: string,
     explosiveKill: boolean,

@@ -16,6 +16,142 @@ pub struct ClampToBoundsOutput {
     pub z: f64,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RagdollLimbImpulseInput {
+    pub mode: String,
+    pub is_arm: bool,
+    pub is_lower: bool,
+    pub is_hit_limb: bool,
+    pub profile_impulse_mul: f64,
+    pub blast_knockback: f64,
+    pub bullet_dir_x: Option<f64>,
+    pub bullet_dir_z: Option<f64>,
+    pub strength_roll: f64,
+    pub x_roll: f64,
+    pub y_roll: f64,
+    pub z_roll: f64,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RagdollLimbImpulseOutput {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub activation_delay: f64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RagdollSeverPlanInput {
+    pub root_id: String,
+    pub blast_falloff: f64,
+    pub knockback_mul: f64,
+    pub spine_dir_x: f64,
+    pub spine_dir_z: f64,
+    pub chance_roll: f64,
+    pub horizontal_roll: f64,
+    pub vel_x_roll: f64,
+    pub vel_y_roll: f64,
+    pub vel_z_roll: f64,
+    pub angular_x_roll: f64,
+    pub angular_y_roll: f64,
+    pub angular_z_roll: f64,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RagdollSeverPlanOutput {
+    pub sever: bool,
+    pub blood_damage: i32,
+    pub vel_x: f64,
+    pub vel_y: f64,
+    pub vel_z: f64,
+    pub angular_x: f64,
+    pub angular_y: f64,
+    pub angular_z: f64,
+}
+
+pub fn plan_ragdoll_limb_impulse(input: RagdollLimbImpulseInput) -> RagdollLimbImpulseOutput {
+    const FLAIL_INITIAL_VEL: f64 = 12.0;
+    let rx = input.x_roll.clamp(0.0, 1.0) - 0.5;
+    let ry = input.y_roll.clamp(0.0, 1.0) - 0.5;
+    let rz = input.z_roll.clamp(0.0, 1.0) - 0.5;
+    let bullet_x = input.bullet_dir_x.unwrap_or(0.0);
+    let bullet_z = input.bullet_dir_z.unwrap_or(0.0);
+    let (x, y, z) = if input.mode == "grenade" {
+        let strength = FLAIL_INITIAL_VEL
+            * input.profile_impulse_mul
+            * input.blast_knockback
+            * (0.65 + input.strength_roll.clamp(0.0, 1.0) * 0.7);
+        (
+            bullet_z * strength + rx * strength * 0.35,
+            ry * strength * 0.25 + input.blast_knockback * 0.2,
+            -bullet_x * strength + rz * strength * 0.35,
+        )
+    } else if input.mode == "hit" {
+        let strength = FLAIL_INITIAL_VEL * input.profile_impulse_mul;
+        (
+            bullet_z * strength + rx * 2.0,
+            ry * strength * 0.2,
+            -bullet_x * strength + rz * 2.0,
+        )
+    } else {
+        let base = if input.is_arm {
+            FLAIL_INITIAL_VEL * 1.4
+        } else if input.is_lower {
+            FLAIL_INITIAL_VEL * 0.7
+        } else {
+            FLAIL_INITIAL_VEL * 0.5
+        };
+        (rx * base, ry * base * 0.5, rz * base)
+    };
+    let activation_delay = if input.is_hit_limb {
+        0.0
+    } else if input.is_arm {
+        0.03
+    } else if input.is_lower {
+        0.12
+    } else {
+        0.06
+    };
+    RagdollLimbImpulseOutput {
+        x,
+        y,
+        z,
+        activation_delay,
+    }
+}
+
+pub fn plan_ragdoll_sever(input: RagdollSeverPlanInput) -> RagdollSeverPlanOutput {
+    const CHANCE: f64 = 0.42;
+    const HORIZONTAL: f64 = 4.4;
+    const UP: f64 = 2.1;
+    const SPIN: f64 = 9.0;
+    let chance = CHANCE * input.blast_falloff.clamp(0.0, 1.0) * input.knockback_mul;
+    let sever = input.chance_roll.clamp(0.0, 1.0) < chance;
+    let horizontal = HORIZONTAL
+        * input.knockback_mul
+        * (0.85 + input.horizontal_roll.clamp(0.0, 1.0) * 0.45);
+    let side_bias = if input.root_id.ends_with('L') || input.root_id.ends_with('R') {
+        1.12
+    } else {
+        1.0
+    };
+    let centered = |roll: f64| roll.clamp(0.0, 1.0) - 0.5;
+    RagdollSeverPlanOutput {
+        sever,
+        blood_damage: (8.0 + input.blast_falloff * 16.0).round().max(8.0) as i32,
+        vel_x: input.spine_dir_x * horizontal * side_bias + centered(input.vel_x_roll) * 0.45,
+        vel_y: UP * input.knockback_mul * (0.65 + input.vel_y_roll.clamp(0.0, 1.0) * 0.75),
+        vel_z: input.spine_dir_z * horizontal * side_bias + centered(input.vel_z_roll) * 0.45,
+        angular_x: input.spine_dir_z * SPIN * 0.35 + centered(input.angular_x_roll) * SPIN * 0.5,
+        angular_y: centered(input.angular_y_roll) * SPIN * 0.4,
+        angular_z: -input.spine_dir_x * SPIN * 0.35 + centered(input.angular_z_roll) * SPIN * 0.5,
+    }
+}
+
 pub fn clamp_to_bounds(px: f64, pz: f64, radius: f64, bounds: Option<BoundsInput>) -> ClampToBoundsOutput {
     let Some(bounds) = bounds else {
         return ClampToBoundsOutput { x: px, z: pz };
@@ -210,5 +346,54 @@ pub fn tick_ragdoll_launch(input: TickRagdollLaunchInput) -> TickRagdollLaunchOu
         origin_z,
         airborne: true,
         floor_impact: 0.0,
+    }
+}
+
+#[cfg(test)]
+mod planning_tests {
+    use super::*;
+
+    #[test]
+    fn hit_limb_impulse_uses_bullet_direction() {
+        let output = plan_ragdoll_limb_impulse(RagdollLimbImpulseInput {
+            mode: "hit".into(),
+            is_arm: true,
+            is_lower: false,
+            is_hit_limb: true,
+            profile_impulse_mul: 1.0,
+            blast_knockback: 1.0,
+            bullet_dir_x: Some(1.0),
+            bullet_dir_z: Some(0.0),
+            strength_roll: 0.5,
+            x_roll: 0.5,
+            y_roll: 0.5,
+            z_roll: 0.5,
+        });
+        assert_eq!(output.x, 0.0);
+        assert_eq!(output.z, -12.0);
+        assert_eq!(output.activation_delay, 0.0);
+    }
+
+    #[test]
+    fn sever_plan_obeys_chance_and_returns_impulse() {
+        let output = plan_ragdoll_sever(RagdollSeverPlanInput {
+            root_id: "upperArmL".into(),
+            blast_falloff: 1.0,
+            knockback_mul: 1.0,
+            spine_dir_x: 1.0,
+            spine_dir_z: 0.0,
+            chance_roll: 0.1,
+            horizontal_roll: 0.0,
+            vel_x_roll: 0.5,
+            vel_y_roll: 0.0,
+            vel_z_roll: 0.5,
+            angular_x_roll: 0.5,
+            angular_y_roll: 0.5,
+            angular_z_roll: 0.5,
+        });
+        assert!(output.sever);
+        assert_eq!(output.blood_damage, 24);
+        assert!(output.vel_x > 4.0);
+        assert!(output.vel_y > 1.0);
     }
 }

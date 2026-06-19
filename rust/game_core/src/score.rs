@@ -123,4 +123,14 @@ mod tests {
         assert!(output.ammo);
         assert!(output.grenade);
     }
+
+    #[test]
+    fn grenade_drop_chance_decreases_with_inventory() {
+        let expected = [0.7, 0.5, 0.3, 0.25, 0.05, 0.0];
+        for (count, chance) in expected.into_iter().enumerate() {
+            assert_eq!(grenade_drop_chance(count as i32), chance);
+        }
+        assert_eq!(grenade_drop_chance(-10), 0.7);
+        assert_eq!(grenade_drop_chance(99), 0.0);
+    }
 }

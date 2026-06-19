@@ -76,10 +76,8 @@ import {
 } from "@/lib/lighting/LightingZones";
 import {
   buildRainOccluderSlabs,
-  buildSnowOccluderSlabs,
   createRainSystem,
   disposeRain,
-  updateRain,
 } from "@/lib/Rain.js";
 import {
   loadRainEnabled,
@@ -90,28 +88,17 @@ import {
   saveRainIntensity,
 } from "@/lib/RainTuning.js";
 import {
-  createSnowSystem,
-  disposeSnow,
-  resetSnowSettled,
-  updateSnow,
-} from "@/lib/Snow.js";
-import {
-  loadSnowEnabled,
-  loadSnowIntensity,
-  loadSnowStickRate,
-  MAX_SNOW_INTENSITY,
-  MAX_SNOW_STICK_RATE,
-  MIN_SNOW_INTENSITY,
-  MIN_SNOW_STICK_RATE,
-  saveSnowEnabled,
-  saveSnowIntensity,
-  saveSnowStickRate,
-} from "@/lib/SnowTuning.js";
-import {
   toggleWeather,
   WEATHER_MAX_DURATION_SEC,
 } from "@/lib/weather/WeatherToggle.js";
 import { createWeatherTransitionState } from "@/lib/weather/WeatherTransition.js";
+import { createLightningFlashState } from "@/lib/weather/LightningFlash.js";
+import {
+  collectRainWetSurfaces,
+  mergeRainWetSurfaces,
+  resetRainWetness,
+  updateRainWetness,
+} from "@/lib/weather/RainWetness.js";
 import { buildRoomCullables, updateRoomCulling } from "@/lib/rooms/RoomCulling";
 import {
   initCandleFlicker,
@@ -264,7 +251,7 @@ import {
 
 import {
   spawnGrenade, updateGrenades, disposeAllGrenades,
-  updateTrajectoryPreview, hideTrajectoryPreview, disposePreview,
+  disposePreview,
   applyScreenShake,
   triggerScreenShake,
   triggerHurtScreenShake,
@@ -290,7 +277,6 @@ import {
 } from "@/lib/oil-barrel/ToxicOilSpill";
 import { loadToxicOilSpillTuning } from "@/lib/oil-barrel/ToxicOilSpillTuning";
 import { resetArenaCeilingDayNightCache } from "@/lib/lighting/ArenaCeilingDayNight";
-import { applyCombatScore, formatKillCallout } from "@/lib/combat/Score";
 import { createScorePopupLayer } from "@/lib/combat/ScorePopups";
 import {
   applyTargetHit,
@@ -298,8 +284,6 @@ import {
   deactivateTarget,
   disposeAllTargetHealthBars,
   disposeAllHpOrbs,
-  pickRandomSpawnPosition,
-  resolveAuthoredSpawnPosition,
   renderTargetHealthBarsPass,
   hasVisibleTargetHealthBars,
   setHealthBarOccluders,
@@ -595,20 +579,6 @@ const HURT_VIGNETTE_PEAK_OPACITY = 1;
 function hudAmmoValueClass(value) {
   return value >= 100 ? " hudAmmoValueCompact" : "";
 }
-const BURST_SHOT_COUNT = 3;
-const BURST_INTERVAL = 0.085;
-const AUTO_FIRE_INTERVAL = 0.1;
-/** Grenade drop chance when player has 0, 1, 2, 3, 4, or 5+ grenades. */
-const GRENADE_DROP_CHANCE_BY_COUNT = [0.7, 0.5, 0.3, 0.25, 0.05, 0];
-
-function rollGrenadeDrop(grenadeCount) {
-  const idx = Math.min(
-    Math.max(0, grenadeCount),
-    GRENADE_DROP_CHANCE_BY_COUNT.length - 1
-  );
-  return Math.random() < GRENADE_DROP_CHANCE_BY_COUNT[idx];
-}
-
 /**
  * Show the full-screen death overlay with the given reason text. The overlay
  * is permanently mounted; we just update the reason copy and toggle classes
@@ -1090,25 +1060,18 @@ export default function FpsGame() {
   const cargoModulePropsRef = useRef(loadCargoModulePropsPlacement());
   const toxicOilSpillTuningRef = useRef(loadToxicOilSpillTuning());
   const toxicOilSpillRef = useRef(null);
-  const [snowEnabled, setSnowEnabled] = useState(() => loadSnowEnabled());
-  const snowEnabledRef = useRef(loadSnowEnabled());
-  const [snowIntensity, setSnowIntensity] = useState(() => loadSnowIntensity());
-  const snowIntensityRef = useRef(loadSnowIntensity());
-  const [snowStickRate, setSnowStickRate] = useState(() => loadSnowStickRate());
-  const snowStickRateRef = useRef(loadSnowStickRate());
   const [rainIntensity, setRainIntensity] = useState(() => loadRainIntensity());
   const rainIntensityRef = useRef(loadRainIntensity());
-  const [rainEnabled, setRainEnabled] = useState(
-    () => loadRainEnabled() && !loadSnowEnabled()
-  );
-  const rainEnabledRef = useRef(loadRainEnabled() && !loadSnowEnabled());
+  const [rainEnabled, setRainEnabled] = useState(() => loadRainEnabled());
+  const rainEnabledRef = useRef(loadRainEnabled());
   const weatherSessionRef = useRef({ active: false, elapsed: 0 });
   const weatherTransitionRef = useRef(
     createWeatherTransitionState({
-      rainOn: loadRainEnabled() && !loadSnowEnabled(),
-      snowOn: loadSnowEnabled(),
+      rainOn: loadRainEnabled(),
     }),
   );
+  const lightningFlashRef = useRef(createLightningFlashState());
+  const lightningFlashOverlayRef = useRef(null);
   const weatherToggleRef = useRef(null);
   const [ammoDropSpareThreshold, setAmmoDropSpareThreshold] = useState(
     DEFAULT_AMMO_DROP_SPARE_THRESHOLD
@@ -1121,7 +1084,6 @@ export default function FpsGame() {
   );
   const hbCorner = 3;
   const sceneRef = useRef(null);
-  const snowRef = useRef(null);
   const [bindings, setBindings] = useState(() => loadBindings());
   const gameplayHintsDismissedRef = useRef(new Set());
   const gameplayHintRuntimeRef = useRef(createGameplayHintRuntime());
@@ -1825,9 +1787,6 @@ export default function FpsGame() {
   sunIsDayRef.current = sunIsDay;
   rainEnabledRef.current = rainEnabled;
   rainIntensityRef.current = rainIntensity;
-  snowEnabledRef.current = snowEnabled;
-  snowIntensityRef.current = snowIntensity;
-  snowStickRateRef.current = snowStickRate;
   settingsOpenRef.current = settingsOpen;
   controlsOpenRef.current = controlsOpen;
   consoleHackOpenRef.current = consoleHackOpen;
@@ -1942,7 +1901,7 @@ export default function FpsGame() {
     let grenadeDrops = [];
     let bloodSplatters = [];
     let rain = null;
-    let snow = null;
+    let rainWetSurfaces = null;
     let laserTracers = null;
     /** Kill-shot blood — waits for ragdoll, then spawns next frame. */
     let pendingKillBlood = [];
@@ -2160,17 +2119,9 @@ export default function FpsGame() {
           level.ceilingColliders.filter((c) => c.kind === "deck"),
           level.stairColliders
         );
-        const snowOccluders = buildSnowOccluderSlabs(
-          level.groundSurfaces,
-          level.catwalkDeckY,
-          level.ceilingColliders.filter((c) => c.kind === "deck"),
-          level.stairColliders
-        );
         rain = createRainSystem(scene);
         rain.occluders = weatherOccluders;
-        snow = createSnowSystem(scene);
-        snow.occluders = snowOccluders;
-        snowRef.current = snow;
+        rainWetSurfaces = collectRainWetSurfaces(level.group);
       }
       prebuildRagdollTemplates(level.targets);
       vx27ContainersRef.current = level.vx27ContainerMeshes ?? [];
@@ -2292,6 +2243,7 @@ export default function FpsGame() {
         // and is gone once it dips below — this is also what kills shadows
         // before they'd otherwise render from below the floor.
         sun.intensity = sunBaseIntensityRef.current * sunFactor;
+        sun.userData.sunRainMul = 1;
         moon.intensity = moonIntensityRef.current * moonFactor;
         // Only one directional shadow map during dawn/dusk — both lights can be
         // above the horizon at once, and dual shadow passes hitch the fade.
@@ -2372,7 +2324,8 @@ export default function FpsGame() {
         if (disposed || !level) return;
         const spawnedCollectibles = spawnLevelCollectibles(
           level.pickupsGroup ?? scene,
-          arena
+          arena,
+          gameCore
         );
         collectibleEntries = spawnedCollectibles.entries;
         if (level.pickupsGroup) enableShadowsOn(level.pickupsGroup);
@@ -2730,7 +2683,9 @@ export default function FpsGame() {
         get sky() { return sky; },
         arena,
         rain,
-        snow,
+        get rainWetSurfaces() {
+          return rainWetSurfaces;
+        },
         lastTime: performance.now(),
         simTime: 0,
         grenadeHeld: false,
@@ -2767,10 +2722,7 @@ export default function FpsGame() {
         screenCrosshairRef,
         crosshairTuningRef,
         rainEnabledRef,
-        snowEnabledRef,
         rainIntensityRef,
-        snowIntensityRef,
-        snowStickRateRef,
         outdoorLights,
         targetSpawnCtx,
         get scorePopupLayer() { return scorePopupLayer; },
@@ -2783,7 +2735,6 @@ export default function FpsGame() {
         rifleShopInteractMeshesCache,
         setRifleUnlocked,
         syncAllColliders,
-        rollGrenadeDrop,
         playerHealthRef,
         playerScoreRef,
         showHudRef,
@@ -2838,6 +2789,8 @@ export default function FpsGame() {
         weatherSessionRef,
         weatherTransitionRef,
         weatherToggleRef,
+        lightningFlash: lightningFlashRef.current,
+        lightningFlashOverlayRef,
         sunIsDayRef,
         gameplayHintsDismissedRef,
         gameplayHintRuntimeRef,
@@ -3263,6 +3216,9 @@ export default function FpsGame() {
           isActive,
         });
       }
+      if (rainWetSurfaces && level?.group) {
+        mergeRainWetSurfaces(rainWetSurfaces, level.group);
+      }
       if (!isActive()) return;
       reportLoad(99, GPU_PRELOAD_READY_LABEL);
 
@@ -3364,9 +3320,8 @@ export default function FpsGame() {
       skyRef.current = null;
       disposeRain(rain);
       rain = null;
-      disposeSnow(snow);
-      snow = null;
-      snowRef.current = null;
+      resetRainWetness(rainWetSurfaces ?? []);
+      rainWetSurfaces = null;
       resetViewmodelInteriorAmbient();
       resetRoomInteriorAmbient();
       renderer.dispose();
@@ -3431,10 +3386,8 @@ export default function FpsGame() {
     toggleWeather(
       {
         rainEnabledRef,
-        snowEnabledRef,
         weatherSessionRef,
         setRainEnabled,
-        setSnowEnabled,
       },
       opts,
     );
@@ -3808,6 +3761,9 @@ export default function FpsGame() {
       {/* Brief hurt flash — death overlay art, open centre (game loop opacity) */}
       <div ref={hurtVignetteRef} className="hurtVignetteOverlay" aria-hidden="true" />
 
+      {/* Storm lightning — cool white pulse while raining (game loop opacity) */}
+      <div ref={lightningFlashOverlayRef} className="lightningFlashOverlay" aria-hidden="true" />
+
       {settingsOpen && (
         <div
           className="settingsBackdrop"
@@ -3908,11 +3864,6 @@ export default function FpsGame() {
                         setRainEnabled(enabled);
                         rainEnabledRef.current = enabled;
                         saveRainEnabled(enabled);
-                        if (enabled) {
-                          setSnowEnabled(false);
-                          snowEnabledRef.current = false;
-                          saveSnowEnabled(false);
-                        }
                       }}
                     />
                     Rain
@@ -3936,70 +3887,13 @@ export default function FpsGame() {
                       }}
                     />
                   </label>
-                  <label className="settingRow">
-                    <input
-                      type="checkbox"
-                      checked={snowEnabled}
-                      onChange={(e) => {
-                        const enabled = e.target.checked;
-                        setSnowEnabled(enabled);
-                        snowEnabledRef.current = enabled;
-                        saveSnowEnabled(enabled);
-                        if (enabled) {
-                          setRainEnabled(false);
-                          rainEnabledRef.current = false;
-                          saveRainEnabled(false);
-                        }
-                      }}
-                    />
-                    Snow
-                  </label>
-                  <label className="sliderRow">
-                    <span className="sliderLabel">
-                      Snow intensity{" "}
-                      <output>{Math.round(snowIntensity * 100)}%</output>
-                    </span>
-                    <input
-                      type="range"
-                      min={MIN_SNOW_INTENSITY}
-                      max={MAX_SNOW_INTENSITY}
-                      step="0.05"
-                      value={snowIntensity}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value);
-                        setSnowIntensity(value);
-                        snowIntensityRef.current = value;
-                        saveSnowIntensity(value);
-                      }}
-                    />
-                  </label>
-                  <label className="sliderRow">
-                    <span className="sliderLabel">
-                      Snow stick{" "}
-                      <output>{Math.round(snowStickRate * 100)}%</output>
-                    </span>
-                    <input
-                      type="range"
-                      min={MIN_SNOW_STICK_RATE}
-                      max={MAX_SNOW_STICK_RATE}
-                      step="0.05"
-                      value={snowStickRate}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value);
-                        setSnowStickRate(value);
-                        snowStickRateRef.current = value;
-                        saveSnowStickRate(value);
-                      }}
-                    />
-                  </label>
                   <p className="settingsHint" style={{ marginTop: 0 }}>
-                    Rain or snow outdoors (not both). Intensity runs from light
-                    drizzle / flurry up to 500% storm. Snow stick (to 500%)
-                    controls how much stays on catwalks, stairs, and the arena
-                    floor — separate from how hard it falls. Off in containers.
-                    While playing, press <kbd>.</kbd> to start random rain or
-                    snow (auto-off after {Math.round(WEATHER_MAX_DURATION_SEC / 60)}{" "}
-                    min); press <kbd>.</kbd> again to stop.
+                    Outdoor rain with intensity from light drizzle up to 500%
+                    storm. Off in containers. While playing, press <kbd>.</kbd> to
+                    start rain (auto-off after{" "}
+                    {Math.round(WEATHER_MAX_DURATION_SEC / 60)} min); press{" "}
+                    <kbd>.</kbd> again to stop. Rain darkens and shines outdoor
+                    floor textures while it lasts.
                   </p>
                 </>
               ) : null}

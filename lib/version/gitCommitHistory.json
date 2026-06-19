@@ -1,19 +1,52 @@
 {
-  "generatedAt": "2026-06-19T20:52:00.548Z",
-  "head": "f207aed",
-  "count": 229,
+  "generatedAt": "2026-06-19T21:01:59.729Z",
+  "head": "b271b62",
+  "count": 232,
   "codebase": {
     "files": 247,
-    "lines": 78788,
-    "nonBlankLines": 71813
+    "lines": 78969,
+    "nonBlankLines": 71982
   },
   "historyStats": {
-    "filesChanged": 2605,
-    "insertions": 159239,
-    "deletions": 59897,
+    "filesChanged": 2613,
+    "insertions": 159470,
+    "deletions": 59925,
     "binaryFiles": 636
   },
   "commits": [
+    {
+      "sha": "b271b62",
+      "date": "2026-06-19",
+      "subject": "Fix v0.1.61 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "5651b09",
+      "date": "2026-06-19",
+      "subject": "Release v0.1.61: Spatial rain wetness with soft edges.",
+      "stats": {
+        "filesChanged": 6,
+        "insertions": 199,
+        "deletions": 18,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "d56fc8e",
+      "date": "2026-06-19",
+      "subject": "Refresh git commit history after v0.1.60 release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 31,
+        "deletions": 9,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "f207aed",
       "date": "2026-06-19",

@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-19T20:44:57.304Z",
-  "head": "7119e08",
-  "count": 227,
+  "generatedAt": "2026-06-19T20:52:00.548Z",
+  "head": "f207aed",
+  "count": 229,
   "codebase": {
     "files": 247,
-    "lines": 78746,
-    "nonBlankLines": 71774
+    "lines": 78788,
+    "nonBlankLines": 71813
   },
   "historyStats": {
-    "filesChanged": 2498,
-    "insertions": 155909,
-    "deletions": 50065,
-    "binaryFiles": 633
+    "filesChanged": 2605,
+    "insertions": 159239,
+    "deletions": 59897,
+    "binaryFiles": 636
   },
   "commits": [
+    {
+      "sha": "f207aed",
+      "date": "2026-06-19",
+      "subject": "Fix v0.1.60 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "bff6501",
+      "date": "2026-06-19",
+      "subject": "Release v0.1.60: Storm lightning and rain polish.",
+      "stats": {
+        "filesChanged": 106,
+        "insertions": 3329,
+        "deletions": 9831,
+        "binaryFiles": 3
+      }
+    },
     {
       "sha": "7119e08",
       "date": "2026-06-18",

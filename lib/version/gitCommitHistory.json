@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-19T21:01:59.729Z",
-  "head": "b271b62",
-  "count": 232,
+  "generatedAt": "2026-06-20T00:34:17.233Z",
+  "head": "e9acfbc",
+  "count": 234,
   "codebase": {
     "files": 247,
-    "lines": 78969,
-    "nonBlankLines": 71982
+    "lines": 79095,
+    "nonBlankLines": 72095
   },
   "historyStats": {
-    "filesChanged": 2613,
-    "insertions": 159470,
-    "deletions": 59925,
+    "filesChanged": 2627,
+    "insertions": 159676,
+    "deletions": 59956,
     "binaryFiles": 636
   },
   "commits": [
+    {
+      "sha": "e9acfbc",
+      "date": "2026-06-20",
+      "subject": "Release v0.1.62: Stair jump and HUD perf polish.",
+      "stats": {
+        "filesChanged": 13,
+        "insertions": 165,
+        "deletions": 23,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "9f939fb",
+      "date": "2026-06-19",
+      "subject": "Refresh git commit history after v0.1.61 release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 41,
+        "deletions": 8,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "b271b62",
       "date": "2026-06-19",

@@ -81,6 +81,8 @@ pub struct PlayerMovementGateInput {
     pub want_crouch: bool,
     pub can_stand: bool,
     pub grounded: bool,
+    #[serde(default)]
+    pub stair_supported: bool,
     pub jump_pressed: bool,
     pub jump_clearance: bool,
 }

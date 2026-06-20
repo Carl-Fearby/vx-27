@@ -78,6 +78,7 @@ use crate::create_game_core;
             want_crouch: false,
             can_stand: false,
             grounded: true,
+            stair_supported: false,
             jump_pressed: true,
             jump_clearance: true,
         });
@@ -89,10 +90,21 @@ use crate::create_game_core;
             want_crouch: false,
             can_stand: true,
             grounded: true,
+            stair_supported: false,
             jump_pressed: true,
             jump_clearance: true,
         });
         assert!(!gates.force_crouch);
+        assert!(gates.can_jump);
+
+        let gates = core.compute_player_movement_gates_inner(crate::PlayerMovementGateInput {
+            want_crouch: false,
+            can_stand: true,
+            grounded: false,
+            stair_supported: true,
+            jump_pressed: true,
+            jump_clearance: true,
+        });
         assert!(gates.can_jump);
     }
 

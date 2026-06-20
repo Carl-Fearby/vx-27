@@ -86,6 +86,7 @@ export type PlayerMovementGateInput = {
   wantCrouch: boolean;
   canStand: boolean;
   grounded: boolean;
+  stairSupported: boolean;
   jumpPressed: boolean;
   jumpClearance: boolean;
 };

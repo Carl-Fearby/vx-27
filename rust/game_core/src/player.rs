@@ -138,7 +138,8 @@ pub fn tick_player_vertical(core: &mut GameCore, input: PlayerVerticalInput) -> 
 pub fn compute_player_movement_gates(input: PlayerMovementGateInput) -> PlayerMovementGateOutput {
     let force_crouch = !input.can_stand;
     let crouching = input.want_crouch || force_crouch;
-    let can_jump = input.grounded && !force_crouch && input.jump_pressed && input.jump_clearance;
+    let supported = input.grounded || input.stair_supported;
+    let can_jump = supported && !force_crouch && input.jump_pressed && input.jump_clearance;
     PlayerMovementGateOutput {
         crouching,
         force_crouch,

@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-20T00:34:32.117Z",
-  "head": "db34c08",
-  "count": 235,
+  "generatedAt": "2026-06-21T23:01:33.380Z",
+  "head": "45955ff",
+  "count": 237,
   "codebase": {
-    "files": 247,
-    "lines": 79095,
-    "nonBlankLines": 72095
+    "files": 249,
+    "lines": 79990,
+    "nonBlankLines": 72926
   },
   "historyStats": {
-    "filesChanged": 2629,
-    "insertions": 159707,
-    "deletions": 59965,
+    "filesChanged": 2644,
+    "insertions": 160803,
+    "deletions": 60061,
     "binaryFiles": 636
   },
   "commits": [
+    {
+      "sha": "45955ff",
+      "date": "2026-06-22",
+      "subject": "Release v0.1.63: Rookie enemy AI and spawn fixes.",
+      "stats": {
+        "filesChanged": 14,
+        "insertions": 1079,
+        "deletions": 90,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "23b6366",
+      "date": "2026-06-20",
+      "subject": "Refresh git commit history after v0.1.62 release.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 17,
+        "deletions": 6,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "db34c08",
       "date": "2026-06-20",

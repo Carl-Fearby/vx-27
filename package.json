@@ -1,7 +1,7 @@
 {
   "name": "game-engine2-fps",
   "private": true,
-  "version": "0.1.62",
+  "version": "0.1.63",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:http": "node scripts/dev.mjs --http",
@@ -48,6 +48,7 @@
     "next": "^15.3.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "recast-navigation": "^0.43.1",
     "three": "0.184.0"
   }
 }

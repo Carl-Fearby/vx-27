@@ -327,6 +327,10 @@ import {
 import { hasLineOfSightToPoint } from "@/lib/combat/LineOfSight";
 import { createLaserTracerSystem } from "@/lib/combat/LaserTracers";
 import {
+  createEnemyNavigation,
+  disposeEnemyNavigation,
+} from "@/lib/combat/EnemyNavigation.js";
+import {
   DEFAULT_ADS_POSE,
   DEFAULT_BODY_LOOK_DOWN_AMOUNT,
   DEFAULT_BODY_LOOK_UP_AMOUNT,
@@ -2083,6 +2087,15 @@ export default function FpsGame() {
       const arenaLive = { ...arena, stairs: stairParams };
       arenaLiveRef.current = arenaLive;
       level = createLevelFromConfig(scene, arenaLive, levelTextures, gameCore);
+      reportLoad(68, "Enemy navigation");
+      level.enemyNavigation = await createEnemyNavigation(level);
+      if (!isActive()) {
+        disposeEnemyNavigation(level);
+        disposeLevelGroup(level.group);
+        resetArenaCeilingDayNightCache();
+        levelTextures?.dispose();
+        return;
+      }
       levelRef.current = level;
       if (level.interiorLights?.length) {
         roomLights.push(...level.interiorLights);
@@ -3273,6 +3286,7 @@ export default function FpsGame() {
       }
       const targets = level?.targets;
       if (level?.group) {
+        disposeEnemyNavigation(level);
         disposeLevelGroup(level.group);
         resetArenaCeilingDayNightCache();
         resetLightingZoneCache();

@@ -123,6 +123,13 @@
     "respawnDelay": 2.5,
     "repairPerSecond": 0.63,
     "repairDelayAfterHit": 1.25,
+    "ai": {
+      "accuracy": 0.48,
+      "missRadiusMin": 0.55,
+      "missRadiusMax": 1.7,
+      "reactionMin": 1.1,
+      "reactionMax": 2.3
+    },
     "spawnPoints": [
       {
         "x": -8,

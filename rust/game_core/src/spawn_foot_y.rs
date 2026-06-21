@@ -154,7 +154,7 @@ fn sample_spawn_support_y_at(
     });
     let on_implicit_floor = in_floor_bounds && !point_in_floor_hole(sx, sz, floor_holes, 0.0);
 
-    let mut best = f64::NEG_INFINITY;
+    let mut elevated_best = f64::NEG_INFINITY;
     for surf in ground_surfaces {
         if surf.stair_ramp || surf.stair_flight {
             continue;
@@ -173,12 +173,16 @@ fn sample_spawn_support_y_at(
         if surf_y <= floor_y + 0.02 && point_in_floor_hole(sx, sz, floor_holes, 0.0) {
             continue;
         }
-        best = best.max(surf_y);
+        elevated_best = elevated_best.max(surf_y);
     }
     if on_implicit_floor {
-        best = best.max(floor_y);
+        // Arena floor under this XZ — ignore overhead catwalk deck slabs (same footprint, higher Y).
+        if elevated_best.is_finite() && elevated_best <= floor_y + 0.25 {
+            return Some(floor_y.max(elevated_best));
+        }
+        return Some(floor_y);
     }
-    best.is_finite().then_some(best)
+    elevated_best.is_finite().then_some(elevated_best)
 }
 
 pub fn resolve_spawn_foot_y(input: ResolveSpawnFootYInput) -> ResolveSpawnFootYOutput {
@@ -285,7 +289,12 @@ mod tests {
             height: 2.0,
             radius: 0.45,
             floor_y: 0.0,
-            floor_bounds: None,
+            floor_bounds: Some(FloorBoundsInput {
+                min_x: -1.0,
+                max_x: 1.0,
+                min_z: -1.0,
+                max_z: 1.0,
+            }),
             floor_holes: vec![],
             ground_surfaces: vec![
                 GroundSurfaceInput {
@@ -322,5 +331,40 @@ mod tests {
             ],
         });
         assert!(!output.found);
+    }
+
+    #[test]
+    fn resolve_spawn_foot_y_prefers_arena_floor_under_catwalk_footprint() {
+        let output = resolve_spawn_foot_y(ResolveSpawnFootYInput {
+            x: 0.0,
+            z: 0.0,
+            height: 1.75,
+            radius: 0.45,
+            floor_y: 0.0,
+            floor_bounds: Some(FloorBoundsInput {
+                min_x: -14.0,
+                max_x: 14.0,
+                min_z: -14.0,
+                max_z: 14.0,
+            }),
+            floor_holes: vec![],
+            ground_surfaces: vec![GroundSurfaceInput {
+                min_x: Some(-2.0),
+                max_x: Some(2.0),
+                min_z: Some(-2.0),
+                max_z: Some(2.0),
+                y: Some(3.2),
+                stair_ramp: false,
+                stair_flight: false,
+            }],
+            colliders: vec![],
+            footprint_samples: vec![SpawnFootprintSampleInput {
+                sx: 0.0,
+                sz: 0.0,
+                in_stair_footprint: false,
+            }],
+        });
+        assert!(output.found);
+        assert!((output.foot_y - 0.0).abs() < 0.0001);
     }
 }

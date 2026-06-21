@@ -57,6 +57,13 @@
     "respawnDelay": 2.5,
     "repairPerSecond": 0.63,
     "repairDelayAfterHit": 1.25,
+    "ai": {
+      "accuracy": 0.6,
+      "missRadiusMin": 0.35,
+      "missRadiusMax": 1.2,
+      "reactionMin": 0.85,
+      "reactionMax": 1.8
+    },
     "spawnPoints": [
       { "x": 0, "z": 20, "yaw": 3.14, "note": "Mid corridor" },
       { "x": 1.2, "z": 4, "yaw": -2.4, "note": "Forward section starboard" },

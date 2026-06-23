@@ -1,19 +1,41 @@
 {
-  "generatedAt": "2026-06-23T20:23:32.115Z",
-  "head": "7fac1d8",
-  "count": 238,
+  "generatedAt": "2026-06-23T23:37:01.814Z",
+  "head": "f6c708e",
+  "count": 240,
   "codebase": {
-    "files": 257,
-    "lines": 83475,
-    "nonBlankLines": 76163
+    "files": 259,
+    "lines": 84206,
+    "nonBlankLines": 76855
   },
   "historyStats": {
-    "filesChanged": 2646,
-    "insertions": 160835,
-    "deletions": 60071,
-    "binaryFiles": 636
+    "filesChanged": 2688,
+    "insertions": 164723,
+    "deletions": 60247,
+    "binaryFiles": 645
   },
   "commits": [
+    {
+      "sha": "f6c708e",
+      "date": "2026-06-23",
+      "subject": "Sync v0.1.64 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "a0dac74",
+      "date": "2026-06-23",
+      "subject": "Release v0.1.64: PX-27 combat androids and smarter enemy AI.",
+      "stats": {
+        "filesChanged": 41,
+        "insertions": 3887,
+        "deletions": 175,
+        "binaryFiles": 9
+      }
+    },
     {
       "sha": "7fac1d8",
       "date": "2026-06-22",

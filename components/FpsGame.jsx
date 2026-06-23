@@ -156,6 +156,7 @@ import { createDefaultWallShopStages, SERVICE_ROOM_RIFLE_SHOP_OFFER } from "@/li
 import {
   applyDevStartBothPrimaryWeapons,
   loadDevStartBothPrimaryWeapons,
+  saveDevStartBothPrimaryWeapons,
 } from "@/lib/weapons/DevStartWeaponsTuning.js";
 import {
   DEFAULT_PISTOL_ADS_POSE,
@@ -364,6 +365,7 @@ import { createScreenCrosshair } from "@/lib/ui/ScreenCrosshair";
 import {
   DEFAULT_CROSSHAIR_TUNING,
   loadCrosshairTuning,
+  saveCrosshairTuning,
 } from "@/lib/weapons/CrosshairTuning";
 import {
   DEFAULT_AIM_ROUND_DISPLAY,
@@ -406,6 +408,7 @@ import { SettingsSection } from "@/components/SettingsSection";
 import EnemyRigTuningWizard from "@/components/EnemyRigTuningWizard";
 import OutdoorLightingTuningWizard from "@/components/OutdoorLightingTuningWizard";
 import CargoCrateSurfaceTuningWizard from "@/components/CargoCrateSurfaceTuningWizard";
+import RifleReticleTuningWizard from "@/components/RifleReticleTuningWizard";
 import {
   DEFAULT_HEMI_DAY,
   DEFAULT_HEMI_NIGHT,
@@ -1087,6 +1090,7 @@ export default function FpsGame() {
   const [enemyRigWizardOpen, setEnemyRigWizardOpen] = useState(false);
   const [outdoorLightingWizardOpen, setOutdoorLightingWizardOpen] = useState(false);
   const [cargoCrateSurfaceWizardOpen, setCargoCrateSurfaceWizardOpen] = useState(false);
+  const [rifleReticleWizardOpen, setRifleReticleWizardOpen] = useState(false);
   const [enemyRigTuning, setEnemyRigTuning] = useState(() =>
     loadEnemyRigTuning(),
   );
@@ -1128,6 +1132,13 @@ export default function FpsGame() {
       saveVx27ContainerMaterialTuning(next);
       const root = levelRef.current?.group;
       if (root) setVx27ContainerMaterialTuning(next, root);
+      return next;
+    });
+  }, []);
+  const updateCrosshairTuning = useCallback((patch) => {
+    setCrosshairTuning((current) => {
+      const next = saveCrosshairTuning({ ...current, ...patch });
+      crosshairTuningRef.current = next;
       return next;
     });
   }, []);
@@ -1420,6 +1431,8 @@ export default function FpsGame() {
   const bindingsRef = useRef(loadBindings());
   const settingsOpenRef = useRef(false);
   const enemyRigWizardOpenRef = useRef(false);
+  const rifleReticleWizardOpenRef = useRef(false);
+  const rifleReticleTuningModeRef = useRef("hip");
   const enemyMuzzlePreviewRef = useRef(null);
   const outdoorLightingWizardOpenRef = useRef(false);
   const cargoCrateSurfaceWizardOpenRef = useRef(false);
@@ -1494,6 +1507,9 @@ export default function FpsGame() {
   const [fireMode, setFireMode] = useState("single");
   const [localStorageClearMsg, setLocalStorageClearMsg] = useState("");
   const [rifleUnlocked, setRifleUnlocked] = useState(
+    () => loadDevStartBothPrimaryWeapons(),
+  );
+  const [devStartBothPrimaryWeapons, setDevStartBothPrimaryWeapons] = useState(
     () => loadDevStartBothPrimaryWeapons(),
   );
   const [activePrimaryWeapon, setActivePrimaryWeapon] = useState("pistol");
@@ -1878,8 +1894,10 @@ export default function FpsGame() {
     settingsOpen ||
     enemyRigWizardOpen ||
     outdoorLightingWizardOpen ||
-    cargoCrateSurfaceWizardOpen;
+    cargoCrateSurfaceWizardOpen ||
+    rifleReticleWizardOpen;
   enemyRigWizardOpenRef.current = enemyRigWizardOpen;
+  rifleReticleWizardOpenRef.current = rifleReticleWizardOpen;
   outdoorLightingWizardOpenRef.current = outdoorLightingWizardOpen;
   cargoCrateSurfaceWizardOpenRef.current = cargoCrateSurfaceWizardOpen;
   controlsOpenRef.current = controlsOpen;
@@ -2656,6 +2674,9 @@ export default function FpsGame() {
           roundDisplayStamina: player?.getStamina?.() ?? 1,
           roundDisplayTuningRef: displayTuningRef,
           laserEmitterOffset: laserEmitterTuningRef.current?.[id],
+          reticleTuning: crosshairTuningRef.current,
+          reticleTuningActive: rifleReticleWizardOpenRef.current,
+          reticleTuningMode: rifleReticleTuningModeRef.current,
         });
       }
       function loadPrimaryWeapon(id) {
@@ -2846,10 +2867,12 @@ export default function FpsGame() {
         hitRaycaster,
         shootRaycaster,
         laserTracers,
-        enemyMuzzlePreview,
-        enemyMuzzlePreviewRef,
-        enemyRigWizardOpenRef,
-        screenCenter,
+          enemyMuzzlePreview,
+          enemyMuzzlePreviewRef,
+          enemyRigWizardOpenRef,
+          rifleReticleWizardOpenRef,
+          rifleReticleTuningModeRef,
+          screenCenter,
         canvas,
         canvasHeight: window.innerHeight,
         flickerLights,
@@ -3187,6 +3210,8 @@ export default function FpsGame() {
         if (e.code === "Escape") {
           if (enemyRigWizardOpenRef.current) {
             setEnemyRigWizardOpen(false);
+          } else if (rifleReticleWizardOpenRef.current) {
+            setRifleReticleWizardOpen(false);
           } else if (outdoorLightingWizardOpenRef.current) {
             setOutdoorLightingWizardOpen(false);
           } else if (cargoCrateSurfaceWizardOpenRef.current) {
@@ -4219,6 +4244,39 @@ export default function FpsGame() {
             </SettingsSection>
 
             <SettingsSection title="Development">
+              <p className="settingsGroupLabel">Test loadout</p>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Start the next run with both primaries unlocked and loaded so rifle
+                ADS fixes can be tested immediately.
+              </p>
+              <label className="settingsRow">
+                <input
+                  type="checkbox"
+                  checked={devStartBothPrimaryWeapons}
+                  onChange={(event) => {
+                    const enabled = event.target.checked;
+                    setDevStartBothPrimaryWeapons(enabled);
+                    saveDevStartBothPrimaryWeapons(enabled);
+                  }}
+                />
+                Start with rifle and pistol
+              </label>
+              <p className="settingsGroupLabel">Rifle reticle</p>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Tune the blue rifle reticle separately for hip carry and ADS.
+                Hip starts lower/right so it sits near the rifle ammo screen.
+              </p>
+              <button
+                type="button"
+                className="settingsBtn settingsInlineBtn"
+                onClick={() => {
+                  safeExitPointerLock();
+                  setSettingsOpen(false);
+                  setRifleReticleWizardOpen(true);
+                }}
+              >
+                Open rifle reticle wizard…
+              </button>
               <p className="settingsGroupLabel">Enemy performance</p>
               <p className="settingsHint" style={{ marginTop: 0 }}>
                 Simple meshes use the lightweight procedural rifle dummy and skip
@@ -4386,6 +4444,16 @@ export default function FpsGame() {
           tuning={outdoorLightingTuning}
           onChange={updateOutdoorLightingTuning}
           onClose={() => setOutdoorLightingWizardOpen(false)}
+        />
+      )}
+      {rifleReticleWizardOpen && (
+        <RifleReticleTuningWizard
+          tuning={crosshairTuning}
+          onChange={updateCrosshairTuning}
+          onClose={() => setRifleReticleWizardOpen(false)}
+          onModeChange={(nextMode) => {
+            rifleReticleTuningModeRef.current = nextMode;
+          }}
         />
       )}
       {enemyRigWizardOpen && (

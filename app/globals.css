@@ -1321,6 +1321,13 @@ body {
   text-transform: uppercase;
 }
 
+.hudTuneHint {
+  margin: 0;
+  color: #9898a8;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
 .hudTuneRow {
   display: flex;
   align-items: center;

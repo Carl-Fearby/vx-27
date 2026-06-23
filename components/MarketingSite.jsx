@@ -64,6 +64,16 @@ const NODE_BREACH_SPECS = [
 
 const WHATS_NEW = [
   {
+    tag: "v0.1.64",
+    title: "PX-27 combat androids",
+    text: "Armed targets now mount Meshy-skinned PX-27 android rigs — walk and run in place, rifle muzzle tuning, and dual death clips. Head and upper-torso kills use the standard fall; leg and pelvis hits clutch the abdominal injury animation; grenades mix both with staggered blast knockback so multi-kills do not sync.",
+  },
+  {
+    tag: "v0.1.64",
+    title: "Smarter rifle AI",
+    text: "Rookie enemies reload, seek cover when hurt or low on ammo, panic-run when exposed, and fire at full rifle range with distance-based damage. Navmesh patrol and repositioning carry over from v0.1.63 with tighter perception and burst discipline.",
+  },
+  {
     tag: "v0.1.59",
     title: "Recoil look-down fix",
     text: "Accumulating aim recoil is unchanged — each shot still kicks the view up naturally. Base pitch limits now slide with recoil so pitch + recoilPitchAnim keeps the full vertical arc; you can compensate and look back at the floor after spraying downward.",
@@ -290,6 +300,11 @@ const FACTIONS = [
     name: "The Exposed",
     line: "Survivors altered by long-term exposure to experimental compounds and battlefield conditioning systems. Unpredictable, aggressive, and drawn to signal activity.",
   },
+  {
+    id: "FAC-05",
+    name: "PX-27 Combat Androids",
+    line: "White-frame biped units still patrolling the test grid — Meshy-skinned, rifle-armed, and running obsolete security loops. They reload, take cover, and die differently depending on where you hit them.",
+  },
 ];
 
 const OPS = [
@@ -364,6 +379,12 @@ const OPS = [
     title: "Burning barrels",
     body: "Stacked oil drums, interior fire video, dual flicker lights per barrel. Toxic PBR spill decal under the pile; SE corner layout mirrors the module hazard zone.",
     accent: "toxic spill · paired light",
+  },
+  {
+    code: "AND",
+    title: "PX-27 combat androids",
+    body: "Meshy-skinned biped targets with in-place walk/run clips, tuned rifle muzzle anchors, and dual death animations — standard fall for head and torso, abdominal clutch for leg hits, mixed staggered deaths on grenades with blast knockback.",
+    accent: "v0.1.64 · rigged",
   },
   {
     code: "NAV",
@@ -773,6 +794,8 @@ export default function MarketingSite() {
             <li>Health, stamina pickups — full HUD with compass and radar</li>
             <li>GPU preload on the loading bar — fewer first-frame hitches after Start Game</li>
             <li>RUSH game_core WASM — JS renders, Rust computes combat rules every frame</li>
+            <li>PX-27 combat androids — Meshy rig, walk/run/death clips, zone-based kill reactions</li>
+            <li>Enemy rifle AI — magazines, reload, cover, panic run, and distance damage falloff</li>
           </ul>
           <p className="mktIntelBody" style={{ marginTop: "1rem" }}>
             Settings → Development opens live tuning panels on localhost when enabled —

@@ -62,7 +62,11 @@
       "missRadiusMin": 0.35,
       "missRadiusMax": 1.2,
       "reactionMin": 0.85,
-      "reactionMax": 1.8
+      "reactionMax": 1.8,
+      "magazineSize": 40,
+      "spareMagazines": 2,
+      "dangerHealthRatio": 0.38,
+      "coverMinSec": 2.0
     },
     "spawnPoints": [
       { "x": 0, "z": 20, "yaw": 3.14, "note": "Mid corridor" },

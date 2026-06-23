@@ -222,6 +222,7 @@ import { formatHackGrantedRewards } from "@/lib/console-hack/ConsoleHackGame.js"
 import {
   loadVx27ContainerMaterialTuning,
   normalizeVx27ContainerMaterialTuning,
+  saveVx27ContainerMaterialTuning,
 } from "@/lib/vx27-container/Vx27ContainerMaterialTuning";
 import {
   readVx27ContainerPlacement,
@@ -313,7 +314,6 @@ import { attachCombatRuntime } from "@/lib/gameLoop/attachCombatRuntime.js";
 import {
   disposeAllBloodSplatters,
   spawnBloodSplatter,
-  spawnBloodMarkOnTarget,
   updateBloodSplatters,
 } from "@/lib/combat/BloodParticles";
 import {
@@ -326,10 +326,30 @@ import {
 } from "@/lib/combat/BulletHoles";
 import { hasLineOfSightToPoint } from "@/lib/combat/LineOfSight";
 import { createLaserTracerSystem } from "@/lib/combat/LaserTracers";
+import { createEnemyMuzzlePreviewSystem } from "@/lib/combat/EnemyMuzzlePreview.js";
 import {
   createEnemyNavigation,
   disposeEnemyNavigation,
 } from "@/lib/combat/EnemyNavigation.js";
+import {
+  applyEnemyRigTuning,
+  applyEnemyRigNightness,
+  attachAllEnemyRigs,
+  ensureEnemyRigAttached,
+  preloadEnemyRig,
+  refreshAllEnemyRigVisuals,
+  refreshEnemyRigPerfForTargets,
+  resetEnemyRigAsset,
+} from "@/lib/combat/EnemyRig.js";
+import {
+  loadSimpleEnemyMeshes,
+  setSimpleEnemyMeshesRuntime,
+} from "@/lib/combat/EnemyRigPerf.js";
+import {
+  loadEnemyRigTuning,
+  saveEnemyRigTuning,
+  setEnemyRigWizardPreviewActive,
+} from "@/lib/combat/EnemyRigTuning.js";
 import {
   DEFAULT_ADS_POSE,
   DEFAULT_BODY_LOOK_DOWN_AMOUNT,
@@ -383,6 +403,9 @@ import {
   resolveStackSelection,
 } from "@/lib/ui/WeaponStackLayout";
 import { SettingsSection } from "@/components/SettingsSection";
+import EnemyRigTuningWizard from "@/components/EnemyRigTuningWizard";
+import OutdoorLightingTuningWizard from "@/components/OutdoorLightingTuningWizard";
+import CargoCrateSurfaceTuningWizard from "@/components/CargoCrateSurfaceTuningWizard";
 import {
   DEFAULT_HEMI_DAY,
   DEFAULT_HEMI_NIGHT,
@@ -392,9 +415,17 @@ import {
 } from "@/lib/lighting/HemisphereTuning";
 import { loadStairTuning } from "@/lib/stairs/StairTuning";
 import {
+  applyOutdoorLightingLive,
+  loadOutdoorLightingTuning,
+  saveOutdoorLightingTuning,
+} from "@/lib/lighting/OutdoorLightingTuning";
+import {
+  applySunLightColor,
   applySunLightPosition,
+  loadShelteredHemiMul,
   loadSunAngles,
   loadSunDayMode,
+  loadSunIntensity,
   saveSunDayMode,
   sunPositionFromAngles,
 } from "@/lib/lighting/SunLightTuning";
@@ -1053,6 +1084,53 @@ export default function FpsGame() {
   const [loadDone, setLoadDone] = useState(() => gameSessionStarted);
   const loadDoneRef = useRef(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [enemyRigWizardOpen, setEnemyRigWizardOpen] = useState(false);
+  const [outdoorLightingWizardOpen, setOutdoorLightingWizardOpen] = useState(false);
+  const [cargoCrateSurfaceWizardOpen, setCargoCrateSurfaceWizardOpen] = useState(false);
+  const [enemyRigTuning, setEnemyRigTuning] = useState(() =>
+    loadEnemyRigTuning(),
+  );
+  const [outdoorLightingTuning, setOutdoorLightingTuning] = useState(() =>
+    loadOutdoorLightingTuning(),
+  );
+  const [cargoCrateSurfaceTuning, setCargoCrateSurfaceTuning] = useState(() =>
+    loadVx27ContainerMaterialTuning(),
+  );
+  const [simpleEnemyMeshes, setSimpleEnemyMeshes] = useState(() =>
+    loadSimpleEnemyMeshes(),
+  );
+  const updateEnemyRigTuning = useCallback((patch) => {
+    setEnemyRigTuning((current) => {
+      const next = saveEnemyRigTuning({ ...current, ...patch });
+      setEnemyRigWizardPreviewActive(
+        enemyRigWizardOpenRef.current && next.previewAnimation,
+      );
+      applyEnemyRigTuning(next);
+      return next;
+    });
+  }, []);
+  const updateOutdoorLightingTuning = useCallback((patch) => {
+    setOutdoorLightingTuning((current) => {
+      const next = saveOutdoorLightingTuning({ ...current, ...patch });
+      sunBaseIntensityRef.current = next.sunIntensity;
+      hemiDayRef.current = next.hemiDay;
+      shelteredHemiMulRef.current = next.shelteredHemiMul;
+      if (sunRef.current) {
+        applySunLightColor(sunRef.current, next.sunTemperature);
+      }
+      applyDayNightRef.current?.(sunIsDayRef.current);
+      return next;
+    });
+  }, []);
+  const updateCargoCrateSurfaceTuning = useCallback((patch) => {
+    setCargoCrateSurfaceTuning((current) => {
+      const next = normalizeVx27ContainerMaterialTuning({ ...current, ...patch });
+      saveVx27ContainerMaterialTuning(next);
+      const root = levelRef.current?.group;
+      if (root) setVx27ContainerMaterialTuning(next, root);
+      return next;
+    });
+  }, []);
   const [controlsOpen, setControlsOpen] = useState(false);
   const [showHud, setShowHud] = useState(() => loadShowHud());
   const [musicEnabled, setMusicEnabled] = useState(true);
@@ -1341,6 +1419,10 @@ export default function FpsGame() {
   const [rebindAction, setRebindAction] = useState(null);
   const bindingsRef = useRef(loadBindings());
   const settingsOpenRef = useRef(false);
+  const enemyRigWizardOpenRef = useRef(false);
+  const enemyMuzzlePreviewRef = useRef(null);
+  const outdoorLightingWizardOpenRef = useRef(false);
+  const cargoCrateSurfaceWizardOpenRef = useRef(false);
   const controlsOpenRef = useRef(false);
   const invertYRef = useRef(false);
   const keyboardLookRef = useRef(DEFAULT_KEYBOARD_LOOK);
@@ -1384,7 +1466,7 @@ export default function FpsGame() {
   const stairWalkTuningRef = useRef(initialStairWalkTuning);
   const sunRef = useRef(null);
   const moonRef = useRef(null);
-  const sunBaseIntensityRef = useRef(2.85);
+  const sunBaseIntensityRef = useRef(loadSunIntensity(true));
   const sunIsDayRef = useRef(
     DAY_NIGHT_SWITCHER_ENABLED ? loadSunDayMode() : true
   );
@@ -1408,6 +1490,7 @@ export default function FpsGame() {
   const dayNightToggleRef = useRef(null);
   const hemiDayRef = useRef(loadHemiDay());
   const hemiNightRef = useRef(loadHemiNight());
+  const shelteredHemiMulRef = useRef(loadShelteredHemiMul());
   const [fireMode, setFireMode] = useState("single");
   const [localStorageClearMsg, setLocalStorageClearMsg] = useState("");
   const [rifleUnlocked, setRifleUnlocked] = useState(
@@ -1791,7 +1874,14 @@ export default function FpsGame() {
   sunIsDayRef.current = sunIsDay;
   rainEnabledRef.current = rainEnabled;
   rainIntensityRef.current = rainIntensity;
-  settingsOpenRef.current = settingsOpen;
+  settingsOpenRef.current =
+    settingsOpen ||
+    enemyRigWizardOpen ||
+    outdoorLightingWizardOpen ||
+    cargoCrateSurfaceWizardOpen;
+  enemyRigWizardOpenRef.current = enemyRigWizardOpen;
+  outdoorLightingWizardOpenRef.current = outdoorLightingWizardOpen;
+  cargoCrateSurfaceWizardOpenRef.current = cargoCrateSurfaceWizardOpen;
   controlsOpenRef.current = controlsOpen;
   consoleHackOpenRef.current = consoleHackOpen;
   closeConsoleHackRef.current = closeConsoleHack;
@@ -1907,6 +1997,7 @@ export default function FpsGame() {
     let rain = null;
     let rainWetSurfaces = null;
     let laserTracers = null;
+    let enemyMuzzlePreview = null;
     /** Kill-shot blood — waits for ragdoll, then spawns next frame. */
     let pendingKillBlood = [];
     let bloodAfterRagdoll = [];
@@ -1945,6 +2036,9 @@ export default function FpsGame() {
       scene = new THREE.Scene();
       laserTracers = createLaserTracerSystem(scene);
       laserTracers.setResolution(window.innerWidth, window.innerHeight);
+      enemyMuzzlePreview = createEnemyMuzzlePreviewSystem(scene);
+      enemyMuzzlePreview.setResolution(window.innerWidth, window.innerHeight);
+      enemyMuzzlePreviewRef.current = enemyMuzzlePreview;
       scene.fog = new THREE.Fog(DAY_CLEAR_COLOR, 45, 95);
       sceneRef.current = scene;
 
@@ -2046,6 +2140,12 @@ export default function FpsGame() {
       if (!isActive()) return;
       reportLoad(59, "Pickup preview ready");
 
+      reportLoad(59.5, "Enemy rig");
+      if (!loadSimpleEnemyMeshes()) {
+        await preloadEnemyRig();
+      }
+      if (!isActive()) return;
+
       reportLoad(60, "Building level");
       const interiorLevel = isInteriorEnvironmentLevel(arena);
       const sheltered =
@@ -2067,6 +2167,20 @@ export default function FpsGame() {
       }
       hemiRef.current = hemi;
       registerOutdoorLightsForDayNight(outdoorLights);
+      if (!interiorLevel || shouldUseOutdoorSun(arena)) {
+        const outdoorTuning = loadOutdoorLightingTuning();
+        sunBaseIntensityRef.current = outdoorTuning.sunIntensity;
+        hemiDayRef.current = outdoorTuning.hemiDay;
+        shelteredHemiMulRef.current = outdoorTuning.shelteredHemiMul;
+        applyOutdoorLightingLive({
+          sun,
+          hemi,
+          sheltered,
+          hemiDay: outdoorTuning.hemiDay,
+          shelteredHemiMul: outdoorTuning.shelteredHemiMul,
+          nightness: dayNightCurNightnessRef.current,
+        });
+      }
       const attachWall = getArenaAttachWall(arena);
       const arenaHalf = arena.size ? arena.size / 2 : 14;
       const roomLights = addRoomLights(
@@ -2097,6 +2211,10 @@ export default function FpsGame() {
         return;
       }
       levelRef.current = level;
+      if (!loadSimpleEnemyMeshes()) {
+        await attachAllEnemyRigs(level.targets);
+        applyEnemyRigTuning(loadEnemyRigTuning());
+      }
       if (level.interiorLights?.length) {
         roomLights.push(...level.interiorLights);
       }
@@ -2196,7 +2314,7 @@ export default function FpsGame() {
       applyMoonLightPosition(moon, moonLightPosRef.current);
       sunRef.current = sun;
       moonRef.current = moon;
-      sunBaseIntensityRef.current = sun.intensity;
+      sunBaseIntensityRef.current = loadOutdoorLightingTuning().sunIntensity;
       applyDayNightRef.current = (arg) => {
         // Accept either a boolean (legacy `isDay`) or a 0..1 nightness so
         // callers don't all have to be updated at once. The animate loop
@@ -2296,7 +2414,7 @@ export default function FpsGame() {
           nightHemi.intensity,
           nightness
         );
-        const shelteredHemiMul = sheltered ? 0.78 : 1;
+        const shelteredHemiMul = sheltered ? shelteredHemiMulRef.current : 1;
         applyHemisphereSettings(
           hemiRef.current,
           {
@@ -2314,6 +2432,7 @@ export default function FpsGame() {
           nightness,
           groups: controlPanelsRef.current,
         });
+        applyEnemyRigNightness(nightness);
       };
       refitSunShadowRef.current = () => {
         if (!level?.group) return;
@@ -2727,6 +2846,9 @@ export default function FpsGame() {
         hitRaycaster,
         shootRaycaster,
         laserTracers,
+        enemyMuzzlePreview,
+        enemyMuzzlePreviewRef,
+        enemyRigWizardOpenRef,
         screenCenter,
         canvas,
         canvasHeight: window.innerHeight,
@@ -3063,7 +3185,13 @@ export default function FpsGame() {
       onPointerLockChange = () => syncPointerLocked();
       onKeyDown = (e) => {
         if (e.code === "Escape") {
-          if (settingsOpenRef.current) {
+          if (enemyRigWizardOpenRef.current) {
+            setEnemyRigWizardOpen(false);
+          } else if (outdoorLightingWizardOpenRef.current) {
+            setOutdoorLightingWizardOpen(false);
+          } else if (cargoCrateSurfaceWizardOpenRef.current) {
+            setCargoCrateSurfaceWizardOpen(false);
+          } else if (settingsOpenRef.current) {
             setSettingsOpen(false);
           } else if (controlsOpenRef.current) {
             setControlsOpen(false);
@@ -3083,6 +3211,7 @@ export default function FpsGame() {
         renderer.setSize(w, h);
         gameLoopCtx.canvasHeight = h;
         laserTracers?.setResolution(w, h);
+        enemyMuzzlePreview?.setResolution(w, h);
       };
 
       canvas.addEventListener("click", onCanvasClick);
@@ -3292,6 +3421,7 @@ export default function FpsGame() {
         resetLightingZoneCache();
         level = null;
       }
+      resetEnemyRigAsset();
       if (targets) {
         disposeAllTargetHealthBars(targets);
       }
@@ -3303,6 +3433,9 @@ export default function FpsGame() {
       disposeAllBloodSplatters(bloodSplatters, scene);
       laserTracers?.dispose();
       laserTracers = null;
+      enemyMuzzlePreview?.dispose();
+      enemyMuzzlePreview = null;
+      enemyMuzzlePreviewRef.current = null;
       scorePopupLayer?.dispose();
       scorePopupLayer = null;
       scorePopupContainer?.remove();
@@ -4086,6 +4219,89 @@ export default function FpsGame() {
             </SettingsSection>
 
             <SettingsSection title="Development">
+              <p className="settingsGroupLabel">Enemy performance</p>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Simple meshes use the lightweight procedural rifle dummy and skip
+                the PX-27 GLB rigs. With GLB enabled, every hostile uses the
+                full PX-27 model at all distances.
+              </p>
+              <label className="settingsRow">
+                <input
+                  type="checkbox"
+                  checked={simpleEnemyMeshes}
+                  onChange={async (event) => {
+                    const next = event.target.checked;
+                    setSimpleEnemyMeshesRuntime(next);
+                    setSimpleEnemyMeshes(next);
+                    const targets = levelRef.current?.targets ?? [];
+                    const playerPos = cameraRef.current?.position;
+                    if (!next) {
+                      await preloadEnemyRig();
+                      for (const mesh of targets) {
+                        mesh.userData.hasRifle = true;
+                        await ensureEnemyRigAttached(
+                          mesh,
+                          mesh.userData.height,
+                        );
+                      }
+                      applyEnemyRigTuning(loadEnemyRigTuning());
+                    }
+                    refreshAllEnemyRigVisuals(targets);
+                    if (playerPos) {
+                      refreshEnemyRigPerfForTargets(targets, playerPos);
+                    }
+                  }}
+                />
+                Simple enemy meshes (max FPS)
+              </label>
+              <p className="settingsGroupLabel">Cargo crate surfaces</p>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                VX-27 cargo module exterior, interior, and corner materials.
+                Brighten shadowed panels after outdoor lighting changes.
+              </p>
+              <button
+                type="button"
+                className="settingsBtn settingsInlineBtn"
+                onClick={() => {
+                  safeExitPointerLock();
+                  setSettingsOpen(false);
+                  setCargoCrateSurfaceWizardOpen(true);
+                }}
+              >
+                Open cargo crate surface wizard…
+              </button>
+              <p className="settingsGroupLabel">Outdoor lighting</p>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Live sun and hemisphere fill for outdoor arenas. Values persist in
+                localStorage and can be copied as JSON to bake into defaults.
+              </p>
+              <button
+                type="button"
+                className="settingsBtn settingsInlineBtn"
+                onClick={() => {
+                  safeExitPointerLock();
+                  setSettingsOpen(false);
+                  setOutdoorLightingWizardOpen(true);
+                }}
+              >
+                Open outdoor lighting wizard…
+              </button>
+              <p className="settingsGroupLabel">Enemy rig wizard</p>
+              <p className="settingsHint" style={{ marginTop: 0 }}>
+                Opens beside the game for live rifle-enemy alignment and animation
+                preview. Enemy damage remains disabled by default.
+              </p>
+              <button
+                type="button"
+                className="settingsBtn settingsInlineBtn"
+                onClick={() => {
+                  safeExitPointerLock();
+                  setSettingsOpen(false);
+                  setEnemyRigWizardOpen(true);
+                }}
+              >
+                Open enemy rig wizard…
+              </button>
               <p className="settingsGroupLabel">Player position</p>
               <p className="settingsHint" style={{ marginTop: 0 }}>
                 Live readout while settings are open. Stand at a spot and copy coordinates
@@ -4157,6 +4373,35 @@ export default function FpsGame() {
             </div>
           </div>
         </div>
+      )}
+      {cargoCrateSurfaceWizardOpen && (
+        <CargoCrateSurfaceTuningWizard
+          tuning={cargoCrateSurfaceTuning}
+          onChange={updateCargoCrateSurfaceTuning}
+          onClose={() => setCargoCrateSurfaceWizardOpen(false)}
+        />
+      )}
+      {outdoorLightingWizardOpen && (
+        <OutdoorLightingTuningWizard
+          tuning={outdoorLightingTuning}
+          onChange={updateOutdoorLightingTuning}
+          onClose={() => setOutdoorLightingWizardOpen(false)}
+        />
+      )}
+      {enemyRigWizardOpen && (
+        <EnemyRigTuningWizard
+          tuning={enemyRigTuning}
+          onChange={updateEnemyRigTuning}
+          onClose={() => {
+            setEnemyRigWizardOpen(false);
+            setEnemyRigWizardPreviewActive(false);
+            enemyMuzzlePreviewRef.current?.setVisible(false);
+            updateEnemyRigTuning({
+              previewAnimation: false,
+              previewReverse: false,
+            });
+          }}
+        />
       )}
       {controlsOpen && (
         <ControlsPanel

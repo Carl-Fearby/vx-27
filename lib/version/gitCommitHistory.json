@@ -1,19 +1,30 @@
 {
-  "generatedAt": "2026-06-21T23:01:33.380Z",
-  "head": "45955ff",
-  "count": 237,
+  "generatedAt": "2026-06-23T20:23:32.115Z",
+  "head": "7fac1d8",
+  "count": 238,
   "codebase": {
-    "files": 249,
-    "lines": 79990,
-    "nonBlankLines": 72926
+    "files": 257,
+    "lines": 83475,
+    "nonBlankLines": 76163
   },
   "historyStats": {
-    "filesChanged": 2644,
-    "insertions": 160803,
-    "deletions": 60061,
+    "filesChanged": 2646,
+    "insertions": 160835,
+    "deletions": 60071,
     "binaryFiles": 636
   },
   "commits": [
+    {
+      "sha": "7fac1d8",
+      "date": "2026-06-22",
+      "subject": "Fix v0.1.63 release commit hash and refresh git commit history.",
+      "stats": {
+        "filesChanged": 2,
+        "insertions": 32,
+        "deletions": 10,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "45955ff",
       "date": "2026-06-22",

@@ -1,19 +1,52 @@
 {
-  "generatedAt": "2026-06-23T23:37:01.814Z",
-  "head": "f6c708e",
-  "count": 240,
+  "generatedAt": "2026-06-24T00:03:48.496Z",
+  "head": "8eb921e",
+  "count": 243,
   "codebase": {
-    "files": 259,
-    "lines": 84206,
-    "nonBlankLines": 76855
+    "files": 261,
+    "lines": 84606,
+    "nonBlankLines": 77215
   },
   "historyStats": {
-    "filesChanged": 2688,
-    "insertions": 164723,
-    "deletions": 60247,
+    "filesChanged": 2712,
+    "insertions": 166071,
+    "deletions": 60538,
     "binaryFiles": 645
   },
   "commits": [
+    {
+      "sha": "8eb921e",
+      "date": "2026-06-24",
+      "subject": "Fix v0.1.65 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "1b73229",
+      "date": "2026-06-24",
+      "subject": "Release v0.1.65: Rifle crosshair polish and enemy rig showcase.",
+      "stats": {
+        "filesChanged": 11,
+        "insertions": 422,
+        "deletions": 43,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "258d600",
+      "date": "2026-06-24",
+      "subject": "Add welded rifle reticle tuning wizard and bake ADS sight defaults.",
+      "stats": {
+        "filesChanged": 12,
+        "insertions": 925,
+        "deletions": 247,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "f6c708e",
       "date": "2026-06-23",

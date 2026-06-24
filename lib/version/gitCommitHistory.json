@@ -1,19 +1,52 @@
 {
-  "generatedAt": "2026-06-24T00:03:48.496Z",
-  "head": "8eb921e",
-  "count": 243,
+  "generatedAt": "2026-06-24T00:36:20.381Z",
+  "head": "d06b53f",
+  "count": 246,
   "codebase": {
-    "files": 261,
-    "lines": 84606,
-    "nonBlankLines": 77215
+    "files": 264,
+    "lines": 84855,
+    "nonBlankLines": 77428
   },
   "historyStats": {
-    "filesChanged": 2712,
-    "insertions": 166071,
-    "deletions": 60538,
+    "filesChanged": 2728,
+    "insertions": 166580,
+    "deletions": 60765,
     "binaryFiles": 645
   },
   "commits": [
+    {
+      "sha": "d06b53f",
+      "date": "2026-06-24",
+      "subject": "Fix v0.1.66 release commit hash in version history.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 1,
+        "deletions": 1,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "f82ca1b",
+      "date": "2026-06-24",
+      "subject": "Release v0.1.66: Credits enemy preview fixes.",
+      "stats": {
+        "filesChanged": 14,
+        "insertions": 466,
+        "deletions": 217,
+        "binaryFiles": 0
+      }
+    },
+    {
+      "sha": "0b0f226",
+      "date": "2026-06-24",
+      "subject": "Sync git commit history metadata for v0.1.65.",
+      "stats": {
+        "filesChanged": 1,
+        "insertions": 42,
+        "deletions": 9,
+        "binaryFiles": 0
+      }
+    },
     {
       "sha": "8eb921e",
       "date": "2026-06-24",

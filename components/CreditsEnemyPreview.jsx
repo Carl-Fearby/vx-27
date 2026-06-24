@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { mountCreditsEnemyPreview } from "@/lib/credits/CreditsEnemyPreview";
+import { preloadCreditsAssetData } from "@/lib/credits/preloadCreditsAssets";
 import {
   creditsPreviewPriorityFromHost,
   useCreditsLazy3d,
 } from "@/lib/credits/useCreditsLazy3d";
 
-export default function MarketingEnemyPreview({ className = "" }) {
+export default function CreditsEnemyPreview({ variant = "hero", className = "" }) {
   const canvasRef = useRef(null);
   const controllerRef = useRef(null);
   const { hostRef, shouldRun, everVisible } = useCreditsLazy3d();
@@ -25,7 +26,12 @@ export default function MarketingEnemyPreview({ className = "" }) {
 
     let cancelled = false;
 
-    mountCreditsEnemyPreview(canvas, { variant: "marketing", getPriority })
+    preloadCreditsAssetData()
+      .catch(() => {})
+      .then(() => {
+        if (cancelled || !canvasRef.current) return;
+        return mountCreditsEnemyPreview(canvas, { variant, getPriority });
+      })
       .then((controller) => {
         if (!controller || cancelled) {
           controller?.dispose();
@@ -41,7 +47,7 @@ export default function MarketingEnemyPreview({ className = "" }) {
       controllerRef.current?.dispose();
       controllerRef.current = null;
     };
-  }, [everVisible, getPriority]);
+  }, [everVisible, variant, getPriority]);
 
   useEffect(() => {
     controllerRef.current?.setActive(shouldRun);
@@ -50,10 +56,10 @@ export default function MarketingEnemyPreview({ className = "" }) {
   return (
     <div
       ref={hostRef}
-      className={`mktEnemyPreview${className ? ` ${className}` : ""}`}
+      className={`creditsEnemyFrame creditsEnemyFrame--${variant}${className ? ` ${className}` : ""}`}
       aria-hidden
     >
-      <canvas ref={canvasRef} className="mktEnemyPreviewCanvas" />
+      <canvas ref={canvasRef} className="creditsEnemyCanvas" />
     </div>
   );
 }

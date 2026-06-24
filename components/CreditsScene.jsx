@@ -16,7 +16,7 @@ import {
   trackUsageLabel,
 } from "@/lib/audio/MusicTrackMeta.js";
 import MusicTrackPlayer from "@/components/MusicTrackPlayer";
-import CreditsRiflePreview from "@/components/CreditsRiflePreview";
+import CreditsEnemyPreview from "@/components/CreditsEnemyPreview";
 import CreditsAmmoCratePreview from "@/components/CreditsAmmoCratePreview";
 import CreditsVx27ContainerPreview from "@/components/CreditsVx27ContainerPreview";
 import CreditsBigBangFinale from "@/components/CreditsBigBangFinale";
@@ -365,20 +365,20 @@ const ASSETS = {
 const PROPS_AFTER = {
   Production: { layout: "scatter", items: ["grenade", "powepack", "stamina"] },
   "Direction & Creative": { layout: "solo", item: "radar", caption: "Tactical Overlay" },
-  "Engine & Rendering": { layout: "rifle", caption: "VX-27 Rifle" },
+  "Engine & Rendering": { layout: "enemy", caption: "PX-27 Combat Android" },
   "Gameplay Systems": { layout: "ammo-crate" },
   "Level Design & World": { layout: "solo", item: "second-weapon", caption: "Standard Issue" },
   "Lighting & Atmosphere": { layout: "moon" },
   "Visual Effects & Combat Feedback": { layout: "bullet-wall" },
   "Environmental Hazards": { layout: "duo", items: ["oil-barrel", "hazard"], caption: "Handle With Care" },
   "VX-27 Cargo Systems": { layout: "vx27-container", caption: "VX-27 Cargo Module" },
-  "Character & Animation": { layout: "solo", item: "stamina", caption: "Walk Power", spin: true },
+  "Character & Animation": { layout: "enemy", caption: "Hostile Rig Pipeline" },
   Audio: { layout: "duo", items: ["powepack", "grenade"], caption: "Soundtrack Fuel" },
   "User Interface & HUD": { layout: "hud-row", items: ["second-weapon", "radar", "stamina"] },
   "Dev Tools & Tuning Panels": { layout: "hazard" },
   "Quality Assurance": { layout: "scatter", items: ["crate-front", "grenade", "bullet-1"] },
   "Technical Operations": { layout: "solo", item: "radar", caption: "Systems Online" },
-  "Control Panel & Combat Polish": { layout: "rifle", caption: "Muzzle Tracers" },
+  "Control Panel & Combat Polish": { layout: "vx27-container", caption: "Console Breach Rig" },
   Cast: { layout: "cluster" },
   "Stunts & Practical Effects": { layout: "duo", items: ["grenade", "powepack"] },
   "Catering & Wellness": { layout: "solo", item: "powepack", caption: "Craft Services" },
@@ -388,7 +388,7 @@ const PROPS_AFTER = {
 
 const SECTION_LAYOUTS = {
   Production: { align: "center", cols: 1 },
-  "Direction & Creative": { align: "center", cols: 1, flank: "rifle", flankSide: "left" },
+  "Direction & Creative": { align: "center", cols: 1, flank: "enemy", flankSide: "left" },
   "Engine & Rendering": { align: "center", cols: 1, flank: "bullet-cluster", flankSide: "right" },
   "Gameplay Systems": { align: "center", cols: 1 },
   "Level Design & World": { align: "center", cols: 1, flank: "hazard", flankSide: "left" },
@@ -402,7 +402,7 @@ const SECTION_LAYOUTS = {
   "Dev Tools & Tuning Panels": { align: "center", cols: 1, flank: "grenade-tex", flankSide: "left" },
   "Quality Assurance": { align: "center", cols: 1 },
   "Technical Operations": { align: "center", cols: 1 },
-  "Control Panel & Combat Polish": { align: "center", cols: 1, flank: "rifle", flankSide: "right" },
+  "Control Panel & Combat Polish": { align: "center", cols: 1, flank: "bullet-cluster", flankSide: "right" },
   Cast: { align: "center", cols: 1 },
   "Stunts & Practical Effects": { align: "center", cols: 1, flank: "bullet-cluster", flankSide: "right" },
   "Catering & Wellness": { align: "center", cols: 1 },
@@ -416,7 +416,7 @@ const INTERSTITIAL_CYCLE = [
   "art-moon",
   "art-hazard",
   "drift-stamina-l",
-  "art-vx27",
+  "art-enemy",
   "art-container",
   "drift-powepack-r",
   "art-grenade-tex",
@@ -510,10 +510,10 @@ function CreditsAsset({ id, className = "" }) {
 
 function CreditsFlankArt({ art, side }) {
   if (!art) return null;
-  if (art === "rifle") {
+  if (art === "enemy") {
     return (
       <div className={`creditsFlank creditsFlank--${side}`} aria-hidden>
-        <CreditsRiflePreview variant="flank" />
+        <CreditsEnemyPreview variant="flank" />
       </div>
     );
   }
@@ -570,11 +570,11 @@ function CreditsInterstitial({ kind }) {
     );
   }
 
-  if (kind === "art-vx27") {
+  if (kind === "art-enemy") {
     return (
-      <div className="creditsInterstitial creditsInterstitial--vx27" aria-hidden>
-        <CreditsRiflePreview variant="hero" />
-        <p className="creditsPropCaption">VX-27 Rifle</p>
+      <div className="creditsInterstitial creditsInterstitial--enemy" aria-hidden>
+        <CreditsEnemyPreview variant="hero" />
+        <p className="creditsPropCaption">PX-27 Combat Android</p>
       </div>
     );
   }
@@ -755,17 +755,17 @@ function CreditsPropInsert({ layout, items, item, caption, spin, art }) {
 
       {layout === "texture-strip" ? (
         <div className="creditsInterstitial creditsInterstitial--texture creditsInterstitial--inline">
-          {art === "vx27" || art === "rifle" ? (
-            <CreditsRiflePreview variant="strip" />
+          {art === "enemy" ? (
+            <CreditsEnemyPreview variant="strip" />
           ) : (
             <CreditsAsset id={art} className="creditsTextureStrip" />
           )}
         </div>
       ) : null}
 
-      {layout === "rifle" ? (
-        <div className="creditsInterstitial creditsInterstitial--vx27 creditsInterstitial--inline">
-          <CreditsRiflePreview variant="hero" />
+      {layout === "enemy" ? (
+        <div className="creditsInterstitial creditsInterstitial--enemy creditsInterstitial--inline">
+          <CreditsEnemyPreview variant="hero" />
           {caption ? <p className="creditsPropCaption">{caption}</p> : null}
         </div>
       ) : null}
@@ -1350,7 +1350,7 @@ export default function CreditsScene() {
             <CreditBlock role="Inspired by the dreams of" name="Earl Farby" />
           </div>
 
-          <CreditsInterstitial kind="art-vx27" />
+          <CreditsInterstitial kind="art-enemy" />
 
           <div className="creditsSpacerLg" />
 

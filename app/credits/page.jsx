@@ -1,5 +1,5 @@
-import CreditsScene from "@/components/CreditsScene";
+import CreditsShell from "@/components/CreditsShell";
 
 export default function CreditsPage() {
-  return <CreditsScene />;
+  return <CreditsShell />;
 }

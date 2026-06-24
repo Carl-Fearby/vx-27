@@ -1,5 +1,22 @@
 /* === VX-27 credits — matches in-game HUD / loading screen ================== */
 
+.creditsBoot {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #030406;
+  color: rgba(180, 210, 255, 0.82);
+  font-family: var(--font-futuristic), "Orbitron", "Eurostile", "Rajdhani", sans-serif;
+}
+
+.creditsBootLabel {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
 /* Credits page — full viewport (not marketing scroll) */
 html:has(.creditsRoot),
 html:has(.creditsRoot) body {
@@ -1717,6 +1734,75 @@ html:has(.creditsRoot) body {
 
 .creditsInterstitial--vx27 .creditsRifleFrame {
   animation: creditsPropFloat 6s ease-in-out infinite;
+}
+
+/* === 3D enemy preview (PX-27 android rig) ================================== */
+
+.creditsEnemyFrame {
+  position: relative;
+  margin: 0 auto;
+  padding: 8px;
+  border-radius: 12px;
+  overflow: visible;
+  background: linear-gradient(
+    135deg,
+    rgba(94, 255, 170, 0.34) 0%,
+    rgba(40, 120, 80, 0.22) 50%,
+    rgba(94, 255, 170, 0.28) 100%
+  );
+  box-shadow:
+    0 0 32px rgba(94, 255, 170, 0.12),
+    0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.creditsEnemyFrame--flank {
+  width: min(148px, 30vw);
+  border-radius: 10px;
+}
+
+.creditsEnemyFrame--hero {
+  width: min(300px, 72vw);
+}
+
+.creditsEnemyFrame--strip {
+  width: min(340px, 82vw);
+}
+
+.creditsEnemyCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: radial-gradient(
+    ellipse at 50% 55%,
+    rgba(16, 40, 28, 0.55) 0%,
+    rgba(3, 8, 5, 0.92) 70%
+  );
+}
+
+.creditsEnemyFrame--flank .creditsEnemyCanvas {
+  border-radius: 9px;
+}
+
+.creditsFlank .creditsEnemyFrame {
+  animation: creditsPropFloat 5.5s ease-in-out infinite;
+}
+
+.creditsInterstitial--enemy .creditsEnemyFrame {
+  animation: creditsPropFloat 6s ease-in-out infinite;
+}
+
+.creditsInterstitial--enemy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.creditsPropInsert:has(.creditsEnemyFrame) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .creditsPropInsert:has(.creditsVx27Container) {

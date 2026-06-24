@@ -6,6 +6,7 @@ import Image from "next/image";
 import packageJson from "../package.json";
 import CreditsScanlineCanvas from "@/components/CreditsScanlineCanvas";
 import MarketingControlPanelPreview from "@/components/MarketingControlPanelPreview";
+import MarketingEnemyPreview from "@/components/MarketingEnemyPreview";
 import MarketingBrowserBanner, {
   useNonChromeBrowser,
 } from "@/components/MarketingBrowserBanner";
@@ -24,6 +25,7 @@ const CONTACT = {
 
 const TELEMETRY = [
   { label: "STATUS", value: "Solo build · needs collaborators" },
+  { label: "ENEMY AI", value: "PX-27 rigs live · smarter bad guys in progress" },
   { label: "BUILD", value: `v${BUILD_VERSION} · RUSH combat rules · architecture on site` },
   { label: "RUSH", value: "JS show · Rust compute · game_core live · hack_core next" },
   { label: "PLATFORM", value: "Desktop · iPad Safari · zero install" },
@@ -62,7 +64,26 @@ const NODE_BREACH_SPECS = [
   ["Rewards", "Random loot · pistol or rifle mag · credits · medkit · rifle unlock · grenades · flashbangs"],
 ];
 
+const ENEMY_AI_SPECS = [
+  ["Rig pipeline", "Meshy PX-27 character GLB + separate walk, run, and dual death clips — in-place locomotion scaled to navmesh speed"],
+  ["Muzzle anchor", "Dev wizard tunes rifle muzzle in local rig space — laser tracers and AI fire share the same anchor"],
+  ["Kill zones", "Head and torso hits use the standard fall; leg and pelvis hits clutch the abdominal injury clip"],
+  ["Grenade deaths", "Mixed death clips with staggered blast knockback so multi-kills do not sync"],
+  ["Rifle AI", "Magazines, reload, cover when hurt or low on ammo, panic run when exposed — full-range fire with distance falloff"],
+  ["In progress", "Squad tactics, flanking, and deeper perception layers — active dev on localhost tuning wizards"],
+];
+
 const WHATS_NEW = [
+  {
+    tag: "v0.1.65",
+    title: "Rifle crosshair polish",
+    text: "Hip fire keeps the standard white cross on the rifle; the welded sight fades in when you ADS. Pistol always uses the standard crosshair. Hip tuning baked to v24 and the screen reticle mesh lazy-loads until you aim.",
+  },
+  {
+    tag: "v0.1.65",
+    title: "Enemy rig showcase",
+    text: "Marketing site now spins a live PX-27 android preview and documents the bad-guy tooling pipeline — rig clips, muzzle tuning, zone-based deaths, and the rifle AI layer we are still pushing forward.",
+  },
   {
     tag: "v0.1.64",
     title: "PX-27 combat androids",
@@ -384,7 +405,13 @@ const OPS = [
     code: "AND",
     title: "PX-27 combat androids",
     body: "Meshy-skinned biped targets with in-place walk/run clips, tuned rifle muzzle anchors, and dual death animations — standard fall for head and torso, abdominal clutch for leg hits, mixed staggered deaths on grenades with blast knockback.",
-    accent: "v0.1.64 · rigged",
+    accent: "v0.1.65 · rigged",
+  },
+  {
+    code: "AI+",
+    title: "Enemy AI · in progress",
+    body: "Rookie rifle bots already reload, seek cover, and panic when exposed — navmesh patrol and distance damage are live. Next up: tighter squad behaviour, flanking, and perception tuning through the enemy rig wizard on localhost.",
+    accent: "active dev · WIP",
   },
   {
     code: "NAV",
@@ -434,6 +461,7 @@ export default function MarketingSite() {
           <a href="#briefing">Briefing</a>
           <a href="#rush">RUSH</a>
           <a href="#story">Story</a>
+          <a href="#enemies">Enemy AI</a>
           <a href="#factions">Threats</a>
           <a href="#breach">NODE BREACH</a>
           <a href="#ops">Systems</a>
@@ -702,6 +730,40 @@ export default function MarketingSite() {
               </div>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section id="enemies" className="mktBreach mktEnemies">
+        <div className="mktBreachVisual">
+          <MarketingEnemyPreview />
+          <div className="mktEnemyHud" aria-hidden>
+            <span className="mktEnemyHudTag">RIG</span>
+            <span className="mktEnemyHudTag">WALK</span>
+            <span className="mktEnemyHudTag">MUZZLE</span>
+            <span className="mktEnemyHudTag mktEnemyHudTagWip">AI WIP</span>
+          </div>
+        </div>
+        <div className="mktBreachCopy">
+          <p className="mktKicker">Enemy tooling · PX-27 android</p>
+          <h2>Bad guys are getting smarter. The rig is already in the zone.</h2>
+          <p className="mktBreachLead">
+            Armed targets now mount Meshy-skinned PX-27 combat androids — walk and run in
+            place, tuned rifle muzzle anchors, and dual death clips keyed to hit zone.
+            Rookie rifle AI handles magazines, reload, cover, and panic runs today; squad
+            tactics and deeper perception are what we are building next.
+          </p>
+          <dl className="mktBreachSpecs">
+            {ENEMY_AI_SPECS.map(([label, value]) => (
+              <div key={label} className="mktBreachSpecRow">
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <Link href="/game" className="mktPlayBtn mktPlayBtnCompact">
+            <span className="mktPlayBtnLabel">Fight the androids</span>
+            <span className="mktPlayBtnSub">Level 1 &amp; 2 · rifle AI live</span>
+          </Link>
         </div>
       </section>
 

@@ -342,7 +342,6 @@ const ASSETS = {
   powepack: { src: "/ui/powepack.webp" },
   stamina: { src: "/ui/stamina-icon.webp" },
   "second-weapon": { src: "/ui/second-weapon.webp" },
-  radar: { src: "/ui/radar_hud.webp" },
   "crate-front": { src: "/ui/crate/front.webp" },
   "crate-top": { src: "/ui/crate/top.webp" },
   "crate-end": { src: "/ui/crate/endcap.png" },
@@ -358,27 +357,29 @@ const ASSETS = {
   "bullet-4": { src: "/textures/bullet_holes/04_concrete_bullet_hole_alpha.webp" },
   "bullet-5": { src: "/textures/bullet_holes/05_concrete_bullet_hole_alpha.webp" },
   "oil-barrel": { src: "/textures/oil_barrel/barrel_body_albedo.webp" },
+  "container-side": { src: "/textures/vx27_container/vx27_container_side_albedo.webp" },
+  "control-panel": { src: "/textures/control_panel/hull/hull_albedo.webp" },
   "sky-dome": { src: "/sky/sky_dome_equirectangular_4k.webp" },
 };
 
 /** Prop art sprinkled between credit sections — keyed by section title. */
 const PROPS_AFTER = {
   Production: { layout: "scatter", items: ["grenade", "powepack", "stamina"] },
-  "Direction & Creative": { layout: "solo", item: "radar", caption: "Tactical Overlay" },
+  "Direction & Creative": { layout: "solo", item: "powepack", caption: "Power Routing" },
   "Engine & Rendering": { layout: "enemy", caption: "PX-27 Combat Android" },
   "Gameplay Systems": { layout: "ammo-crate" },
   "Level Design & World": { layout: "solo", item: "second-weapon", caption: "Standard Issue" },
   "Lighting & Atmosphere": { layout: "moon" },
   "Visual Effects & Combat Feedback": { layout: "bullet-wall" },
   "Environmental Hazards": { layout: "duo", items: ["oil-barrel", "hazard"], caption: "Handle With Care" },
-  "VX-27 Cargo Systems": { layout: "vx27-container", caption: "VX-27 Cargo Module" },
+  "VX-27 Cargo Systems": { layout: "vx27-opener", caption: "VX-27 Cargo Module" },
   "Character & Animation": { layout: "enemy", caption: "Hostile Rig Pipeline" },
   Audio: { layout: "duo", items: ["powepack", "grenade"], caption: "Soundtrack Fuel" },
-  "User Interface & HUD": { layout: "hud-row", items: ["second-weapon", "radar", "stamina"] },
+  "User Interface & HUD": { layout: "hud-row", items: ["second-weapon", "stamina"] },
   "Dev Tools & Tuning Panels": { layout: "hazard" },
   "Quality Assurance": { layout: "scatter", items: ["crate-front", "grenade", "bullet-1"] },
-  "Technical Operations": { layout: "solo", item: "radar", caption: "Systems Online" },
-  "Control Panel & Combat Polish": { layout: "vx27-container", caption: "Console Breach Rig" },
+  "Technical Operations": { layout: "solo", item: "crate-front", caption: "Systems Online" },
+  "Control Panel & Combat Polish": { layout: "solo", item: "control-panel", caption: "Console Breach Rig" },
   Cast: { layout: "cluster" },
   "Stunts & Practical Effects": { layout: "duo", items: ["grenade", "powepack"] },
   "Catering & Wellness": { layout: "solo", item: "powepack", caption: "Craft Services" },
@@ -395,7 +396,7 @@ const SECTION_LAYOUTS = {
   "Lighting & Atmosphere": { align: "center", cols: 1, flank: "moon", flankSide: "right" },
   "Visual Effects & Combat Feedback": { align: "center", cols: 1 },
   "Environmental Hazards": { align: "center", cols: 1, flank: "oil-barrel", flankSide: "right" },
-  "VX-27 Cargo Systems": { align: "center", cols: 1, flank: "vx27-container", flankSide: "left" },
+  "VX-27 Cargo Systems": { align: "center", cols: 1, flank: "container-side", flankSide: "left" },
   "Character & Animation": { align: "center", cols: 1 },
   Audio: { align: "center", cols: 1 },
   "User Interface & HUD": { align: "center", cols: 1 },
@@ -420,7 +421,7 @@ const INTERSTITIAL_CYCLE = [
   "art-container",
   "drift-powepack-r",
   "art-grenade-tex",
-  "drift-radar",
+  "drift-crate-r",
   "art-bullet-wall",
   "art-oil-barrel",
 ];
@@ -517,13 +518,6 @@ function CreditsFlankArt({ art, side }) {
       </div>
     );
   }
-  if (art === "vx27-container") {
-    return (
-      <div className={`creditsFlank creditsFlank--${side}`} aria-hidden>
-        <CreditsVx27ContainerPreview variant="flank" />
-      </div>
-    );
-  }
   return (
     <div className={`creditsFlank creditsFlank--${side}`} aria-hidden>
       {art === "bullet-cluster" ? (
@@ -582,7 +576,7 @@ function CreditsInterstitial({ kind }) {
   if (kind === "art-container") {
     return (
       <div className="creditsInterstitial creditsInterstitial--container" aria-hidden>
-        <CreditsVx27ContainerPreview variant="hero" />
+        <CreditsAsset id="container-side" className="creditsContainerSide" />
         <p className="creditsPropCaption">VX-27 Cargo Module</p>
       </div>
     );
@@ -727,10 +721,6 @@ function CreditsAmmoCrate({ variant = "default" }) {
   return <CreditsAmmoCratePreview variant={variant} />;
 }
 
-function CreditsVx27Container({ variant = "default" }) {
-  return <CreditsVx27ContainerPreview variant={variant} />;
-}
-
 function CreditsPropInsert({ layout, items, item, caption, spin, art }) {
   return (
     <div className="creditsPropInsert" aria-hidden>
@@ -777,11 +767,8 @@ function CreditsPropInsert({ layout, items, item, caption, spin, art }) {
         </>
       ) : null}
 
-      {layout === "vx27-container" ? (
-        <>
-          <CreditsVx27Container variant="hero" />
-          {caption ? <p className="creditsPropCaption">{caption}</p> : null}
-        </>
+      {layout === "vx27-opener" ? (
+        <CreditsVx27ContainerPreview variant="opener" />
       ) : null}
 
       {layout === "solo" ? (

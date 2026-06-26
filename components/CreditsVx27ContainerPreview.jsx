@@ -42,7 +42,8 @@ export default function CreditsVx27ContainerPreview({
         }
         controllerRef.current = controller;
         controller.setActive(shouldRun);
-      });
+      })
+      .catch(() => {});
 
     return () => {
       cancelled = true;

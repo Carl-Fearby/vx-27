@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import packageJson from "../package.json";
 import CreditsScanlineCanvas from "@/components/CreditsScanlineCanvas";
-import MarketingControlPanelPreview from "@/components/MarketingControlPanelPreview";
 import MarketingEnemyPreview from "@/components/MarketingEnemyPreview";
 import MarketingBrowserBanner, {
   useNonChromeBrowser,
@@ -643,13 +642,12 @@ export default function MarketingSite() {
 
       <section id="breach" className="mktBreach">
         <div className="mktBreachVisual">
-          <MarketingControlPanelPreview />
-          <div className="mktBreachHud" aria-hidden>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/ui/hack/node-live.png" alt="" width={28} height={28} />
-            <img src="/ui/hack/line.png" alt="" width={48} height={12} />
-            <img src="/ui/hack/pointer.png" alt="" width={20} height={20} />
-            <img src="/ui/hack/reward-cache.png" alt="" width={26} height={26} />
+          <MarketingEnemyPreview />
+          <div className="mktEnemyHud" aria-hidden>
+            <span className="mktEnemyHudTag">RIG</span>
+            <span className="mktEnemyHudTag">WALK</span>
+            <span className="mktEnemyHudTag">MUZZLE</span>
+            <span className="mktEnemyHudTag mktEnemyHudTagWip">AI WIP</span>
           </div>
         </div>
         <div className="mktBreachCopy">
@@ -733,16 +731,7 @@ export default function MarketingSite() {
         </div>
       </section>
 
-      <section id="enemies" className="mktBreach mktEnemies">
-        <div className="mktBreachVisual">
-          <MarketingEnemyPreview />
-          <div className="mktEnemyHud" aria-hidden>
-            <span className="mktEnemyHudTag">RIG</span>
-            <span className="mktEnemyHudTag">WALK</span>
-            <span className="mktEnemyHudTag">MUZZLE</span>
-            <span className="mktEnemyHudTag mktEnemyHudTagWip">AI WIP</span>
-          </div>
-        </div>
+      <section id="enemies" className="mktBreach mktEnemies mktBreach--solo">
         <div className="mktBreachCopy">
           <p className="mktKicker">Enemy tooling · PX-27 android</p>
           <h2>Bad guys are getting smarter. The rig is already in the zone.</h2>
@@ -853,7 +842,7 @@ export default function MarketingSite() {
             <li>Toxic oil spill decal under the barrel pile · burning drums with fire video</li>
             <li>Catwalks, stairs, attached service rooms with pillar-shell lighting</li>
             <li>Fire-mode HUD carousel — weapon and grenade selectors with night-aware icons</li>
-            <li>Health, stamina pickups — full HUD with compass and radar</li>
+            <li>Health, stamina pickups — full HUD with compass blips</li>
             <li>GPU preload on the loading bar — fewer first-frame hitches after Start Game</li>
             <li>RUSH game_core WASM — JS renders, Rust computes combat rules every frame</li>
             <li>PX-27 combat androids — Meshy rig, walk/run/death clips, zone-based kill reactions</li>
